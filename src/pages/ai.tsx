@@ -24,7 +24,14 @@ export default function AIPage() {
         </section>
 
         <section>
-          <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Recent agent tasks</h2>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Recent agent tasks</h2>
+            {recent.length ? (
+              <Link href="/app/ai/history" className="-my-2 inline-flex h-11 items-center px-1 text-sm font-medium text-primary hover:underline" data-testid="link-task-history">
+                Full history
+              </Link>
+            ) : null}
+          </div>
           {recent.length === 0 ? (
             <EmptyState
               icon={<Sparkles className="size-6" />}

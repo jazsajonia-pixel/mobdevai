@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 import { Link } from "wouter";
-import { ChevronDown, ChevronLeft, GitBranch, Lock, Play } from "lucide-react";
-import { WORKSPACE_TABS, WORKSPACE_TAB_META, projectPath, type WorkspaceTab } from "@/lib/nav";
+import { ChevronDown, ChevronLeft, ChevronRight, GitBranch, Lock, Play } from "lucide-react";
+import { WORKSPACE_NAV_TABS, WORKSPACE_TAB_META, projectPath, type WorkspaceTab } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import type { ProjectRef } from "@/types/workspace";
 import { Badge } from "@/components/ui/badge";
 import { useOptionalWorkspace } from "@/features/workspace/context";
 import { DemoBanner } from "./demo-banner";
+import { SkipLink } from "./app-shell";
 import { OfflineBanner } from "./offline-banner";
 
 /** Inside a repository the global nav is replaced by Files / AI / Preview / Git. */
@@ -33,18 +34,28 @@ export function WorkspaceShell({
     // Fixed-height column: header · scrolling main · tab bar. The editor fills `main` exactly,
     // and with interactive-widget=resizes-content the whole column shrinks above the keyboard.
     <div className="flex h-dvh flex-col overflow-hidden">
-      <div className="z-30 shrink-0 bg-background pt-safe">
+      <SkipLink />
+      <header className="z-30 shrink-0 bg-background pt-safe">
         <OfflineBanner />
         <DemoBanner />
-        <header className="mx-auto flex h-14 w-full max-w-5xl items-center gap-1 border-b pl-1 pr-3">
+        <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-1 border-b pl-1 pr-3">
           <Link href="/app/projects" aria-label="Back to projects" className="grid size-11 place-items-center rounded-md text-muted-foreground hover:bg-surface-2">
             <ChevronLeft className="size-5" />
           </Link>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold" data-testid="text-repo-name">
-              <span className="text-muted-foreground">{project.owner}/</span>
-              {project.name}
-            </p>
+            <Link
+              href={projectPath(project.owner, project.name, "overview")}
+              aria-current={tab === "overview" ? "page" : undefined}
+              aria-label={`${project.owner}/${project.name} — project overview`}
+              className="-mx-1 block max-w-full truncate rounded px-1 text-sm font-semibold hover:bg-surface-2"
+              data-testid="link-overview"
+            >
+              <span data-testid="text-repo-name">
+                <span className="text-muted-foreground">{project.owner}/</span>
+                {project.name}
+              </span>
+              <ChevronRight className="ml-0.5 inline size-3.5 align-[-2px] text-muted-foreground" aria-hidden />
+            </Link>
             {onBranchClick ? (
               <button
                 type="button"
@@ -78,14 +89,14 @@ export function WorkspaceShell({
               <Play className="size-3.5 fill-current" aria-hidden /> Preview
             </Link>
           ) : null}
-        </header>
-      </div>
+        </div>
+      </header>
 
-      <main className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col overflow-y-auto">{children}</main>
+      <main id="main" tabIndex={-1} className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col overflow-y-auto outline-none">{children}</main>
 
       <nav aria-label="Workspace" className="z-30 shrink-0 border-t bg-surface pb-safe">
         <ul className="mx-auto grid max-w-lg grid-cols-4">
-          {WORKSPACE_TABS.map((t) => {
+          {WORKSPACE_NAV_TABS.map((t) => {
             const meta = WORKSPACE_TAB_META[t];
             const active = t === tab;
             return (

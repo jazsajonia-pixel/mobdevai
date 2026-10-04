@@ -87,3 +87,10 @@ export function compactForStorage(task: AgentTask): AgentTask {
     messages: task.messages.map((m) => (m.role === "tool" && m.content.length > 6000 ? { ...m, content: `${m.content.slice(0, 6000)}\n[… trimmed when saved]` } : m)),
   };
 }
+
+/** Strip the attached-files block from a user message for display. */
+export function splitUserMessage(content: string): { text: string; files: string[] } {
+  const i = content.indexOf("\n\nAttached files (repository content");
+  const files = [...content.matchAll(/<attached_file path="([^"]+)">/g)].map((m) => m[1]!);
+  return { text: i >= 0 ? content.slice(0, i) : content, files };
+}

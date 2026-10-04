@@ -216,12 +216,41 @@ Not in this phase: the agent tools `create_branch` / `commit_changes` / `create_
 agent still only proposes — shipping is always a user action), merging PRs, and pulling upstream
 changes into a stale workspace (use a new branch instead).
 
-## Phase 7 — Polish (next)
+## Phase 7 — Polish ✅
 
-Task history, project dashboard (current branch, last sync, recent commits, Git status), better
-mobile UX, offline/local draft protection, performance, security review, accessibility and more
-automated tests.
+- **Task history** (`AI → Full history`, `#/app/ai/history[/owner/repo]`): every AI task on this
+  device with prompt (attached file bodies hidden), repository, branch, files changed with
+  accept/reject decisions, result or error, timestamps, status (in progress · needs review · done ·
+  shipped · stopped/failed), model/tokens and commit/PR links. Search (prompt, files, branch), status
+  chips, repository filter, and delete with confirmation.
+- **Project dashboard** (tap the repo name in the workspace header → `…/overview`): repository
+  (visibility, project type, file count, partial-tree warning), current branch (tap to switch), commit,
+  last sync with a Sync button, Git status (changed files, +/- lines, unsaved drafts, open PR, recent
+  commits), current AI provider/model, recent tasks for the repo, and the last preview result
+  (built / runtime errors / build failed / unsupported).
+- **Mobile UX**: sticky commit bar in the Git tab (main action stays under the thumb), header link to
+  the dashboard, skip-to-content link, horizontal filter chips.
+- **Offline & draft protection**: the commit button and the agent composer are disabled offline with
+  a clear explanation (changes are already saved on the device). New *Download .patch* exports
+  uncommitted changes as a Git patch (`git apply` compatible) — works offline and without push access.
+- **Performance**: secondary pages (projects, AI, history, preview, settings, providers) and the
+  bottom-sheet library are code-split — the initial JavaScript for landing/sign-in/home went from
+  374 KB to 243 KB (minified). Hashed assets are served with immutable caching.
+- **Security review** — see [SECURITY.md](SECURITY.md). Changes: every non-GET function request is
+  same-origin checked centrally in `handle()`; added HSTS, COOP and a CSP (`object-src 'none'`,
+  `base-uri 'self'`, `frame-ancestors 'none'`, `form-action`); automated invariant tests for secrets,
+  logging, server-side execution, CSRF, headers and raw-HTML rendering. `npm audit --omit=dev`: 0.
+- **Accessibility**: axe-core runs in the test suite on nine screens (0 violations); fixed duplicate
+  navigation landmarks, banners outside landmarks and skipped heading levels; landing content is in a
+  `main` landmark.
+- **Tests**: 191 total (history, dashboard, patch export incl. a real `git apply`, security
+  invariants, accessibility).
+
+## Phase 8 — Production (next)
+
+Netlify deployment, production environment variables, logging/monitoring, shared rate limiting,
+final security review, end-to-end tests and real mobile browser verification.
 
 ## Later phases
 
-8 Production
+Python execution, PHP/Laravel environments and other runtimes (see the product plan).

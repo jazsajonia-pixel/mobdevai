@@ -88,6 +88,7 @@ export default function LandingPage() {
         </Button>
       </header>
 
+      <main id="main">
       <section className="mx-auto grid max-w-5xl items-center gap-12 px-4 pb-16 pt-8 md:grid-cols-[1.1fr_1fr] md:pt-16">
         <div className="animate-fade-up">
           <p className="inline-flex items-start gap-2 rounded-md border bg-surface px-3 py-1.5 text-xs text-muted-foreground">
@@ -155,6 +156,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      </main>
 
       <footer className="border-t">
         <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">

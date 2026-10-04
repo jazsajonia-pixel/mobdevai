@@ -8,16 +8,18 @@ import { RequireSession } from "@/features/auth/require-session";
 import LandingPage from "@/pages/landing";
 import SignInPage from "@/pages/sign-in";
 import HomePage from "@/pages/home";
-import ProjectsPage from "@/pages/projects";
-import AIPage from "@/pages/ai";
-import PreviewPage from "@/pages/preview";
-import SettingsPage from "@/pages/settings";
-import AIProvidersPage from "@/pages/ai-providers";
 import NotFoundPage from "@/pages/not-found";
 import { Spinner } from "@/components/states";
 
 // The workspace carries the editor (CodeMirror) — load it only when a project is opened.
+// Secondary pages are split too so the landing/sign-in/home path stays small on phones.
 const WorkspacePage = lazy(() => import("@/pages/workspace"));
+const AIProvidersPage = lazy(() => import("@/pages/ai-providers"));
+const SettingsPage = lazy(() => import("@/pages/settings"));
+const PreviewPage = lazy(() => import("@/pages/preview"));
+const HistoryPage = lazy(() => import("@/pages/history"));
+const AIPage = lazy(() => import("@/pages/ai"));
+const ProjectsPage = lazy(() => import("@/pages/projects"));
 
 /**
  * Hash routing keeps deep links working on any static host (Netlify, previews, embedded
@@ -26,6 +28,7 @@ const WorkspacePage = lazy(() => import("@/pages/workspace"));
  */
 export function AppRoutes() {
   return (
+    <Suspense fallback={<div className="grid h-dvh place-items-center"><Spinner label="Loading" /></div>}>
     <Switch>
       <Route path="/" component={LandingPage} />
       <Route path="/signin" component={SignInPage} />
@@ -53,6 +56,13 @@ export function AppRoutes() {
           <AIPage />
         </RequireSession>
       </Route>
+      <Route path="/app/ai/history/:owner?/:repo?">
+        {(params) => (
+          <RequireSession>
+            <HistoryPage params={params} />
+          </RequireSession>
+        )}
+      </Route>
       <Route path="/app/preview">
         <RequireSession>
           <PreviewPage />
@@ -70,6 +80,7 @@ export function AppRoutes() {
       </Route>
       <Route component={NotFoundPage} />
     </Switch>
+    </Suspense>
   );
 }
 

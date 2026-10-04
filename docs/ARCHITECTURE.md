@@ -134,3 +134,14 @@ Git tab ─ selected FileChange[] + message + target ─▶ POST /api/github/rep
 - Last result is kept in session storage (`last-ship:<owner/repo>`) so a PR can be retried; demo
   commits live in `demo-commits:v1` and are flagged `simulated`.
 - Tokens stay in the encrypted session cookie; writes require same-origin + a per-user rate limit.
+
+## Polish (Phase 7)
+
+- **History** (`src/features/history`): built on the per-workspace task store; `toHistoryEntry()`
+  derives prompt/result/files/status, `filterHistory()` powers search and filters. Shipping info
+  written from the Git tab survives later saves from an open AI tab (`saveTasks` merges `shipped`).
+- **Dashboard** (`src/features/dashboard`): a workspace view (`overview`, not in the bottom bar)
+  rendered inside the `WorkspaceProvider`, reusing `GitStatus` (compact), `ActiveProviderLink` and the
+  last preview outcome (`preview-status:<workspaceKey>`, written by `usePreview`).
+- **Patch export** (`src/features/git/patch.ts`): `diff`'s `createTwoFilesPatch` with Git headers.
+- **CSRF** is enforced in `netlify/lib/http.ts#handle()` for every non-GET request.

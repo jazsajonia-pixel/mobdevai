@@ -4,6 +4,7 @@
  * Never put secrets, tokens, or raw upstream error bodies into responses or logs.
  */
 import type { ErrorCode } from "../../src/lib/error-codes";
+import { appOrigin } from "./env";
 
 export type ServerErrorCode = ErrorCode;
 
@@ -58,14 +59,28 @@ export interface FnContext {
 
 type Handler = (req: Request, ctx: FnContext) => Promise<Response>;
 
+/** CSRF guard: reject cross-site requests (Origin, falling back to Sec-Fetch-Site). */
+export function assertSameOrigin(req: Request): void {
+  const origin = req.headers.get("origin");
+  const allowed = new Set([new URL(req.url).origin, appOrigin(req)]);
+  if (origin) {
+    if (!allowed.has(origin)) throw new HttpError(403, "FORBIDDEN", "Cross-site request blocked.");
+    return;
+  }
+  const site = req.headers.get("sec-fetch-site");
+  if (site && site !== "same-origin" && site !== "none") throw new HttpError(403, "FORBIDDEN", "Cross-site request blocked.");
+}
+
 /**
  * Wraps a handler with method checks and uniform error handling.
+ * Every non-GET request must be same-origin (defense in depth — handlers may check again).
  * Unknown errors are logged by name/message only (no request bodies, headers, or tokens).
  */
 export function handle(methods: string[], fn: Handler) {
   return async (req: Request, ctx: FnContext = {}): Promise<Response> => {
     if (!methods.includes(req.method)) return methodNotAllowed(methods);
     try {
+      if (req.method !== "GET" && req.method !== "HEAD") assertSameOrigin(req);
       return await fn(req, ctx);
     } catch (err) {
       if (err instanceof HttpError) {

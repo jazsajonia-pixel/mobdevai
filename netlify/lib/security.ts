@@ -1,20 +1,11 @@
 import { HttpError } from "./http";
-import { appOrigin } from "./env";
 
 /**
  * CSRF defence for state-changing requests: the browser-supplied Origin (or Sec-Fetch-Site)
  * must prove the request came from our own pages. Combined with SameSite=Lax cookies.
  */
-export function assertSameOrigin(req: Request): void {
-  const origin = req.headers.get("origin");
-  const allowed = new Set([new URL(req.url).origin, appOrigin(req)]);
-  if (origin) {
-    if (!allowed.has(origin)) throw new HttpError(403, "FORBIDDEN", "Cross-site request blocked.");
-    return;
-  }
-  const site = req.headers.get("sec-fetch-site");
-  if (site && site !== "same-origin" && site !== "none") throw new HttpError(403, "FORBIDDEN", "Cross-site request blocked.");
-}
+// Defined next to handle() (which applies it to every mutating request); re-exported for callers.
+export { assertSameOrigin } from "./http";
 
 const buckets = new Map<string, { count: number; resetAt: number }>();
 

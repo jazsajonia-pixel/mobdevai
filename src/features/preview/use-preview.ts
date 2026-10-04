@@ -3,6 +3,7 @@ import { useWorkspace } from "@/features/workspace/context";
 import { analyzeProject, type PreviewPlan, type PreviewPlanOk } from "./detect";
 import { BuildError, buildPreview, codeFrame, type BuildResult } from "./bundler";
 import { joinPath, dirname } from "./paths";
+import { savePreviewStatus } from "./status";
 
 export interface ConsoleEntry {
   id: number;
@@ -153,6 +154,15 @@ export function usePreview(opts: { assetUrl?: (path: string) => string | null })
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
   }, [build]);
+
+  // Remember the outcome for the project dashboard.
+  const storageKey = ws.source.storageKey;
+  useEffect(() => {
+    const at = new Date().toISOString();
+    if (state.status === "ready") savePreviewStatus(storageKey, { status: "ready", label: state.plan.label, runtimeErrors: errors.length, at });
+    else if (state.status === "error") savePreviewStatus(storageKey, { status: "error", label: state.plan?.label ?? "Preview", runtimeErrors: 0, message: state.error.message.slice(0, 200), at });
+    else if (state.status === "unsupported") savePreviewStatus(storageKey, { status: "unsupported", label: state.plan.label, runtimeErrors: 0, message: state.plan.reason, at });
+  }, [state, errors.length, storageKey]);
 
   return {
     state,

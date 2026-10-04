@@ -1,4 +1,5 @@
 import { ShippedNote } from "@/features/git/shipped-note";
+import { useOnline } from "@/hooks/use-online";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { History, KeyRound, Loader2, Plus, RotateCw, Sparkles, Trash2 } from "lucide-react";
@@ -18,16 +19,9 @@ import { DEMO_SUGGESTIONS } from "./demo-agent";
 import { Markdown } from "./markdown";
 import { PlanCard } from "./plan-card";
 import { ProposalSummary, ReviewSheet } from "./proposal-review";
-import { resultsById, type AgentTask } from "./task";
+import { resultsById, splitUserMessage, type AgentTask } from "./task";
 import { ToolRow } from "./tool-row";
 import { useAgent, type AgentProject } from "./use-agent";
-
-/** Strip the attached-files block from a user message for display. */
-function splitUserMessage(content: string): { text: string; files: string[] } {
-  const i = content.indexOf("\n\nAttached files (repository content");
-  const files = [...content.matchAll(/<attached_file path="([^"]+)">/g)].map((m) => m[1]!);
-  return { text: i >= 0 ? content.slice(0, i) : content, files };
-}
 
 function Timeline({ task, onApprove, onRevise }: { task: AgentTask; onApprove: () => void; onRevise: (f: string) => void }) {
   const results = useMemo(() => resultsById(task.messages), [task.messages]);
@@ -141,6 +135,7 @@ export function AgentPanel({ project }: { project: AgentProject }) {
 
   const ready = providers.state.status === "ready" ? providers.state.data : null;
   const def = ready?.providers.find((p) => p.id === ready.defaultId) ?? null;
+  const online = useOnline();
   const needsProvider = !isDemo && providers.state.status === "ready" && !def;
   const providerLabel = isDemo ? "Simulated AI" : def ? `${def.label} · ${def.model}` : providers.state.status === "loading" ? "Loading provider…" : "No provider";
 
@@ -227,8 +222,8 @@ export function AgentPanel({ project }: { project: AgentProject }) {
         mode={mode}
         onModeChange={setMode}
         running={agent.running}
-        disabled={needsProvider}
-        placeholder={task?.status === "awaiting_plan" ? "Suggest plan changes…" : mode === "ask" ? "Ask about the code…" : "Describe a change…"}
+        disabled={needsProvider || (!isDemo && !online)}
+        placeholder={!isDemo && !online ? "You're offline — the agent needs a connection" : task?.status === "awaiting_plan" ? "Suggest plan changes…" : mode === "ask" ? "Ask about the code…" : "Describe a change…"}
         paths={ws.paths}
         activeFile={active}
         quickActions={task ? [] : quick}
