@@ -159,7 +159,7 @@ export default function LandingPage() {
       <footer className="border-t">
         <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <span>Mobile Development AI · Early access</span>
-          <span>Demo available now. GitHub sign-in is being rolled out.</span>
+          <span>Demo and GitHub sign-in available now. AI agent and live preview are in progress.</span>
         </div>
       </footer>
     </div>

@@ -20,18 +20,39 @@ Implemented:
 
 Honest placeholders (marked with a Phase badge, no fake buttons): AI agent, provider settings, preview runtime, Git shipping.
 
-## Phase 1 — Auth + GitHub (next)
+## Phase 1 — Auth + GitHub ✅
 
-`TODO(phase-1)` markers show where it plugs in:
+Implemented:
 
-- `netlify/functions/auth-github-start.ts` → issue `state` cookie, return authorize URL
-- add `auth-github-callback.ts`, `auth-logout.ts`; encrypted HTTP-only session (`SESSION_SECRET`)
-- `src/stores/session.tsx` → hydrate `github` mode from `GET /api/auth/session`
-- add `github-repos`, `github-branches`, `github-tree`, `github-file` functions
-- `src/pages/projects.tsx` / `workspace.tsx` → real repo list, branch picker, file tree
-- Neon schema for `User` and `GitHubConnection`
+- **GitHub OAuth** (OAuth App): `start` → GitHub → `callback`. One-time `state` sealed in an HTTP-only
+  cookie and compared in constant time (login-CSRF safe). Code exchanged server-side.
+- **Least-privilege scopes**: `read:user public_repo` by default; `repo` only when the user ticks
+  "Include private repositories".
+- **Sessions**: AES-256-GCM sealed, HTTP-only, `SameSite=Lax`, `Secure` (on https) cookie, 7-day expiry.
+  The token never reaches browser JavaScript. Tampered/expired cookies are cleared.
+- **Logout** revokes the GitHub token (best effort) and clears the cookie, behind a confirmation sheet.
+- **CSRF**: state-changing endpoints require a same-origin `Origin`/`Sec-Fetch-Site`. Auth endpoints are rate limited.
+- **Repositories**: list (paginated, searchable, visibility / default branch / language / updated / fork /
+  archived / read-only badges), repository metadata and permissions.
+- **Branches**: bottom-sheet picker with search, default and protected markers; remembered per repo.
+- **File tree**: recursive tree for any branch (including `feature/x` names), large-repo truncation notice,
+  "Go to file" filter.
+- **Read-only file viewer** for GitHub files with binary / >1 MB / not-found handling and "View on GitHub".
+- **Errors** mapped for: expired/revoked session (auto sign-out + message), missing permissions, private
+  repo without access, SAML/org restrictions, rate limits (with reset time), empty repos, GitHub outages,
+  invalid input, cancelled authorization, failed code exchange.
+- **Optional Neon** persistence of `users` + `github_connections` (no tokens). `npm run db:migrate`.
+- **Local dev without the Netlify CLI**: `npm run dev:api` runs the functions; `npm run dev:mock-github`
+  runs a fake GitHub for end-to-end testing with no credentials.
+- 58 tests (35 server, 23 client), including secret-leak checks on every auth response.
 
-Setup needed from you: a GitHub OAuth App (or GitHub App), a Netlify site, and the env vars in `.env.example`.
+Known limitations: rate limiting is per function instance; GitHub App installs (fine-grained repo access)
+are not supported yet — OAuth App only.
+
+## Phase 2 — Mobile editor (next)
+
+File editing with syntax highlighting, tabs, search, find/replace, undo/redo, unsaved indicators,
+local draft protection, create/delete/rename files in the workspace, and the diff viewer.
 
 ## Later phases
 

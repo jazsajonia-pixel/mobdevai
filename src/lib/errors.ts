@@ -3,23 +3,9 @@
  * messages stay consistent and understandable ("what happened" + "what to do next").
  * The same codes are emitted by Netlify Functions (see netlify/lib/http.ts).
  */
-export const ERROR_CODES = [
-  "NETWORK_OFFLINE",
-  "NETWORK_TIMEOUT",
-  "BACKEND_UNAVAILABLE",
-  "UNAUTHENTICATED",
-  "SESSION_EXPIRED",
-  "FORBIDDEN",
-  "NOT_FOUND",
-  "RATE_LIMITED",
-  "VALIDATION_FAILED",
-  "GITHUB_OAUTH_NOT_CONFIGURED",
-  "NOT_IMPLEMENTED",
-  "UNSUPPORTED_PROJECT",
-  "INTERNAL",
-] as const;
+import { ERROR_CODES, isErrorCode, type ErrorCode } from "./error-codes";
 
-export type ErrorCode = (typeof ERROR_CODES)[number];
+export { ERROR_CODES, isErrorCode, type ErrorCode };
 
 export interface ErrorCopy {
   title: string;
@@ -61,6 +47,34 @@ const COPY: Record<ErrorCode, ErrorCopy> = {
     title: "GitHub sign-in isn't configured",
     hint: "Set GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET and SESSION_SECRET in Netlify environment variables.",
   },
+  OAUTH_DENIED: {
+    title: "GitHub access wasn't granted",
+    hint: "You cancelled the GitHub authorization. Try again when you're ready.",
+  },
+  OAUTH_STATE_MISMATCH: {
+    title: "Sign-in link expired",
+    hint: "The sign-in attempt timed out or was opened in another browser. Start again from this screen.",
+  },
+  OAUTH_EXCHANGE_FAILED: {
+    title: "GitHub sign-in failed",
+    hint: "GitHub didn't accept the sign-in. Check the OAuth app's client ID, secret and callback URL.",
+  },
+  GITHUB_UNAVAILABLE: {
+    title: "GitHub isn't responding",
+    hint: "GitHub returned a server error. Check githubstatus.com and try again shortly.",
+  },
+  EMPTY_REPOSITORY: {
+    title: "This repository is empty",
+    hint: "There are no commits yet. Push an initial commit on GitHub, then reload.",
+  },
+  FILE_TOO_LARGE: {
+    title: "File too large to open",
+    hint: "Files over 1 MB can't be opened on mobile yet. View it on GitHub instead.",
+  },
+  BINARY_FILE: {
+    title: "Binary file",
+    hint: "This file isn't text (image, font, archive…) so it can't be shown in the editor.",
+  },
   NOT_IMPLEMENTED: {
     title: "Not available yet",
     hint: "This capability is planned for an upcoming phase.",
@@ -82,10 +96,6 @@ export class AppError extends Error {
     this.code = code;
     this.status = status;
   }
-}
-
-export function isErrorCode(value: unknown): value is ErrorCode {
-  return typeof value === "string" && (ERROR_CODES as readonly string[]).includes(value);
 }
 
 export function describeError(error: unknown): ErrorCopy & { code: ErrorCode } {

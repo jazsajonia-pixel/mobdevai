@@ -60,15 +60,34 @@ export default function SettingsPage() {
       </Section>
 
       <Section title="Account">
-        <p className="text-sm text-muted-foreground">
-          {session.mode === "demo" ? "You're in demo mode. Leaving clears the demo session for this tab." : "Signed in with GitHub."}
-        </p>
+        {session.mode === "github" ? (
+          <div className="space-y-3" data-testid="section-github-account">
+            <div className="flex items-center gap-3">
+              <img src={session.user.avatarUrl} alt="" className="size-10 rounded-full border" referrerPolicy="no-referrer" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{session.user.name ?? session.user.login}</p>
+                <p className="truncate font-mono text-xs text-muted-foreground">@{session.user.login}</p>
+              </div>
+            </div>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
+              <dt className="text-muted-foreground">Access</dt>
+              <dd>{session.includePrivate ? "Public and private repositories" : "Public repositories only"}</dd>
+              <dt className="text-muted-foreground">Scopes</dt>
+              <dd className="font-mono">{session.scopes.join(", ") || "—"}</dd>
+              <dt className="text-muted-foreground">Session ends</dt>
+              <dd>{new Date(session.expiresAt).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</dd>
+            </dl>
+            <p className="text-xs text-muted-foreground">Your token is held in an encrypted HTTP-only cookie and revoked on sign out.</p>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">You're in demo mode. Leaving clears the demo session for this tab.</p>
+        )}
         <Button variant="secondary" className="mt-3 w-full" onClick={() => setConfirmOpen(true)} data-testid="button-signout">
           <LogOut /> {session.mode === "demo" ? "Leave demo" : "Sign out"}
         </Button>
       </Section>
 
-      <p className="mt-6 text-center font-mono text-[11px] text-muted-foreground">Mobile Development AI · v0.1.0 · Phase 0</p>
+      <p className="mt-6 text-center font-mono text-[11px] text-muted-foreground">Mobile Development AI · v0.2.0 · Phase 1</p>
 
       <BottomSheet
         open={confirmOpen}
@@ -85,8 +104,7 @@ export default function SettingsPage() {
             data-testid="button-confirm-signout"
             onClick={() => {
               setConfirmOpen(false);
-              signOut();
-              navigate("/");
+              void signOut().then(() => navigate("/"));
             }}
           >
             {session.mode === "demo" ? "Leave" : "Sign out"}

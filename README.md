@@ -5,7 +5,7 @@
 A mobile-first web IDE and AI coding agent: connect GitHub, pick a repository, ask the AI for a change,
 review the diff, preview the real app, and commit/push/open a PR — without a desktop.
 
-**Status: Phase 0 (Foundation) complete.** See [docs/PHASES.md](docs/PHASES.md) for what works today and what's next.
+**Status: Phase 1 (Auth + GitHub) complete.** See [docs/PHASES.md](docs/PHASES.md) for what works today and what's next.
 
 ## Stack
 
@@ -18,8 +18,9 @@ review the diff, preview the real app, and commit/push/open a PR — without a d
 ```bash
 npm install
 cp .env.example .env     # placeholders only — fill in locally, never commit
-npm run dev              # frontend only (backend shows as "not reachable")
-npx netlify dev          # frontend + functions on http://localhost:8888
+npm run dev:api          # Netlify Functions on :8787 (reads .env)
+npm run dev              # Vite on :5173, proxies /api → :8787
+# or: npx netlify dev    # full Netlify emulation on http://localhost:8888
 ```
 
 | Script | What it does |
@@ -29,12 +30,31 @@ npx netlify dev          # frontend + functions on http://localhost:8888
 | `npm run typecheck` | `tsc -b` across app, config and functions |
 | `npm test` | Unit + component tests |
 | `npm run check` | typecheck + tests + build (run before every push) |
+| `npm run dev:api` | Run Netlify Functions locally on :8787 |
+| `npm run dev:mock-github` | Fake GitHub for local end-to-end testing |
+| `npm run db:migrate` | Apply `db/migrations/*.sql` to `DATABASE_URL` |
+
+### Try sign-in locally without real credentials
+
+```bash
+npm run dev:mock-github  # fake GitHub on :8790
+# in .env:
+#   GITHUB_CLIENT_ID=mock-id  GITHUB_CLIENT_SECRET=mock-secret  SESSION_SECRET=<32+ chars>
+#   GITHUB_API_URL=http://127.0.0.1:8790/api  GITHUB_WEB_URL=http://127.0.0.1:8790
+#   VITE_GITHUB_WEB_URL=http://127.0.0.1:8790
+npm run dev:api & npm run dev
+```
 
 ## Deploying to Netlify
 
 1. New site → import this repository. Build command and publish dir come from `netlify.toml`.
-2. Set environment variables in **Site settings → Environment variables** (see `.env.example`).
-3. Phase 1 will require a GitHub OAuth App with callback `https://<your-site>/api/auth/github/callback`.
+2. Create a GitHub OAuth App (GitHub → Settings → Developer settings → OAuth Apps):
+   - Homepage URL: `https://<your-site>.netlify.app`
+   - Authorization callback URL: `https://<your-site>.netlify.app/api/auth/github/callback`
+3. In **Site configuration → Environment variables** set `APP_URL`, `GITHUB_CLIENT_ID`,
+   `GITHUB_CLIENT_SECRET`, `SESSION_SECRET` (`openssl rand -base64 32`), and optionally `DATABASE_URL`.
+4. Optional: `DATABASE_URL=… npm run db:migrate` to create the Neon tables.
+5. Redeploy, open the site on your phone, and sign in.
 
 ## Project layout
 
@@ -53,7 +73,8 @@ docs/              architecture, phases, security
 ## Security rules (non-negotiable)
 
 - AI keys, GitHub secrets and session keys live **only** in Netlify Functions. Nothing secret uses a `VITE_` prefix.
-- `/api/health` reports configuration as booleans — never values. A test asserts secrets don't leak.
+- The GitHub token lives only inside an AES-GCM encrypted HTTP-only cookie; `/api/auth/session` returns the profile, never the token.
+- `/api/health` reports configuration as booleans — never values. Tests assert secrets don't leak.
 - `.env*` files are git-ignored; only `.env.example` with placeholders is committed.
 - Repository content is untrusted data: never executed on the server, never treated as instructions for the AI.
 

@@ -11,8 +11,9 @@ export default defineConfig({
     alias: { "@": path.resolve(__dirname, "src") },
   },
   server: {
-    // `netlify dev` proxies /api/* to functions; plain `vite` dev shows the backend as offline.
     port: 5173,
+    // `npm run dev:api` serves Netlify Functions locally on :8787. (`netlify dev` intercepts /api itself.)
+    proxy: { "/api": { target: "http://127.0.0.1:8787", xfwd: true } },
   },
   build: {
     outDir: "dist",
