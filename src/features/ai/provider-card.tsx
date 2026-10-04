@@ -65,7 +65,7 @@ export function ProviderCard({
             {!p.enabled ? <Badge>Disabled</Badge> : null}
             {platform ? <Badge tone="warning">Server</Badge> : null}
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">{PROVIDERS[p.kind].name}</p>
+          {p.label !== PROVIDERS[p.kind].name ? <p className="mt-1 text-xs text-muted-foreground">{PROVIDERS[p.kind].name}</p> : null}
           <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
             <dt className="text-muted-foreground">Model</dt>
             <dd className="truncate font-mono">{p.model}</dd>

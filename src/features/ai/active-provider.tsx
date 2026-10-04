@@ -22,7 +22,7 @@ export function ActiveProviderLink({ className }: { className?: string }) {
     const d = state.data;
     const def = d.providers.find((p) => p.id === d.defaultId);
     const enabled = d.providers.filter((p) => p.enabled).length;
-    line = def ? `${def.label} · ${PROVIDERS[def.kind].name}` : "No provider yet";
+    line = def ? (def.label === PROVIDERS[def.kind].name ? def.label : `${def.label} · ${PROVIDERS[def.kind].name}`) : "No provider yet";
     sub = def ? `${def.model} · ${enabled} enabled` : "Add an OpenAI, Anthropic, Gemini or compatible key";
   }
   return (

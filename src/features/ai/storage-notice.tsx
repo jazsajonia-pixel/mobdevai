@@ -5,7 +5,7 @@ import type { ProvidersResponse } from "@/types/ai";
 export function StorageNotice({ data }: { data: ProvidersResponse }) {
   const Icon = data.storage === "database" ? Database : data.storage === "session" ? Timer : ShieldCheck;
   const title =
-    data.storage === "database" ? "Saved encrypted on the server" : data.storage === "session" ? "Session-only keys" : "Key storage unavailable";
+    data.storage === "database" ? "Saved encrypted on the server" : data.storage === "session" ? "Kept for this session only" : "Key storage unavailable";
   return (
     <div className="flex gap-3 rounded-lg border bg-surface p-4" data-testid="notice-storage" data-storage={data.storage}>
       <Icon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />

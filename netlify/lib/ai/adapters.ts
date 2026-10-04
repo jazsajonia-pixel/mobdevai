@@ -128,7 +128,7 @@ const openAi: ProviderAdapter = {
   async listModels(p) {
     const base = await openAiBase(p);
     try {
-      const data = (await call("Provider", `${base}/models`, { headers: { Authorization: `Bearer ${p.apiKey}` } })) as { data?: { id?: string }[] };
+      const data = (await call(p.kind === "openai" ? "OpenAI" : "The provider", `${base}/models`, { headers: { Authorization: `Bearer ${p.apiKey}` } })) as { data?: { id?: string }[] };
       return (data?.data ?? []).map((m) => m.id).filter((x): x is string => !!x);
     } catch (err) {
       // Bad keys should fail loudly; a missing /models endpoint on a compatible server shouldn't.
