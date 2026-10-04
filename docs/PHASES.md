@@ -79,11 +79,36 @@ Implemented:
 Known limitations: drafts live in `localStorage` (~5 MB per site); very large diffs (> 400 KB) show
 counts only; HTML tag auto-close is CodeMirror's default behaviour.
 
-## Phase 3 — AI providers (next)
+## Phase 3 — AI providers ✅
 
-Server-side encrypted storage for OpenAI, Anthropic, Gemini and OpenAI-compatible keys, masked
-hints, test connection, default provider/model selection.
+Implemented:
+
+- **Settings → AI providers** (`#/app/settings/ai`): add OpenAI, Anthropic, Google Gemini or any
+  OpenAI-compatible endpoint (base URL). Per provider: API key, model (suggestions + the models your key
+  can list), optional name, enable/disable, default provider. Edit (keep or replace the key) and remove
+  with confirmation.
+- **Test connection** before or after saving (`POST /api/ai/test-provider`): lists models to validate the
+  key, then a ~16-token generation to validate the model. Shows latency, model count, and clear errors
+  (invalid key, unknown model, quota/rate limit, provider down, blocked base URL). Last result is saved.
+- **Provider abstraction** in `netlify/lib/ai` (`chat` + `listModels` per provider) ready for the agent.
+- **Key security**: keys are sent once to our server functions and never returned (masked hint only),
+  encrypted with AES-256-GCM and bound to user + provider. Storage is explicit in the UI:
+  encrypted in Postgres when `ENCRYPTION_KEY` + `DATABASE_URL` are set, otherwise **session-only** in an
+  encrypted HTTP-only cookie that's deleted on sign-out. Browser never calls a provider directly.
+- **SSRF protection** for custom base URLs; redirects refused so keys can't be bounced elsewhere.
+- **Server-provided keys** (`OPENAI_API_KEY`, …) show as read-only providers.
+- The AI page, workspace AI tab and Settings show the current default provider/model.
+- Demo mode explains that AI keys need GitHub sign-in (no provider calls in demo).
+
+Known limitations: session-only storage holds up to 6 providers (cookie size); DNS-rebinding protection
+is best effort (resolved before the call, not pinned); the database backend is covered by type checks and
+shared state tests but not exercised against a live Neon instance in CI.
+
+## Phase 4 — AI coding agent (next)
+
+Project-aware chat and agent tasks using the default provider: plan, explicit logged tools, multi-file
+diffs reviewed in the existing Git view, approval before applying.
 
 ## Later phases
 
-2 Mobile editor · 3 AI providers · 4 AI coding agent · 5 Live preview · 6 Git shipping · 7 Polish · 8 Production
+4 AI coding agent · 5 Live preview · 6 Git shipping · 7 Polish · 8 Production

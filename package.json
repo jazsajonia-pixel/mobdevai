@@ -1,7 +1,7 @@
 {
   "name": "mobile-development-ai",
-  "version": "0.3.0",
-  "description": "Mobile Development AI — the first AI development environment built for developers who code from their phone.",
+  "version": "0.4.0",
+  "description": "Mobile Development AI \u2014 the first AI development environment built for developers who code from their phone.",
   "scripts": {
     "dev": "vite",
     "dev:netlify": "netlify dev",
@@ -13,7 +13,8 @@
     "check": "npm run typecheck && npm run test && vite build",
     "dev:api": "tsx watch scripts/dev-api.ts",
     "dev:mock-github": "tsx scripts/mock-github.ts",
-    "db:migrate": "tsx scripts/migrate.ts"
+    "db:migrate": "tsx scripts/migrate.ts",
+    "dev:mock-ai": "tsx scripts/mock-ai.ts"
   },
   "license": "UNLICENSED",
   "dependencies": {

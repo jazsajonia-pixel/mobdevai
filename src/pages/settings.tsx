@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { LogOut, Moon, Sun } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
-import { PhaseBoundary } from "@/components/phase-boundary";
+import { ActiveProviderLink } from "@/features/ai/active-provider";
 import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/ui/sheet";
 import { BackendStatus } from "@/features/settings/backend-status";
@@ -47,12 +47,7 @@ export default function SettingsPage() {
 
       <section className="mt-6">
         <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">AI providers</h2>
-        <PhaseBoundary
-          phase={3}
-          title="AI providers"
-          description="Keys you add will be encrypted at rest with a server-side key and only decrypted inside server functions. They are never shown again in plaintext — only a masked hint."
-          planned={["OpenAI · Anthropic · Google Gemini · OpenAI-compatible", "Model and base URL per provider", "Test connection, enable/disable, default"]}
-        />
+        <ActiveProviderLink />
       </section>
 
       <Section title="Backend">
@@ -87,7 +82,7 @@ export default function SettingsPage() {
         </Button>
       </Section>
 
-      <p className="mt-6 text-center font-mono text-[11px] text-muted-foreground">Mobile Development AI · v0.3.0 · Phase 2</p>
+      <p className="mt-6 text-center font-mono text-[11px] text-muted-foreground">Mobile Development AI · v0.4.0 · Phase 3</p>
 
       <BottomSheet
         open={confirmOpen}

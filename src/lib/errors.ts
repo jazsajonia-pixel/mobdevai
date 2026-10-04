@@ -71,6 +71,38 @@ const COPY: Record<ErrorCode, ErrorCopy> = {
     title: "File too large to open",
     hint: "Files over 1 MB can't be opened on mobile yet. View it on GitHub instead.",
   },
+  AI_NOT_CONFIGURED: {
+    title: "AI provider storage isn't set up",
+    hint: "The server needs SESSION_SECRET (session-only keys) or ENCRYPTION_KEY + DATABASE_URL (saved keys).",
+  },
+  AI_INVALID_KEY: {
+    title: "The provider rejected the API key",
+    hint: "Check the key is correct, active, and has access to this model. Paste it again to replace it.",
+  },
+  AI_MODEL_NOT_FOUND: {
+    title: "Model not available",
+    hint: "This key can't use that model, or the name is wrong. Pick one from “Fetch models”.",
+  },
+  AI_QUOTA_EXCEEDED: {
+    title: "Provider rate limit or quota reached",
+    hint: "Wait a moment, or check billing and usage limits in the provider's dashboard.",
+  },
+  AI_PROVIDER_UNAVAILABLE: {
+    title: "AI provider not responding",
+    hint: "The provider timed out or returned an error. Try again, or switch to another provider.",
+  },
+  AI_BAD_BASE_URL: {
+    title: "Base URL not allowed",
+    hint: "Use a public https:// endpoint such as https://api.example.com/v1. Private and local addresses are blocked.",
+  },
+  AI_NO_PROVIDER: {
+    title: "No AI provider configured",
+    hint: "Add an API key in Settings → AI providers.",
+  },
+  AI_STORAGE_FULL: {
+    title: "Too many session-only providers",
+    hint: "Remove one, or ask the operator to enable encrypted database storage for more.",
+  },
   BINARY_FILE: {
     title: "Binary file",
     hint: "This file isn't text (image, font, archive…) so it can't be shown in the editor.",

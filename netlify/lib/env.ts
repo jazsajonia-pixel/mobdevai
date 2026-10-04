@@ -25,7 +25,7 @@ export function capabilities(env: Env = process.env): Capabilities {
     githubOAuth: isSet(env.GITHUB_CLIENT_ID) && isSet(env.GITHUB_CLIENT_SECRET),
     sessions: isSet(env.SESSION_SECRET) && (env.SESSION_SECRET?.length ?? 0) >= 32,
     database: isSet(env.DATABASE_URL),
-    encryption: isSet(env.ENCRYPTION_KEY),
+    encryption: isSet(env.ENCRYPTION_KEY) && (env.ENCRYPTION_KEY?.trim().length ?? 0) >= 32,
     platformAiProviders: {
       openai: isSet(env.OPENAI_API_KEY),
       anthropic: isSet(env.ANTHROPIC_API_KEY),
@@ -70,4 +70,9 @@ export function appOrigin(req: Request, env: Env = process.env): string {
     }
   }
   return new URL(req.url).origin;
+}
+
+/** Secret used to encrypt stored AI provider keys, or null when ENCRYPTION_KEY isn't usable. */
+export function encryptionSecret(env: Env = process.env): string | null {
+  return capabilities(env).encryption ? env.ENCRYPTION_KEY!.trim() : null;
 }
