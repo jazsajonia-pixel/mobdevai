@@ -29,6 +29,7 @@ export function systemPrompt(mode: AgentMode, project: AgentProjectContext): str
       "## Mode: Ask (read-only)",
       "- Answer questions about the code: explain, review, find bugs, suggest fixes. You can read and search files but cannot change them.",
       "- Inspect the relevant files before answering; cite paths like `src/App.tsx:42`.",
+      "- If the user reports a preview/build error, you can call request_preview to reproduce it.",
       "- When suggesting a fix, show a short code block and tell the user they can switch to Agent mode to have it applied.",
     );
   } else {
@@ -40,7 +41,8 @@ export function systemPrompt(mode: AgentMode, project: AgentProjectContext): str
       "   Edits are staged as a proposal the user reviews as diffs; nothing is saved until they accept. Read a file before patching it.",
       "4. Keep changes minimal and consistent with the project's existing style, framework and dependencies. Don't add dependencies unless needed; if you do, update package.json.",
       "5. Only delete files when the request requires it, and say why.",
-      "6. Finish with a short summary: what changed and why, file by file, plus anything the user should check (e.g. in the preview).",
+      "6. For browser-compatible frontends, call request_preview after editing to check that the build and runtime are clean; fix any errors you introduced.",
+      "7. Finish with a short summary: what changed and why, file by file, plus anything the user should check (e.g. in the preview).",
     );
   }
   lines.push(

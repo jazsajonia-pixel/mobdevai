@@ -8,6 +8,8 @@ import { EmptyState, ErrorState } from "@/components/states";
 import { useProviders } from "@/features/ai/use-providers";
 import { useWorkspace } from "@/features/workspace/context";
 import { AppError, isErrorCode } from "@/lib/errors";
+import { safeStorage } from "@/lib/storage";
+import { projectPath } from "@/lib/nav";
 import { MAX_AGENT_STEPS } from "@/lib/agent-tools";
 import type { AgentMode } from "@/types/agent";
 import { Composer, type QuickAction } from "./composer";
@@ -100,14 +102,33 @@ export function AgentPanel({ project }: { project: AgentProject }) {
   const isDemo = project.source === "demo";
   const providers = useProviders();
   const agent = useAgent(project);
-  const [mode, setMode] = useState<AgentMode>(agent.task?.mode ?? "agent");
+  // One-shot hand-off from other tabs (e.g. Preview → "Fix with AI").
+  const [prefill] = useState(() => {
+    const key = `agent-prefill:${ws.source.storageKey}`;
+    const raw = safeStorage.get(key, "session");
+    if (!raw) return null;
+    try {
+      const v = JSON.parse(raw) as { text?: unknown; mode?: unknown };
+      return typeof v.text === "string" ? { text: v.text, mode: v.mode === "ask" ? ("ask" as const) : ("agent" as const) } : null;
+    } catch {
+      return null;
+    }
+  });
+  const [mode, setMode] = useState<AgentMode>(prefill?.mode ?? agent.task?.mode ?? "agent");
   const [reviewOpen, setReviewOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const task = agent.task;
 
+  // A hand-off starts a fresh task.
   useEffect(() => {
-    if (task) setMode(task.mode);
+    if (!prefill) return;
+    safeStorage.remove(`agent-prefill:${ws.source.storageKey}`, "session"); // consume once (after mount; StrictMode-safe)
+    agent.startNew();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (task && !prefill) setMode(task.mode);
   }, [task?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Follow the conversation as it grows.
@@ -182,7 +203,7 @@ export function AgentPanel({ project }: { project: AgentProject }) {
           <div className="space-y-4">
             <Timeline task={task} onApprove={() => agent.approvePlan()} onRevise={agent.revisePlan} />
             <StatusLine task={task} onResume={agent.resume} />
-            <ProposalSummary proposal={task.proposal} onReview={() => setReviewOpen(true)} />
+            <ProposalSummary proposal={task.proposal} onReview={() => setReviewOpen(true)} previewHref={projectPath(project.owner, project.repo, "preview")} />
             {task.provider && task.status === "done" ? (
               <p className="text-center font-mono text-[10px] text-muted-foreground">
                 {task.provider.label} · {task.provider.model}
@@ -211,6 +232,7 @@ export function AgentPanel({ project }: { project: AgentProject }) {
         quickActions={task ? [] : quick}
         onSend={(text, attach) => void agent.send(text, { mode, attach })}
         onStop={agent.stop}
+        initialText={prefill?.text}
       />
 
       {task ? (

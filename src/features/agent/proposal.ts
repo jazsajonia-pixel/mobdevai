@@ -90,3 +90,20 @@ export function setDecision(p: Proposal, paths: string[], decision: Decision): P
   }
   return next;
 }
+
+/**
+ * The runner works on its own copy of the task, so a review decision the user makes while a run is
+ * in flight (e.g. accepting files during a slow preview check) must survive the run's next update.
+ * Keeps the newer decision for files whose proposed content hasn't changed since.
+ */
+export function mergeDecisions(latest: Proposal, incoming: Proposal): Proposal {
+  let out: Proposal | null = null;
+  for (const [path, f] of Object.entries(incoming)) {
+    const cur = latest[path];
+    if (cur && cur.decision !== "pending" && f.decision === "pending" && cur.before === f.before && cur.after === f.after) {
+      out ??= { ...incoming };
+      out[path] = { ...f, decision: cur.decision };
+    }
+  }
+  return out ?? incoming;
+}

@@ -123,7 +123,13 @@ const EXPLAIN_SCRIPT: Script = {
   ],
 };
 
-const SCRIPTS = [DELETE_SCRIPT, CLEAR_SCRIPT, DARK_SCRIPT, EXPLAIN_SCRIPT];
+/** Edit scripts verify their changes with a real preview build before the summary, like a real agent should. */
+function withPreviewCheck(s: Script): Script {
+  const last = s.steps[s.steps.length - 1]!;
+  return { ...s, steps: [...s.steps.slice(0, -1), [call("request_preview", {})], last] };
+}
+
+const SCRIPTS = [withPreviewCheck(DELETE_SCRIPT), withPreviewCheck(CLEAR_SCRIPT), withPreviewCheck(DARK_SCRIPT), EXPLAIN_SCRIPT];
 
 export const DEMO_SUGGESTIONS = ["Add a delete button to each task", "Add a “Clear completed” button", "Support dark mode", "Explain how this app works"];
 

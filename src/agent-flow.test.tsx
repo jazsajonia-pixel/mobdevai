@@ -56,6 +56,10 @@ describe("AI agent (demo, simulated)", () => {
     expect(card).toHaveTextContent("accepted");
     expect(card).toHaveTextContent("rejected");
 
+    // The agent checked its work with a real preview build.
+    expect(await screen.findByTestId("tool-request_preview", {}, { timeout: 8000 })).toBeInTheDocument();
+    expect(await screen.findByTestId("link-preview-changes")).toBeInTheDocument();
+
     // Accepted edits are ordinary workspace changes in the Git tab.
     fireEvent.click(screen.getByTestId("tab-git"));
     expect(await screen.findByTestId("change-src/App.jsx")).toBeInTheDocument();
@@ -71,4 +75,26 @@ describe("AI agent (demo, simulated)", () => {
     expect(screen.queryByTestId("card-proposal")).toBeNull();
     expect(screen.queryByTestId("card-plan")).toBeNull();
   }, 10_000);
+});
+
+describe("Live preview (demo)", () => {
+  it("builds the real app — including workspace changes — into a sandboxed, opaque-origin frame", async () => {
+    renderDemo("/app/projects/demo/pocket-tasks/preview");
+    const frame = (await screen.findByTestId("preview-frame", {}, { timeout: 8000 })) as HTMLIFrameElement;
+    // Never same-origin: project code can't reach this app's cookies, storage or API.
+    expect(frame.getAttribute("sandbox")).toContain("allow-scripts");
+    expect(frame.getAttribute("sandbox")).not.toContain("allow-same-origin");
+    const html = frame.getAttribute("srcdoc") ?? "";
+    expect(html).toContain('"src/App.jsx"');
+    expect(html).toContain("useState");
+    expect(html).toContain("esm.sh/react@");
+    expect(await screen.findByText(/4 modules · 2 npm packages via esm\.sh/)).toBeInTheDocument();
+    expect(screen.queryByTestId("button-header-preview")).toBeNull();
+  }, 15_000);
+
+  it("lists projects to preview and what isn't supported yet", async () => {
+    renderDemo("/app/preview");
+    expect(await screen.findByTestId("link-preview-demo-pocket-tasks")).toHaveAttribute("href", expect.stringContaining("/app/projects/demo/pocket-tasks/preview"));
+    expect(screen.getByText(/Not in the browser preview yet/)).toBeInTheDocument();
+  });
 });

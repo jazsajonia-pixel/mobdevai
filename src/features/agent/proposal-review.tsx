@@ -1,3 +1,5 @@
+import { Link } from "wouter";
+import { MonitorPlay } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AlertTriangle, Check, ChevronDown, FileDiff as FileDiffIcon, X } from "lucide-react";
 import { BottomSheet } from "@/components/ui/sheet";
@@ -28,7 +30,7 @@ interface ReviewActions {
 }
 
 /** Inline summary of the task's proposed changes. */
-export function ProposalSummary({ proposal, onReview }: { proposal: Proposal; onReview: () => void }) {
+export function ProposalSummary({ proposal, onReview, previewHref }: { proposal: Proposal; onReview: () => void; previewHref?: string }) {
   const files = proposalFiles(proposal);
   if (!files.length) return null;
   const pending = files.filter((f) => f.decision === "pending").length;
@@ -63,6 +65,14 @@ export function ProposalSummary({ proposal, onReview }: { proposal: Proposal; on
         <div className="p-3">
           <Button className="w-full" onClick={onReview} data-testid="button-review-changes">
             Review {pending} change{pending === 1 ? "" : "s"}
+          </Button>
+        </div>
+      ) : previewHref && files.some((f) => f.decision === "accepted") ? (
+        <div className="p-3">
+          <Button asChild variant="secondary" className="w-full">
+            <Link href={previewHref} data-testid="link-preview-changes">
+              <MonitorPlay className="size-4" aria-hidden /> Preview changes
+            </Link>
           </Button>
         </div>
       ) : null}

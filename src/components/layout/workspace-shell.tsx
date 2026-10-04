@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "wouter";
-import { ChevronDown, ChevronLeft, GitBranch, Lock } from "lucide-react";
+import { ChevronDown, ChevronLeft, GitBranch, Lock, Play } from "lucide-react";
 import { WORKSPACE_TABS, WORKSPACE_TAB_META, projectPath, type WorkspaceTab } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import type { ProjectRef } from "@/types/workspace";
@@ -68,6 +68,15 @@ export function WorkspaceShell({
             <Badge>
               <Lock className="size-3" aria-hidden /> Private
             </Badge>
+          ) : null}
+          {tab !== "preview" ? (
+            <Link
+              href={projectPath(project.owner, project.name, "preview")}
+              data-testid="button-header-preview"
+              className="ml-1 inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+            >
+              <Play className="size-3.5 fill-current" aria-hidden /> Preview
+            </Link>
           ) : null}
         </header>
       </div>

@@ -145,10 +145,46 @@ Known limitations: steps aren't streamed (each step shows a spinner, then the re
 mode on the same endpoint rather than a separate `/api/ai/chat`; tasks live in `localStorage`; the agent
 can't run commands or tests yet (Phase 5 adds preview; there is no server-side code execution).
 
-## Phase 5 — Live preview (next)
+## Phase 5 — Live preview ✅
 
-Sandboxed in-browser preview for static HTML/CSS/JS and Vite + React projects, with console output.
+The Preview tab runs the **actual app** — built from the workspace, including unsaved drafts and
+accepted agent changes — inside a sandboxed iframe on the device. Nothing runs on the server.
+
+- **Detection** (`src/features/preview/detect.ts`): static HTML/CSS/JS (multi-page), Vite + React /
+  Preact (JS/TS), Create React App, HTML with module scripts; Tailwind v3/v4. Also finds apps in a
+  sub-folder. Next/Nuxt/SvelteKit/Remix/Astro/Gatsby/Angular, Vue/Svelte/Solid, React Native/Expo,
+  Electron, Node servers and non-JS backends get a clear "not supported in the browser preview yet"
+  screen with the reason — never a fake render.
+- **Build** (`bundler.ts`): Sucrase (TS/JSX → CJS, line-preserving) per file, a tiny module loader,
+  tsconfig/vite aliases, `import.meta.env`, CSS (+ modules), JSON, `?raw`/`?url`, SVG, and images/fonts
+  from `raw.githubusercontent.com` for public repos. npm packages load from esm.sh at the versions in
+  `package.json`, sharing one React. Limits: 800 modules / 10 MB.
+- **Diagnostics**: build errors show file, line and a code frame (Open file · Fix with AI); runtime
+  errors and unhandled rejections are mapped back to `file:line`; a console sheet collects logs.
+- **UI**: Preview button in the workspace header + Preview tab; Fit / Phone / Desktop (1280 px, scaled)
+  viewports; Rebuild; Open in new tab; full-screen mode with "Back to code" (Esc exits); multi-page
+  navigation between local `.html` files; auto-rebuild ~0.7 s after edits.
+- **Agent**: new read-only tool `request_preview` builds the project *with the proposal applied*, runs
+  it for a few seconds in a hidden sandbox and reports build/runtime errors and console warnings. The
+  agent prompt asks it to verify edits this way; the demo agent does it too. "Preview changes" appears
+  after accepting files; "Fix with AI" pre-fills the agent with the error.
+- Fixed a race: accepting files while a run was still going could be overwritten by the run's next
+  update (`mergeDecisions`).
+- Security: iframe `sandbox` without `allow-same-origin` (opaque origin — no access to the app's
+  cookies, storage or API), postMessage accepted only from that frame with a per-build nonce, data
+  treated as text; storage/cookies are in-memory shims inside the frame; forms don't submit.
+
+Known limitations: needs network access to esm.sh/jsDelivr for npm packages and Tailwind; no
+`import.meta.glob`, Node built-ins, Sass/Less or `.vue`/`.svelte`; binary assets of **private** repos
+aren't loaded (no token is ever put in a URL); no HMR (full reload on rebuild); runtime error columns
+are approximate (lines are exact). The `POST /api/preview/*` endpoints and `PreviewSession` model from
+the plan aren't needed — previews never touch the server.
+
+## Phase 6 — Git shipping (next)
+
+Create a branch, commit workspace changes, push, and open a pull request — never pushing to the
+default branch silently.
 
 ## Later phases
 
-5 Live preview · 6 Git shipping · 7 Polish · 8 Production
+7 Polish · 8 Production

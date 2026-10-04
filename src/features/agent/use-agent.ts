@@ -5,7 +5,7 @@ import { detectProjectKindFromPaths } from "@/lib/tree";
 import type { AgentMode, AgentProjectContext, AgentStepResponse } from "@/types/agent";
 import { advance, answerPlan, closeOpenCalls, withUserMessage, type StepFn } from "./runner";
 import { demoStep } from "./demo-agent";
-import { hasConflict, pendingFiles, setDecision, type ProposedFile } from "./proposal";
+import { hasConflict, mergeDecisions, pendingFiles, setDecision, type ProposedFile } from "./proposal";
 import { loadTasks, saveTasks } from "./store";
 import { newTask, type AgentTask } from "./task";
 import type { WorkspaceView } from "./tools-exec";
@@ -57,12 +57,24 @@ export function useAgent(project: AgentProject) {
     });
   }, []);
 
+  /** Run updates keep review decisions the user made meanwhile. */
+  const upsertFromRun = useCallback((t: AgentTask) => {
+    setTasks((list) => {
+      const i = list.findIndex((x) => x.id === t.id);
+      if (i < 0) return [t, ...list];
+      const next = [...list];
+      next[i] = { ...t, proposal: mergeDecisions(list[i]!.proposal, t.proposal) };
+      return next;
+    });
+  }, []);
+
   const view = useMemo<WorkspaceView>(
     () => ({
       paths: () => wsRef.current.paths,
       read: (p) => wsRef.current.getBuffer(p),
       changes: () => wsRef.current.changes,
       baseSize: (p) => wsRef.current.source.baseSizes?.get(p),
+      probe: async (result) => (await import("@/features/preview/probe")).probePreview(result),
     }),
     [],
   );
@@ -95,10 +107,10 @@ export function useAgent(project: AgentProject) {
       abortRef.current = ctrl;
       upsert(t);
       // Updates from a superseded run are ignored.
-      await advance(t, { step, workspace: view, signal: ctrl.signal, onUpdate: (x) => abortRef.current === ctrl && upsert(x) });
+      await advance(t, { step, workspace: view, signal: ctrl.signal, onUpdate: (x) => abortRef.current === ctrl && upsertFromRun(x) });
       if (abortRef.current === ctrl) abortRef.current = null;
     },
-    [step, view, upsert],
+    [step, view, upsertFromRun],
   );
 
   /** Build the user message: request + attached file contents (as data, clearly fenced). */

@@ -1,40 +1,61 @@
 import { Link } from "wouter";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ChevronRight, MonitorPlay, XCircle } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
-import { PhaseBoundary } from "@/components/phase-boundary";
-import { Button } from "@/components/ui/button";
-import { DEMO_FILES, DEMO_PROJECT } from "@/features/demo/sample-project";
-import { PROJECT_KIND_LABEL, detectProjectKind } from "@/lib/tree";
+import { DEMO_PROJECT } from "@/features/demo/sample-project";
+import { recentRepos } from "@/features/github/recent";
+import { useSession } from "@/stores/session";
 import { projectPath } from "@/lib/nav";
 
+const SUPPORTED = ["Static HTML / CSS / JavaScript (multi-page)", "Vite + React / Preact (JS & TypeScript)", "Create React App", "Tailwind CSS v3 / v4, CSS modules, JSON & asset imports", "npm packages (loaded from esm.sh at your package.json versions)"];
+const NOT_YET = ["Server runtimes: Next.js, Remix, Nuxt, SvelteKit, Astro, Node/Express APIs", "Vue, Svelte, Angular, Solid single-file components", "Native apps: React Native / Expo, Flutter, Electron", "Backends and databases (Python, Go, Ruby, PHP…)"];
+
 export default function PreviewPage() {
-  const kind = detectProjectKind(DEMO_FILES);
+  const { session } = useSession();
+  const repos = session.mode === "github" ? recentRepos().slice(0, 8) : [];
+  const items = [{ owner: DEMO_PROJECT.owner, name: DEMO_PROJECT.name, demo: true }, ...repos.map((r) => ({ owner: r.owner, name: r.name, demo: false }))];
   return (
     <AppShell title="Preview">
-      <div className="mb-4 flex items-center gap-3 rounded-lg border bg-surface p-4">
-        <CheckCircle2 className="size-5 shrink-0 text-success" aria-hidden />
-        <div className="min-w-0 flex-1 text-sm">
-          <p className="font-semibold">
-            {DEMO_PROJECT.owner}/{DEMO_PROJECT.name}
-          </p>
-          <p className="text-muted-foreground">Detected: {PROJECT_KIND_LABEL[kind]} — browser-compatible</p>
+      <p className="mb-4 text-sm text-muted-foreground">
+        Runs the real app — including unsaved edits — in a sandboxed frame on this device. Pick a project:
+      </p>
+      <ul className="mb-6 divide-y overflow-hidden rounded-lg border bg-surface" data-testid="list-preview-projects">
+        {items.map((r) => (
+          <li key={`${r.owner}/${r.name}`}>
+            <Link href={projectPath(r.owner, r.name, "preview")} className="flex min-h-14 items-center gap-3 px-4 py-3 hover:bg-surface-2" data-testid={`link-preview-${r.owner}-${r.name}`}>
+              <MonitorPlay className="size-5 shrink-0 text-primary" aria-hidden />
+              <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                <span className="text-muted-foreground">{r.owner}/</span>
+                {r.name}
+              </span>
+              {r.demo ? <span className="text-xs text-warning">Demo</span> : null}
+              <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {session.mode === "github" && repos.length === 0 ? (
+        <p className="-mt-4 mb-6 text-xs text-muted-foreground">
+          Open a repository from <Link href="/app/projects" className="text-primary underline-offset-2 hover:underline">Projects</Link> and it will appear here.
+        </p>
+      ) : null}
+      <section className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded-lg border p-4">
+          <h2 className="mb-2 text-sm font-semibold">Supported</h2>
+          <ul className="space-y-1.5 text-sm text-muted-foreground">
+            {SUPPORTED.map((s) => (
+              <li key={s} className="flex gap-2"><CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />{s}</li>
+            ))}
+          </ul>
         </div>
-      </div>
-      <PhaseBoundary
-        phase={5}
-        title="Live preview"
-        description="Preview renders the actual application in a sandboxed, full-screen frame — never an image or mockup."
-        planned={[
-          "HTML/CSS/JS first, then Vite + React and TypeScript",
-          "Build/runtime errors with readable diagnostics",
-          "Refresh, open in new tab, and return to code",
-          "Clear message for projects needing a server runtime",
-        ]}
-      >
-        <Button asChild variant="secondary" className="w-full">
-          <Link href={projectPath(DEMO_PROJECT.owner, DEMO_PROJECT.name)}>Open demo project</Link>
-        </Button>
-      </PhaseBoundary>
+        <div className="rounded-lg border p-4">
+          <h2 className="mb-2 text-sm font-semibold">Not in the browser preview yet</h2>
+          <ul className="space-y-1.5 text-sm text-muted-foreground">
+            {NOT_YET.map((s) => (
+              <li key={s} className="flex gap-2"><XCircle className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />{s}</li>
+            ))}
+          </ul>
+        </div>
+      </section>
     </AppShell>
   );
 }

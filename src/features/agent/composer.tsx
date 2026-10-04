@@ -32,6 +32,7 @@ export function Composer({
   quickActions,
   onSend,
   onStop,
+  initialText = "",
 }: {
   mode: AgentMode;
   onModeChange: (m: AgentMode) => void;
@@ -43,12 +44,20 @@ export function Composer({
   quickActions: QuickAction[];
   onSend: (text: string, attach: string[]) => void;
   onStop: () => void;
+  /** Pre-filled message (e.g. "Fix with AI" from the preview). */
+  initialText?: string;
 }) {
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialText);
   const [attachActive, setAttachActive] = useState(true);
   const [caret, setCaret] = useState(0);
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => () => document.documentElement.classList.remove("editor-focused"), []);
+  useEffect(() => {
+    if (!initialText) return;
+    const el = ref.current;
+    el?.focus();
+    el?.setSelectionRange(initialText.length, initialText.length);
+  }, [initialText]);
 
   // @mention autocomplete for the token under the caret.
   const token = useMemo(() => {

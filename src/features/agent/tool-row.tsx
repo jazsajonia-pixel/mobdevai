@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, ChevronDown, FilePen, FilePlus2, FileSearch, FileText, FileX2, FolderTree, GitCompare, Loader2, Package, Replace, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronDown, FilePen, FilePlus2, FileSearch, FileText, FileX2, FolderTree, GitCompare, Loader2, MonitorPlay, Package, Replace, XCircle } from "lucide-react";
 import { TOOLS, isToolName, type ToolName } from "@/lib/agent-tools";
 import { cn } from "@/lib/utils";
 import type { AgentMessage, ToolCall } from "@/types/agent";
@@ -10,6 +10,7 @@ const ICON: Record<ToolName, typeof FileText> = {
   search_code: FileSearch,
   get_git_status: GitCompare,
   inspect_package_json: Package,
+  request_preview: MonitorPlay,
   propose_plan: FileText,
   create_file: FilePlus2,
   update_file: FilePen,
@@ -36,6 +37,8 @@ export function describeCall(c: ToolCall): string {
       return "Check workspace changes";
     case "inspect_package_json":
       return "Inspect package.json";
+    case "request_preview":
+      return `Check the preview${s(a.page) ? ` (${s(a.page)})` : ""}`;
     case "create_file":
       return `Create ${s(a.path)}`;
     case "update_file":

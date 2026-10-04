@@ -3,7 +3,6 @@ import { Link, useLocation } from "wouter";
 import { ExternalLink, FolderGit2 } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { AppShell } from "@/components/layout/app-shell";
-import { PhaseBoundary } from "@/components/phase-boundary";
 import { EmptyState, ErrorState } from "@/components/states";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -19,9 +18,8 @@ import { DEMO_FILES, DEMO_PROJECT } from "@/features/demo/sample-project";
 import { useAsync } from "@/hooks/use-async";
 import { useSession } from "@/stores/session";
 import { isWorkspaceTab, type WorkspaceTab } from "@/lib/nav";
-import { PROJECT_KIND_LABEL, detectProjectKind, detectProjectKindFromPaths } from "@/lib/tree";
 import { describeError } from "@/lib/errors";
-import type { ProjectKind, ProjectRef } from "@/types/workspace";
+import type { ProjectRef } from "@/types/workspace";
 import type { RepoSummary } from "@/types/github";
 
 /* ── Shared tab bodies ─────────────────────────────────────────────── */
@@ -37,20 +35,14 @@ function AiTab({ project, branch }: { project: ProjectRef; branch: string }) {
   );
 }
 
-function PreviewTab({ kind }: { kind: ProjectKind | null }) {
+// Loaded on demand: the in-browser bundler (Sucrase) only ships when Preview opens.
+const PreviewPanel = lazy(() => import("@/features/preview/preview-panel").then((m) => ({ default: m.PreviewPanel })));
+
+function PreviewTab({ owner, name, assetUrl }: { owner: string; name: string; assetUrl?: (path: string) => string | null }) {
   return (
-    <div className="p-4">
-      <PhaseBoundary
-        phase={5}
-        title={`Preview · ${kind ? PROJECT_KIND_LABEL[kind] : "detecting…"}`}
-        description={
-          kind === "unknown"
-            ? "This project requires a runtime that Mobile Development AI cannot run in-browser yet."
-            : "This project type looks browser-compatible. The sandboxed live preview runtime is being built."
-        }
-        planned={["Full-screen mobile preview", "Reload and open in new tab", "Build and runtime error diagnostics"]}
-      />
-    </div>
+    <Suspense fallback={<div className="space-y-2 p-4"><Skeleton className="h-10" /><Skeleton className="h-64" /></div>}>
+      <PreviewPanel owner={owner} repo={name} assetUrl={assetUrl} />
+    </Suspense>
   );
 }
 
@@ -78,7 +70,7 @@ function DemoWorkspace({ tab }: { tab: WorkspaceTab }) {
         ) : tab === "ai" ? (
           <AiTab project={DEMO_PROJECT} branch={DEMO_PROJECT.defaultBranch} />
         ) : tab === "preview" ? (
-          <PreviewTab kind={detectProjectKind(DEMO_FILES)} />
+          <PreviewTab owner={DEMO_PROJECT.owner} name={DEMO_PROJECT.name} />
         ) : (
           <EditFromGit owner={DEMO_PROJECT.owner} name={DEMO_PROJECT.name}>
             {(onEdit) => <ChangesPanel branch={DEMO_PROJECT.defaultBranch} isDemo canPush onEdit={onEdit} />}
@@ -137,8 +129,6 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
     [owner, name, branch],
   );
 
-  const paths = useMemo(() => (tree.status === "success" ? tree.data.entries.filter((e) => e.type === "blob").map((e) => e.path) : []), [tree]);
-
   const source = useMemo<WorkspaceSource | null>(() => {
     if (tree.status !== "success" || !branch) return null;
     const blobs = tree.data.entries.filter((e) => e.type === "blob");
@@ -175,8 +165,6 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
         </Button>
       </div>
     );
-  } else if (tab === "preview") {
-    body = <PreviewTab kind={tree.status === "success" ? detectProjectKindFromPaths(paths) : null} />;
   } else if (tree.status === "loading" || !source) {
     body =
       tree.status === "error" ? null : (
@@ -189,6 +177,17 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
       );
   } else if (tab === "ai") {
     body = <AiTab project={project} branch={shownBranch} />;
+  } else if (tab === "preview") {
+    // Public repos: binary assets (images, fonts) load from raw.githubusercontent.com at the pinned commit.
+    const pub = repo.status === "success" && !repo.data.private;
+    const sha = tree.status === "success" ? tree.data.commitSha : null;
+    body = (
+      <PreviewTab
+        owner={owner}
+        name={name}
+        assetUrl={pub && sha ? (p) => `https://raw.githubusercontent.com/${owner}/${name}/${sha}/${p.split("/").map(encodeURIComponent).join("/")}` : undefined}
+      />
+    );
   } else if (tab === "files") {
     body = <FilesTab gitHref={projectPath(owner, name, "git")} />;
   } else {
@@ -198,7 +197,7 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
       </EditFromGit>
     );
   }
-  if (repo.status !== "error" && tree.status === "error" && (tab === "files" || tab === "git" || tab === "ai")) {
+  if (repo.status !== "error" && tree.status === "error" && (tab === "files" || tab === "git" || tab === "ai" || tab === "preview")) {
     body =
       describeError(tree.error).code === "EMPTY_REPOSITORY" ? (
         <EmptyState icon={<FolderGit2 className="size-5" />} title="This repository is empty" className="py-12">
@@ -216,7 +215,7 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
       {body}
       {repo.status === "success" ? (
         <>
-          {(tab !== "files" && tab !== "ai") || !source ? (
+          {tab === "git" || !source ? (
             <div className="px-4 pb-4 pt-2">
               <a
                 href={`https://github.com/${owner}/${name}`}
