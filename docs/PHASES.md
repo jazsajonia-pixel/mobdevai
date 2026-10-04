@@ -273,7 +273,7 @@ changes into a stale workspace (use a new branch instead).
 - **CI**: `.github/workflows/ci.yml` — check, `npm audit`, e2e on Chromium + WebKit, report artifact on failure.
 - **Fixes found by e2e**: Git tab accessible name ("Git, 1 changed file"), patch button pluralization,
   branch summary no longer breaks words mid-way.
-- **Tests**: 205 unit/integration + 16 end-to-end (8 flows × 2 device profiles locally).
+- **Tests**: 205 unit/integration + 24 end-to-end in CI (8 flows × Pixel 7, iPhone 14 on Chromium, iPhone 14 on WebKit).
 
 ## Later phases
 

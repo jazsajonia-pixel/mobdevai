@@ -15,10 +15,10 @@ concurrency:
 jobs:
   check:
     name: Typecheck, unit tests, build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -28,11 +28,12 @@ jobs:
 
   e2e:
     name: End-to-end (mobile Chrome + iPhone Safari)
-    runs-on: ubuntu-latest
+    # Pinned: Playwright WebKit doesn't support Ubuntu 26 yet (ubuntu-latest moves there Oct 2026).
+    runs-on: ubuntu-24.04
     needs: check
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
