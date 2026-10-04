@@ -17,6 +17,18 @@ export interface AgentTask {
   error: { code: string; message: string } | null;
   provider: { label: string; model: string } | null;
   usage: { inputTokens: number; outputTokens: number };
+  /** Set when accepted changes from this task were committed (Phase 6). */
+  shipped?: ShippedInfo;
+}
+
+export interface ShippedInfo {
+  sha: string;
+  url: string | null;
+  branch: string;
+  at: string;
+  pr?: { number: number; url: string } | null;
+  /** Demo mode: nothing was sent to GitHub. */
+  simulated?: boolean;
 }
 
 export function newTask(mode: AgentMode, title: string): AgentTask {

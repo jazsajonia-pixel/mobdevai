@@ -1,3 +1,4 @@
+import { ShippedNote } from "@/features/git/shipped-note";
 import { useMemo } from "react";
 import { Link } from "wouter";
 import { MessageSquareCode, Sparkles } from "lucide-react";
@@ -51,6 +52,7 @@ export default function AIPage() {
                           {r.owner}/{r.repo} · {r.task.mode} · {r.task.status.replace("_", " ")}
                         </span>
                       </span>
+                      {r.task.shipped ? <ShippedNote info={r.task.shipped} compact /> : null}
                       {pending ? <span className="shrink-0 text-xs font-medium text-warning">{pending} to review</span> : null}
                     </Link>
                   </li>

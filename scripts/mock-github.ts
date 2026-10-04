@@ -33,7 +33,30 @@ const repos = [
   permissions: { admin: true, push: true, pull: true },
 }));
 
-const branches = ["main", "feature/mobile-nav", "dev"].map((name, i) => ({ name, commit: { sha: `c0ffee${i}`.padEnd(40, "0") }, protected: name === "main" }));
+/* Tiny in-memory git store so commits/branches/PRs can be exercised end to end. */
+interface MockCommit { sha: string; parent: string | null; tree: Record<string, string>; message: string; date: string }
+const commits = new Map<string, MockCommit>();
+const treeObjs = new Map<string, Record<string, string>>();
+let seq = 0;
+const mkSha = (p: string) => (p + (++seq).toString(16)).padEnd(40, "0").slice(0, 40);
+const root: MockCommit = { sha: "c0ffee".padEnd(40, "0"), parent: null, tree: { ...files }, message: "Initial commit", date: new Date(Date.now() - 86400_000).toISOString() };
+commits.set(root.sha, root);
+treeObjs.set("t" + root.sha, root.tree);
+const refs = new Map<string, string>([["main", root.sha], ["feature/mobile-nav", root.sha], ["dev", root.sha]]);
+const PROTECTED = new Set(["main"]);
+const pulls: { number: number; head: string; base: string; title: string; state: "open"; draft: boolean }[] = [];
+const treeShaOf = (c: MockCommit) => {
+  const id = "t" + c.sha;
+  treeObjs.set(id, c.tree);
+  return id;
+};
+const branchList = () => [...refs].map(([name, sha]) => ({ name, commit: { sha }, protected: PROTECTED.has(name) }));
+async function readBody(req: import("node:http").IncomingMessage): Promise<Record<string, unknown>> {
+  const chunks: Buffer[] = [];
+  for await (const c of req) chunks.push(c as Buffer);
+  const raw = Buffer.concat(chunks).toString();
+  return raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+}
 
 function send(res: import("node:http").ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}) {
   res.writeHead(status, { "content-type": "application/json", ...headers }).end(JSON.stringify(body));
@@ -66,24 +89,107 @@ createServer(async (req, res) => {
   const rest = m[2] ?? "";
   if (repo.name === "empty-repo" && rest) return send(res, 409, { message: "Git Repository is empty." });
   if (rest === "") return send(res, 200, repo);
-  if (rest === "/branches") return send(res, 200, branches);
+  const method = req.method ?? "GET";
+  if (rest === "/branches") return send(res, 200, branchList());
   const b = /^\/branches\/(.+)$/.exec(rest);
   if (b) {
-    const br = branches.find((x) => x.name === decodeURIComponent(b[1]!));
-    return br ? send(res, 200, { ...br, commit: { sha: br.commit.sha, commit: { tree: { sha: "tree-" + br.name } } } }) : send(res, 404, { message: "Branch not found" });
+    const name = decodeURIComponent(b[1]!);
+    const sha = refs.get(name);
+    return sha ? send(res, 200, { name, commit: { sha, commit: { tree: { sha: treeShaOf(commits.get(sha)!) } } }, protected: PROTECTED.has(name) }) : send(res, 404, { message: "Branch not found" });
   }
-  if (rest.startsWith("/git/trees/")) {
+  const gt = /^\/git\/trees\/(.+)$/.exec(rest);
+  if (gt && method === "GET") {
+    const t = treeObjs.get(decodeURIComponent(gt[1]!)) ?? files;
     const dirs = new Set<string>();
-    for (const f of Object.keys(files)) f.split("/").slice(0, -1).forEach((_, i, a) => dirs.add(a.slice(0, i + 1).join("/")));
-    const tree = [...[...dirs].map((d) => ({ path: d, type: "tree" })), ...Object.entries(files).map(([path, c]) => ({ path, type: "blob", size: c.length }))];
-    return send(res, 200, { sha: "tree", truncated: false, tree });
+    for (const f of Object.keys(t)) f.split("/").slice(0, -1).forEach((_, i, a) => dirs.add(a.slice(0, i + 1).join("/")));
+    const tree = [...[...dirs].map((d) => ({ path: d, type: "tree", mode: "040000" })), ...Object.entries(t).map(([path, c]) => ({ path, type: "blob", mode: "100644", size: c.length }))];
+    return send(res, 200, { sha: gt[1], truncated: false, tree });
   }
   const c = /^\/contents\/(.+)$/.exec(rest);
   if (c) {
     const path = decodeURIComponent(c[1]!);
-    const content = files[path];
+    const ref = url.searchParams.get("ref") ?? "main";
+    const commit = commits.get(ref) ?? commits.get(refs.get(ref) ?? "");
+    const content = commit?.tree[path];
     if (content === undefined) return send(res, 404, { message: "Not Found" });
     return send(res, 200, { type: "file", path, sha: "blob-" + path, size: content.length, encoding: "base64", content: Buffer.from(content).toString("base64") });
+  }
+  // ── Git Data API (writes) ──
+  const ref = /^\/git\/refs?\/heads\/(.+)$/.exec(rest);
+  if (ref) {
+    const name = ref[1]!.split("/").map(decodeURIComponent).join("/");
+    if (method === "GET") return refs.has(name) ? send(res, 200, { ref: `refs/heads/${name}`, object: { sha: refs.get(name) } }) : send(res, 404, { message: "Not Found" });
+    if (method === "DELETE") return refs.delete(name), send(res, 204, {});
+    if (method === "PATCH") {
+      const body = await readBody(req);
+      const next = commits.get(String(body.sha));
+      if (!next) return send(res, 422, { message: "Object does not exist" });
+      if (next.parent !== refs.get(name) && !body.force) return send(res, 422, { message: "Update is not a fast forward" });
+      refs.set(name, next.sha);
+      return send(res, 200, { ref: `refs/heads/${name}`, object: { sha: next.sha } });
+    }
+  }
+  if (rest === "/git/refs" && method === "POST") {
+    const body = await readBody(req);
+    const name = String(body.ref).replace(/^refs\/heads\//, "");
+    if (refs.has(name)) return send(res, 422, { message: "Reference already exists" });
+    if (!commits.has(String(body.sha))) return send(res, 422, { message: "Object does not exist" });
+    refs.set(name, String(body.sha));
+    return send(res, 201, { ref: body.ref, object: { sha: body.sha } });
+  }
+  const gc = /^\/git\/commits\/([0-9a-f]+)$/.exec(rest);
+  if (gc && method === "GET") {
+    const cm = commits.get(gc[1]!);
+    return cm ? send(res, 200, { sha: cm.sha, tree: { sha: treeShaOf(cm) }, message: cm.message }) : send(res, 404, { message: "Not Found" });
+  }
+  if (rest === "/git/trees" && method === "POST") {
+    const body = (await readBody(req)) as { base_tree: string; tree: { path: string; sha?: null; content?: string }[] };
+    const next = { ...(treeObjs.get(body.base_tree) ?? {}) };
+    for (const e of body.tree) {
+      if (e.content !== undefined) next[e.path] = e.content;
+      else if (e.sha === null) {
+        if (!(e.path in next)) return send(res, 422, { message: "GitRPC::BadObjectState" });
+        delete next[e.path];
+      }
+    }
+    const id = "t" + mkSha("ee");
+    treeObjs.set(id, next);
+    return send(res, 201, { sha: id });
+  }
+  if (rest === "/git/commits" && method === "POST") {
+    const body = (await readBody(req)) as { message: string; tree: string; parents: string[] };
+    const cm: MockCommit = { sha: mkSha("ab"), parent: body.parents[0] ?? null, tree: treeObjs.get(body.tree) ?? {}, message: body.message, date: new Date().toISOString() };
+    commits.set(cm.sha, cm);
+    return send(res, 201, { sha: cm.sha, html_url: `http://127.0.0.1:${port}/octo-dev/${repo.name}/commit/${cm.sha}`, tree: { sha: body.tree } });
+  }
+  const cmp = /^\/compare\/([0-9a-f]+)\.\.\.([0-9a-f]+)$/.exec(rest);
+  if (cmp) {
+    const a = commits.get(cmp[1]!)?.tree ?? {};
+    const z = commits.get(cmp[2]!)?.tree ?? {};
+    const names = new Set([...Object.keys(a), ...Object.keys(z)]);
+    return send(res, 200, { files: [...names].filter((n) => a[n] !== z[n]).map((filename) => ({ filename })) });
+  }
+  if (rest === "/commits") {
+    const out = [];
+    let cur = commits.get(refs.get(url.searchParams.get("sha") ?? "main") ?? "");
+    while (cur && out.length < 10) {
+      out.push({ sha: cur.sha, html_url: `http://127.0.0.1:${port}/octo-dev/${repo.name}/commit/${cur.sha}`, commit: { message: cur.message, author: { name: "Octo Developer", date: cur.date } }, author: { login: "octo-dev" } });
+      cur = cur.parent ? commits.get(cur.parent) : undefined;
+    }
+    return send(res, 200, out);
+  }
+  if (rest === "/pulls") {
+    const toGh = (p: (typeof pulls)[number]) => ({ number: p.number, html_url: `http://127.0.0.1:${port}/octo-dev/${repo.name}/pull/${p.number}`, title: p.title, state: p.state, draft: p.draft, merged_at: null, head: { ref: p.head }, base: { ref: p.base } });
+    if (method === "GET") {
+      const head = url.searchParams.get("head")?.split(":")[1];
+      return send(res, 200, pulls.filter((p) => !head || p.head === head).map(toGh));
+    }
+    const body = (await readBody(req)) as { head: string; base: string; title: string; draft?: boolean };
+    if (pulls.some((p) => p.head === body.head && p.base === body.base)) return send(res, 422, { message: `Validation Failed: A pull request already exists for octo-dev:${body.head}.` });
+    if (refs.get(body.head) === refs.get(body.base)) return send(res, 422, { message: `Validation Failed: No commits between ${body.base} and ${body.head}` });
+    const pr = { number: pulls.length + 1, head: body.head, base: body.base, title: body.title, state: "open" as const, draft: !!body.draft };
+    pulls.push(pr);
+    return send(res, 201, toGh(pr));
   }
   return send(res, 404, { message: "Not Found" });
 }).listen(port, "127.0.0.1", () => console.log(`mock GitHub on http://127.0.0.1:${port}`));

@@ -112,3 +112,25 @@ workspace (base + saved + drafts) ─▶ analyzeProject() ─▶ buildPreview() 
   matches the current build; payloads are truncated strings rendered as text.
 - **Agent**: `request_preview` reuses the same build on the proposal overlay and `probe.ts` runs it in a
   hidden sandboxed frame for ≤5 s.
+
+## Git shipping (Phase 6)
+
+```
+Git tab ─ selected FileChange[] + message + target ─▶ POST /api/github/repos/:o/:r/commit
+                                                         │ repo perms · default-branch guard
+                                                         │ createFrom? POST git/refs (new branch @ baseSha)
+                                                         │ head ≠ baseSha? compare → overlap ⇒ GIT_CONFLICT
+                                                         │ base tree (modes) → POST git/trees (inline content, sha:null deletes)
+                                                         │ POST git/commits → PATCH ref (force:false)
+                                                         ▼ failure after creating the branch ⇒ DELETE ref
+                                      { branch, created, parentSha, commit, files }
+                     optional ─▶ POST …/pulls (existing open PR is reused)
+```
+
+- The client sends `baseSha` = the commit the workspace changes were made on; the server never
+  rebases or force-pushes. Content goes inline in the tree request (no blob round-trips).
+- `ws.committed(paths, { newBaseSha, moveTo })` drops committed paths. With `moveTo` (new branch) the
+  remaining work is saved under the new branch's workspace key and the current branch reverts to clean.
+- Last result is kept in session storage (`last-ship:<owner/repo>`) so a PR can be retried; demo
+  commits live in `demo-commits:v1` and are flagged `simulated`.
+- Tokens stay in the encrypted session cookie; writes require same-origin + a per-user rate limit.

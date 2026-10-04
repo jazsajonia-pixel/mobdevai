@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { FilesTab } from "@/features/editor/files-tab";
 import { ChangesPanel } from "@/features/git/changes-panel";
+import type { GitTarget } from "@/features/git/ship-panel";
 import { WorkspaceProvider, useWorkspace, type WorkspaceSource } from "@/features/workspace/context";
 import { workspaceKey } from "@/features/workspace/persist";
 import { projectPath } from "@/lib/nav";
@@ -62,6 +63,18 @@ const DEMO_SOURCE: WorkspaceSource = {
 
 function DemoWorkspace({ tab }: { tab: WorkspaceTab }) {
   const gitHref = projectPath(DEMO_PROJECT.owner, DEMO_PROJECT.name, "git");
+  const [version, setVersion] = useState(0);
+  const target: GitTarget = {
+    owner: DEMO_PROJECT.owner,
+    repo: DEMO_PROJECT.name,
+    branch: DEMO_PROJECT.defaultBranch,
+    defaultBranch: DEMO_PROJECT.defaultBranch,
+    branchNames: [DEMO_PROJECT.defaultBranch],
+    canPush: true,
+    isDemo: true,
+    workspaceKeyFor: (b) => workspaceKey("demo", DEMO_PROJECT.owner, DEMO_PROJECT.name, b),
+    onShipped: () => setVersion((v) => v + 1),
+  };
   return (
     <WorkspaceProvider source={DEMO_SOURCE}>
       <WorkspaceShell project={DEMO_PROJECT} branch={DEMO_PROJECT.defaultBranch} tab={tab}>
@@ -73,7 +86,7 @@ function DemoWorkspace({ tab }: { tab: WorkspaceTab }) {
           <PreviewTab owner={DEMO_PROJECT.owner} name={DEMO_PROJECT.name} />
         ) : (
           <EditFromGit owner={DEMO_PROJECT.owner} name={DEMO_PROJECT.name}>
-            {(onEdit) => <ChangesPanel branch={DEMO_PROJECT.defaultBranch} isDemo canPush onEdit={onEdit} />}
+            {(onEdit) => <ChangesPanel target={target} version={version} onEdit={onEdit} />}
           </EditFromGit>
         )}
       </WorkspaceShell>
@@ -110,15 +123,18 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
   const branches = useAsync(() => githubApi.branches(owner, name), [owner, name]);
   const [branch, setBranch] = useState<string | null>(() => lastBranch(owner, name));
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Branches created from this app this session (the branch list may not include them yet).
+  const [created, setCreated] = useState<ReadonlySet<string>>(() => new Set());
+  const [gitVersion, setGitVersion] = useState(0);
 
   // Fall back to the default branch once metadata arrives (or if the remembered branch is gone).
   useEffect(() => {
     if (repo.status !== "success") return;
     if (!branch) setBranch(repo.data.defaultBranch);
-    else if (branches.status === "success" && !branches.data.branches.some((b) => b.name === branch) && !branches.data.truncated) {
+    else if (branches.status === "success" && !created.has(branch) && !branches.data.branches.some((b) => b.name === branch) && !branches.data.truncated) {
       setBranch(repo.data.defaultBranch);
     }
-  }, [repo, branches, branch]);
+  }, [repo, branches, branch, created]);
 
   useEffect(() => {
     if (branch && repo.status === "success") rememberRepo(owner, name, branch);
@@ -193,7 +209,32 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
   } else {
     body = (
       <EditFromGit owner={owner} name={name}>
-        {(onEdit) => <ChangesPanel branch={shownBranch} isDemo={false} canPush={repo.status === "success" ? repo.data.permissions.push : true} onEdit={onEdit} />}
+        {(onEdit) => (
+          <ChangesPanel
+            version={gitVersion}
+            onEdit={onEdit}
+            target={{
+              owner,
+              repo: name,
+              branch: shownBranch,
+              defaultBranch: repo.status === "success" ? repo.data.defaultBranch : shownBranch,
+              branchNames: [...(branches.status === "success" ? branches.data.branches.map((b) => b.name) : []), ...created],
+              canPush: repo.status === "success" ? repo.data.permissions.push && !repo.data.archived : false,
+              isDemo: false,
+              workspaceKeyFor: (b) => workspaceKey("github", owner, name, b),
+              onShipped: (b) => {
+                setGitVersion((v) => v + 1);
+                if (b !== shownBranch) {
+                  setCreated((s) => new Set(s).add(b));
+                  setBranch(b);
+                  branches.retry();
+                } else {
+                  tree.retry();
+                }
+              },
+            }}
+          />
+        )}
       </EditFromGit>
     );
   }

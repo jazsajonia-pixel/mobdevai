@@ -6,7 +6,7 @@ export const PHASES = [
   { n: 3, title: "AI providers", status: "done" },
   { n: 4, title: "AI coding agent", status: "done" },
   { n: 5, title: "Live preview", status: "done" },
-  { n: 6, title: "Git shipping", status: "next" },
-  { n: 7, title: "Polish", status: "planned" },
+  { n: 6, title: "Git shipping", status: "done" },
+  { n: 7, title: "Polish", status: "next" },
   { n: 8, title: "Production", status: "planned" },
 ] as const;

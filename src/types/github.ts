@@ -74,3 +74,79 @@ export interface FileResponse {
   size: number;
   content: string;
 }
+
+/* ── Git shipping (Phase 6) ───────────────────────────────────────── */
+
+export interface CommitFileInput {
+  path: string;
+  /** Full UTF-8 content; null deletes the file. */
+  content: string | null;
+}
+
+export interface CommitRequest {
+  /** Branch to commit to. */
+  branch: string;
+  /** Create `branch` from this commit first (working-branch flow). Omit to commit to an existing branch. */
+  createFrom?: string;
+  /** Commit the workspace changes were made on — used to detect conflicting upstream changes. */
+  baseSha: string;
+  message: string;
+  files: CommitFileInput[];
+  /** Required to commit straight to the repository's default branch. */
+  allowDefaultBranch?: boolean;
+}
+
+export interface CommitResponse {
+  branch: string;
+  created: boolean;
+  /** Head of the branch before this commit. */
+  parentSha: string;
+  commit: { sha: string; url: string; message: string };
+  files: number;
+}
+
+export interface PullRequestRequest {
+  head: string;
+  base: string;
+  title: string;
+  body: string;
+  draft?: boolean;
+}
+
+export interface PullRequestSummary {
+  number: number;
+  url: string;
+  title: string;
+  state: "open" | "closed";
+  draft: boolean;
+  merged: boolean;
+  head: string;
+  base: string;
+}
+
+export interface PullRequestResponse {
+  pull: PullRequestSummary;
+  /** An open PR for this head/base already existed and was returned instead. */
+  existing: boolean;
+}
+
+export interface PullListResponse {
+  pulls: PullRequestSummary[];
+}
+
+export interface CommitSummary {
+  sha: string;
+  message: string;
+  author: string;
+  date: string | null;
+  url: string;
+}
+
+export interface CommitListResponse {
+  commits: CommitSummary[];
+}
+
+export interface CreateBranchRequest {
+  name: string;
+  from: string;
+}

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { EditorStateCache } from "@/features/editor/state-cache";
 import {
+  afterCommit,
   changeList,
   createFile as createFileModel,
   deleteFile as deleteFileModel,
@@ -74,6 +75,11 @@ interface WorkspaceValue {
   rename: (from: string, to: string) => Promise<string>;
   revert: (path: string) => void;
   revertAll: () => void;
+  /**
+   * A commit landed: drop the committed files' local changes. `newBaseSha` re-bases what's left.
+   * With `moveTo` (a new branch's workspace key) the remaining work moves to that branch.
+   */
+  committed: (paths: readonly string[], opts: { newBaseSha: string | null; moveTo?: string }) => void;
   jump: JumpTarget | null;
   /** Per-file editor states (keeps undo history across tab switches). Invalidated on revert/rename/delete. */
   editorStates: EditorStateCache;
@@ -290,6 +296,18 @@ export function WorkspaceProvider({ source, children }: { source: WorkspaceSourc
         editorStates.current.clear();
         update((d) => revertAllModel(d));
         setState((s) => ({ ...s, baseMoved: false }));
+      },
+      committed: (paths, { newBaseSha, moveTo }) => {
+        for (const p of paths) editorStates.current.invalidate(p);
+        const next = afterCommit(dataRef.current, paths, newBaseSha);
+        if (moveTo && newBaseSha) {
+          // The new branch starts at our commit; nothing is mounted for it yet, so write it directly.
+          saveWorkspace(moveTo, next);
+          editorStates.current.clear();
+          update((d) => ({ ...revertAllModel(d), tabs: [], active: null }));
+        } else {
+          update(() => next);
+        }
       },
     };
   }, [state, storageOk, source, basePathSet, getBase, peekBase, getSaved, getBuffer, peekBuffer, update, jump]);
