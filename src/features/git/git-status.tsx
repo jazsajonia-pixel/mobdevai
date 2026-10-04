@@ -91,7 +91,7 @@ function ShipResult({ rec, target, onClose }: { rec: ShipRecord; target: GitTarg
 }
 
 /** Branch status: last commit result, open PR for this branch, recent commits. */
-export function GitStatus({ target, version }: { target: GitTarget; version: number }) {
+export function GitStatus({ target, version, compact = false }: { target: GitTarget; version: number; compact?: boolean }) {
   const { owner, repo, branch, defaultBranch, isDemo } = target;
   const [rec, setRec] = useState(() => {
     const r = loadLastShip(owner, repo);
@@ -124,7 +124,7 @@ export function GitStatus({ target, version }: { target: GitTarget; version: num
 
   return (
     <div className="space-y-4">
-      {rec ? (
+      {rec && !compact ? (
         <ShipResult
           rec={rec}
           target={target}
@@ -170,7 +170,7 @@ export function GitStatus({ target, version }: { target: GitTarget; version: num
         {isDemo ? (
           demoLog.length ? (
             <ul className="divide-y" data-testid="list-commits">
-              {demoLog.map((c) => (
+              {demoLog.slice(0, compact ? 3 : undefined).map((c) => (
                 <li key={c.sha} className="flex items-center gap-2 px-3 py-2.5 text-sm">
                   <span className="font-mono text-[12px] text-muted-foreground">{short(c.sha)}</span>
                   <span className="min-w-0 flex-1 truncate">{c.message.split("\n")[0]}</span>
@@ -196,7 +196,7 @@ export function GitStatus({ target, version }: { target: GitTarget; version: num
           </p>
         ) : (
           <ul className="divide-y" data-testid="list-commits">
-            {commits.data.commits.map((c) => (
+            {commits.data.commits.slice(0, compact ? 3 : undefined).map((c) => (
               <li key={c.sha}>
                 <a href={c.url} target="_blank" rel="noreferrer noopener" className="flex min-h-11 items-center gap-2 px-3 py-2 text-sm hover:bg-surface-2">
                   <span className="font-mono text-[12px] text-muted-foreground">{short(c.sha)}</span>

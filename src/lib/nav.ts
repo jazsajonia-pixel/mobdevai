@@ -1,4 +1,4 @@
-import { Code2, FolderGit2, GitBranch, Home, MonitorSmartphone, Settings, Sparkles, type LucideIcon } from "lucide-react";
+import { Code2, FolderGit2, GitBranch, Home, LayoutDashboard, MonitorSmartphone, Settings, Sparkles, type LucideIcon } from "lucide-react";
 
 export interface NavItem {
   label: string;
@@ -15,7 +15,10 @@ export const MAIN_NAV: NavItem[] = [
   { label: "Settings", href: "/app/settings", icon: Settings },
 ];
 
-export const WORKSPACE_TABS = ["files", "ai", "preview", "git"] as const;
+/** Tabs in the workspace bottom bar. */
+export const WORKSPACE_NAV_TABS = ["files", "ai", "preview", "git"] as const;
+/** All workspace views; "overview" (project dashboard) opens from the header. */
+export const WORKSPACE_TABS = [...WORKSPACE_NAV_TABS, "overview"] as const;
 export type WorkspaceTab = (typeof WORKSPACE_TABS)[number];
 
 export const WORKSPACE_TAB_META: Record<WorkspaceTab, { label: string; icon: LucideIcon }> = {
@@ -23,6 +26,7 @@ export const WORKSPACE_TAB_META: Record<WorkspaceTab, { label: string; icon: Luc
   ai: { label: "AI", icon: Sparkles },
   preview: { label: "Preview", icon: MonitorSmartphone },
   git: { label: "Git", icon: GitBranch },
+  overview: { label: "Overview", icon: LayoutDashboard },
 };
 
 export function isWorkspaceTab(value: string | undefined): value is WorkspaceTab {

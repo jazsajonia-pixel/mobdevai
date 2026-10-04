@@ -43,6 +43,8 @@ export interface RecentTask {
   owner: string;
   repo: string;
   branch: string;
+  /** Workspace key the task is stored under. */
+  key: string;
   task: AgentTask;
 }
 
@@ -59,7 +61,7 @@ export function recentAgentTasks(limit = 8): RecentTask[] {
     const m = /^mdai:agent-tasks:.*?(demo|github):([^/]+)\/([^@]+)@(.+):v1$/.exec(k);
     if (!m) continue;
     const wsKey = k.slice("mdai:agent-tasks:".length, -":v1".length);
-    for (const task of loadTasks(wsKey)) out.push({ source: m[1] as "demo" | "github", owner: m[2]!, repo: m[3]!, branch: m[4]!, task });
+    for (const task of loadTasks(wsKey)) out.push({ source: m[1] as "demo" | "github", owner: m[2]!, repo: m[3]!, branch: m[4]!, key: wsKey, task });
   }
   return out.sort((a, b) => b.task.updatedAt.localeCompare(a.task.updatedAt)).slice(0, limit);
 }
@@ -76,4 +78,11 @@ export function markTasksShipped(workspaceKey: string, taskIds: readonly string[
   const ids = new Set(taskIds);
   const list = loadTasks(workspaceKey).map((t) => (ids.has(t.id) ? { ...t, shipped: info } : t));
   saveTasks(workspaceKey, list);
+}
+
+/** Remove one task from this device's history. */
+export function deleteTask(workspaceKey: string, taskId: string): void {
+  const list = loadTasks(workspaceKey).filter((t) => t.id !== taskId);
+  if (list.length) saveTasks(workspaceKey, list);
+  else safeStorage.remove(tasksKey(workspaceKey));
 }

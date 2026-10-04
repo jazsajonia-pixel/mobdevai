@@ -82,7 +82,7 @@ export default function SettingsPage() {
         </Button>
       </Section>
 
-      <p className="mt-6 text-center font-mono text-[11px] text-muted-foreground">Mobile Development AI · v0.7.0 · Phase 6</p>
+      <p className="mt-6 text-center font-mono text-[11px] text-muted-foreground">Mobile Development AI · v0.8.0 · Phase 7</p>
 
       <BottomSheet
         open={confirmOpen}

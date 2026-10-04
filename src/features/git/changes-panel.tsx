@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, ChevronRight, FilePen, RotateCcw, ShieldAlert } from "lucide-react";
+import { AlertTriangle, ChevronRight, Download, FilePen, RotateCcw, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmSheet } from "@/components/dialogs";
 import { EmptyState } from "@/components/states";
@@ -9,6 +9,7 @@ import type { FileChange } from "@/features/workspace/model";
 import { diffChange } from "./diff";
 import { DiffView } from "./diff-view";
 import { ShipPanel, type GitTarget } from "./ship-panel";
+import { downloadText, patchFileName, toPatch } from "./patch";
 import { GitStatus } from "./git-status";
 
 const STATUS: Record<FileChange["status"], { letter: string; cls: string; label: string }> = {
@@ -126,6 +127,18 @@ export function ChangesPanel({ target, onEdit, version = 0 }: { target: GitTarge
               />
             ))}
           </ul>
+          <div className="flex items-center gap-2 border-t px-3 py-1.5">
+            <p className="min-w-0 flex-1 text-xs text-muted-foreground">Saved on this device until you commit.</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => downloadText(patchFileName(target.repo, branch), toPatch(selected.length ? selected : ws.changes))}
+              data-testid="button-download-patch"
+              aria-label={`Download ${selected.length || ws.changes.length} changed files as a patch`}
+            >
+              <Download className="size-4" aria-hidden /> .patch
+            </Button>
+          </div>
         </section>
       )}
 

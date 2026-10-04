@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ConfirmSheet } from "@/components/dialogs";
 import { cn } from "@/lib/utils";
+import { useOnline } from "@/hooks/use-online";
 import { AppError, describeError } from "@/lib/errors";
 import { useWorkspace } from "@/features/workspace/context";
 import type { FileChange } from "@/features/workspace/model";
@@ -75,10 +76,12 @@ export function ShipPanel({ target, selected }: { target: GitTarget; selected: F
   const draftsInSelection = paths.filter((p) => p in ws.data.drafts);
   const nameErr = mode === "new" ? (branchNameError(targetBranch) ?? (target.branchNames.includes(targetBranch) ? "A branch with this name already exists." : null)) : null;
   const subject = message.split("\n")[0]!.trim();
+  const online = useOnline();
   const blocked =
     !selected.length ? "Select at least one file to commit." :
     draftsInSelection.length ? `Save or discard unsaved edits in ${draftsInSelection.join(", ")} first.` :
     !isDemo && !target.canPush ? "You don't have push access to this repository." :
+    !isDemo && !online ? "You're offline. Your changes are saved on this device — commit when you're back online." :
     nameErr ?? (!subject ? "Write a commit message." : null);
   const working = phase.kind === "working";
 
@@ -137,7 +140,7 @@ export function ShipPanel({ target, selected }: { target: GitTarget; selected: F
   const errMessage = phase.kind === "error" && phase.error instanceof AppError ? phase.error.message : "";
 
   return (
-    <section aria-labelledby="ship-title" className="overflow-hidden rounded-lg border bg-surface" data-testid="ship-panel">
+    <section aria-labelledby="ship-title" className="rounded-lg border bg-surface" data-testid="ship-panel">
       <div className="flex items-center gap-2 border-b px-3 py-2.5">
         <GitCommitHorizontal className="size-4 text-primary" aria-hidden />
         <h2 id="ship-title" className="flex-1 text-sm font-semibold">
@@ -277,6 +280,8 @@ export function ShipPanel({ target, selected }: { target: GitTarget; selected: F
           </div>
         ) : null}
 
+        {/* Sticky so the main action stays under the thumb while scrolling long forms. */}
+        <div className="sticky bottom-0 -mx-3 -mb-3 space-y-2 rounded-b-lg border-t bg-surface/95 p-3 backdrop-blur" data-testid="ship-action-bar">
         {blocked && selected.length ? <p className="text-xs text-warning" data-testid="text-ship-blocked">{blocked}</p> : null}
 
         <Button className="w-full" disabled={!!blocked || working} onClick={() => setConfirm(true)} data-testid="button-commit">
@@ -290,6 +295,7 @@ export function ShipPanel({ target, selected }: { target: GitTarget; selected: F
             `Commit & push ${selected.length} file${selected.length === 1 ? "" : "s"}`
           )}
         </Button>
+        </div>
       </div>
 
       <ConfirmSheet

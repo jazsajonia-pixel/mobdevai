@@ -27,3 +27,16 @@
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Cross-Origin-Opener-Policy = "same-origin"
+    # Script sources stay open on purpose: the sandboxed preview (srcdoc iframe) inherits this policy
+    # and loads npm packages from esm.sh/jsDelivr. The iframe has an opaque origin, so it can't reach
+    # this app's cookies, storage or /api. These directives still block plugins, <base> hijacking,
+    # framing of the app and form posts to other sites.
+    Content-Security-Policy = "object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self' https://github.com"
+
+# Hashed build assets never change.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

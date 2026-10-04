@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { FilesTab } from "@/features/editor/files-tab";
 import { ChangesPanel } from "@/features/git/changes-panel";
 import type { GitTarget } from "@/features/git/ship-panel";
+import { ProjectDashboard } from "@/features/dashboard/project-dashboard";
 import { WorkspaceProvider, useWorkspace, type WorkspaceSource } from "@/features/workspace/context";
 import { workspaceKey } from "@/features/workspace/persist";
 import { projectPath } from "@/lib/nav";
@@ -84,6 +85,8 @@ function DemoWorkspace({ tab }: { tab: WorkspaceTab }) {
           <AiTab project={DEMO_PROJECT} branch={DEMO_PROJECT.defaultBranch} />
         ) : tab === "preview" ? (
           <PreviewTab owner={DEMO_PROJECT.owner} name={DEMO_PROJECT.name} />
+        ) : tab === "overview" ? (
+          <ProjectDashboard project={DEMO_PROJECT} target={target} syncedAt={null} />
         ) : (
           <EditFromGit owner={DEMO_PROJECT.owner} name={DEMO_PROJECT.name}>
             {(onEdit) => <ChangesPanel target={target} version={version} onEdit={onEdit} />}
@@ -144,6 +147,10 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
     () => (branch ? githubApi.tree(owner, name, branch) : new Promise<never>(() => {})),
     [owner, name, branch],
   );
+  const [syncedAt, setSyncedAt] = useState<string | null>(null);
+  useEffect(() => {
+    if (tree.status === "success") setSyncedAt(new Date().toISOString());
+  }, [tree.status, tree.data]);
 
   const source = useMemo<WorkspaceSource | null>(() => {
     if (tree.status !== "success" || !branch) return null;
@@ -170,6 +177,27 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
   };
   const project = repo.status === "success" ? toProjectRef(repo.data) : placeholder;
   const shownBranch = branch ?? (repo.status === "success" ? repo.data.defaultBranch : "…");
+
+  const gitTarget: GitTarget = {
+    owner,
+    repo: name,
+    branch: shownBranch,
+    defaultBranch: repo.status === "success" ? repo.data.defaultBranch : shownBranch,
+    branchNames: [...(branches.status === "success" ? branches.data.branches.map((b) => b.name) : []), ...created],
+    canPush: repo.status === "success" ? repo.data.permissions.push && !repo.data.archived : false,
+    isDemo: false,
+    workspaceKeyFor: (b) => workspaceKey("github", owner, name, b),
+    onShipped: (b) => {
+      setGitVersion((v) => v + 1);
+      if (b !== shownBranch) {
+        setCreated((s) => new Set(s).add(b));
+        setBranch(b);
+        branches.retry();
+      } else {
+        tree.retry();
+      }
+    },
+  };
 
   let body: React.ReactNode;
   if (repo.status === "error") {
@@ -206,34 +234,24 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
     );
   } else if (tab === "files") {
     body = <FilesTab gitHref={projectPath(owner, name, "git")} />;
+  } else if (tab === "overview") {
+    body = (
+      <ProjectDashboard
+        project={project}
+        target={gitTarget}
+        syncedAt={syncedAt}
+        onRefresh={() => {
+          tree.retry();
+          branches.retry();
+        }}
+        onPickBranch={() => setPickerOpen(true)}
+      />
+    );
   } else {
     body = (
       <EditFromGit owner={owner} name={name}>
         {(onEdit) => (
-          <ChangesPanel
-            version={gitVersion}
-            onEdit={onEdit}
-            target={{
-              owner,
-              repo: name,
-              branch: shownBranch,
-              defaultBranch: repo.status === "success" ? repo.data.defaultBranch : shownBranch,
-              branchNames: [...(branches.status === "success" ? branches.data.branches.map((b) => b.name) : []), ...created],
-              canPush: repo.status === "success" ? repo.data.permissions.push && !repo.data.archived : false,
-              isDemo: false,
-              workspaceKeyFor: (b) => workspaceKey("github", owner, name, b),
-              onShipped: (b) => {
-                setGitVersion((v) => v + 1);
-                if (b !== shownBranch) {
-                  setCreated((s) => new Set(s).add(b));
-                  setBranch(b);
-                  branches.retry();
-                } else {
-                  tree.retry();
-                }
-              },
-            }}
-          />
+          <ChangesPanel version={gitVersion} onEdit={onEdit} target={gitTarget} />
         )}
       </EditFromGit>
     );
