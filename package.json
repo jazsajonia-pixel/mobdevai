@@ -1,6 +1,6 @@
 {
   "name": "mobile-development-ai",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Mobile Development AI — the first AI development environment built for developers who code from their phone.",
   "scripts": {
     "dev": "vite",

@@ -1,5 +1,7 @@
 # features/ai
 
-Phase 3–4 — provider settings UI, chat, agent task view with tool log.
+Phase 3 — provider settings UI (`provider-form`, `provider-card`, `storage-notice`, `active-provider`).
+Phase 4 — chat and agent task view (next).
 
-Not implemented yet — see docs/PHASES.md. Keep secrets out of this folder: anything privileged goes through netlify/functions.
+Keep secrets out of this folder: API keys are typed into `provider-form` and sent once to
+`/api/ai/*`; they are never stored in the browser. All provider calls go through netlify/functions.

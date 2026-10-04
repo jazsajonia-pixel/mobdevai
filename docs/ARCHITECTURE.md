@@ -36,6 +36,24 @@ Phone browser ──► React SPA (Netlify CDN)
 - `netlify/lib/env.ts` decides what's configured (placeholders from `.env.example` count as unset).
 - All errors: `{ error: { code, message } }`, `Cache-Control: no-store`.
 
+## AI providers (Phase 3)
+
+- **Abstraction** — `netlify/lib/ai/adapters.ts`: one `ProviderAdapter` (`chat`, `listModels`) per
+  provider: OpenAI (Chat Completions), Anthropic (Messages), Gemini (`generateContent`), and any
+  OpenAI-compatible base URL. Timeouts, `redirect: "manual"`, and upstream errors mapped to
+  `AI_INVALID_KEY`, `AI_MODEL_NOT_FOUND`, `AI_QUOTA_EXCEEDED`, `AI_PROVIDER_UNAVAILABLE` with key-like
+  strings redacted. `resolveProvider()` (`resolve.ts`) gives Phase 4 a decrypted key server-side only.
+- **Storage** — `store.ts` picks a backend and says so in the UI:
+  - `database` (ENCRYPTION_KEY + DATABASE_URL): `ai_providers` rows hold AES-256-GCM ciphertext.
+  - `session` (SESSION_SECRET only): the same encrypted records inside a sealed HTTP-only cookie
+    `mdai_ai` (`Path=/api/ai`, `SameSite=Strict`), cleared on sign-out, expiring with the session.
+  Every key is field-encrypted with AAD `user:<githubId>|provider:<id>`, so ciphertext can't be
+  replayed for another user or record. Responses only ever carry a masked hint (`sk-…WXYZ`).
+- **Custom base URLs** — https only, no credentials/query, no localhost/private/link-local IPs
+  (checked again after DNS resolution). `AI_ALLOW_PRIVATE_BASE_URLS=true` is for local dev only.
+- **Platform keys** — `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` appear as read-only
+  "server" providers for every signed-in user.
+
 ## Data model (Phase 1+)
 
 `User`, `GitHubConnection`, `AIProvider` (encrypted key + masked hint), `Project`, `Workspace`,

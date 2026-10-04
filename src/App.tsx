@@ -12,6 +12,7 @@ import ProjectsPage from "@/pages/projects";
 import AIPage from "@/pages/ai";
 import PreviewPage from "@/pages/preview";
 import SettingsPage from "@/pages/settings";
+import AIProvidersPage from "@/pages/ai-providers";
 import NotFoundPage from "@/pages/not-found";
 import { Spinner } from "@/components/states";
 
@@ -60,6 +61,11 @@ export function AppRoutes() {
       <Route path="/app/settings">
         <RequireSession>
           <SettingsPage />
+        </RequireSession>
+      </Route>
+      <Route path="/app/settings/ai">
+        <RequireSession>
+          <AIProvidersPage />
         </RequireSession>
       </Route>
       <Route component={NotFoundPage} />

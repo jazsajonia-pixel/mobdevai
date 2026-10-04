@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { ExternalLink, FolderGit2 } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { AppShell } from "@/components/layout/app-shell";
+import { ActiveProviderLink } from "@/features/ai/active-provider";
 import { PhaseBoundary } from "@/components/phase-boundary";
 import { EmptyState, ErrorState } from "@/components/states";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,7 +29,8 @@ import type { RepoSummary } from "@/types/github";
 
 function AiTab() {
   return (
-    <div className="p-4">
+    <div className="space-y-4 p-4">
+      <ActiveProviderLink />
       <PhaseBoundary
         phase={4}
         title="Ask the agent about this project"
