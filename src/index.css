@@ -4,25 +4,25 @@
 
 @layer base {
   :root {
-    --background: 0 0% 99%;
-    --surface: 220 20% 97%;
-    --surface-2: 220 16% 93%;
-    --border: 220 13% 87%;
-    --foreground: 222 24% 10%;
-    --muted: 220 14% 93%;
-    --muted-foreground: 220 9% 38%;
-    --primary: 158 74% 28%;
+    --background: 250 20% 99%;
+    --surface: 255 24% 97%;
+    --surface-2: 258 22% 93%;
+    --border: 256 15% 86%;
+    --foreground: 258 30% 12%;
+    --muted: 255 18% 93%;
+    --muted-foreground: 255 10% 39%;
+    --primary: 276 72% 43%;
     --primary-foreground: 0 0% 100%;
     --danger: 0 70% 46%;
     --danger-foreground: 0 0% 100%;
     --warning: 32 92% 38%;
-    --success: 158 74% 28%;
-    --ring: 158 74% 34%;
+    --success: 162 62% 32%;
+    --ring: 276 75% 47%;
     --syn-keyword: 292 55% 42%;
     --syn-string: 145 55% 30%;
     --syn-number: 24 85% 42%;
-    --syn-comment: 220 9% 52%;
-    --syn-fn: 214 80% 44%;
+    --syn-comment: 255 9% 52%;
+    --syn-fn: 262 80% 44%;
     --syn-type: 186 70% 32%;
     --syn-tag: 352 62% 46%;
     --syn-attr: 36 80% 36%;
@@ -32,25 +32,25 @@
   }
 
   .dark {
-    --background: 220 14% 6%;
-    --surface: 220 13% 9%;
-    --surface-2: 220 12% 13%;
-    --border: 220 10% 18%;
-    --foreground: 210 20% 95%;
-    --muted: 220 10% 15%;
-    --muted-foreground: 218 11% 64%;
-    --primary: 156 64% 52%;
-    --primary-foreground: 160 45% 6%;
-    --danger: 0 78% 64%;
+    --background: 258 28% 7%;
+    --surface: 257 24% 10%;
+    --surface-2: 255 20% 14%;
+    --border: 255 16% 21%;
+    --foreground: 255 28% 96%;
+    --muted: 256 18% 16%;
+    --muted-foreground: 255 12% 67%;
+    --primary: 274 100% 75%;
+    --primary-foreground: 258 36% 11%;
+    --danger: 0 78% 66%;
     --danger-foreground: 0 0% 100%;
-    --warning: 38 92% 60%;
-    --success: 156 64% 52%;
-    --ring: 156 64% 52%;
+    --warning: 38 92% 63%;
+    --success: 158 62% 57%;
+    --ring: 278 100% 76%;
     --syn-keyword: 286 70% 76%;
     --syn-string: 100 50% 68%;
     --syn-number: 28 90% 68%;
-    --syn-comment: 218 10% 48%;
-    --syn-fn: 208 90% 72%;
+    --syn-comment: 255 12% 54%;
+    --syn-fn: 265 100% 79%;
     --syn-type: 180 55% 64%;
     --syn-tag: 354 75% 72%;
     --syn-attr: 40 85% 70%;
@@ -59,9 +59,7 @@
     color-scheme: dark;
   }
 
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
 
   html {
     -webkit-text-size-adjust: 100%;
@@ -74,14 +72,14 @@
     overscroll-behavior-y: none;
   }
 
-  :focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
-  }
+  :focus-visible { @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background; }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
   }
 }
@@ -92,6 +90,56 @@
   .tabular { font-variant-numeric: tabular-nums; }
   .scrollbar-none { scrollbar-width: none; }
   .scrollbar-none::-webkit-scrollbar { display: none; }
-  /* While typing in the editor, the workspace tab bar hides to give the keyboard + symbol bar room. */
   html.editor-focused nav[aria-label="Workspace"] { display: none; }
+}
+
+.landing-hero {
+  background:
+    radial-gradient(ellipse at 15% 20%, rgb(109 63 164 / 23%), transparent 48%),
+    radial-gradient(ellipse at 88% 75%, rgb(182 72 113 / 17%), transparent 42%),
+    linear-gradient(118deg, #171226 0%, #20162f 52%, #171225 100%);
+}
+
+.topo-lines {
+  left: -13%;
+  top: -5%;
+  opacity: .76;
+  animation: topo-float 34s ease-in-out infinite alternate;
+}
+
+.topo-contours {
+  stroke-dasharray: 12 3;
+  animation: topo-flow 54s linear infinite;
+}
+
+.topo-contours-secondary {
+  animation-duration: 68s;
+  animation-direction: reverse;
+}
+
+.topo-glow {
+  background:
+    radial-gradient(ellipse at 42% 48%, transparent 12%, rgb(20 14 35 / 8%) 65%, rgb(20 14 35 / 28%)),
+    linear-gradient(90deg, rgb(17 12 30 / 18%), transparent 35%, rgb(20 14 35 / 10%));
+}
+
+.hero-copy { animation: fade-up .75s cubic-bezier(.2,.7,.25,1) both; }
+.phone-float { animation: float-phone 7s ease-in-out 0.25s infinite; }
+.feature-card { transition: background-color .22s ease, border-color .22s ease, transform .22s ease, box-shadow .22s ease; }
+.feature-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgb(30 16 50 / 10%); }
+.route-transition { animation: route-enter .3s cubic-bezier(.2,.7,.25,1) both; }
+
+@keyframes topo-float {
+  from { transform: translate3d(-1.5%, -1%, 0) scale(1); }
+  to { transform: translate3d(1.5%, 1%, 0) scale(1.035); }
+}
+
+@keyframes topo-flow { to { stroke-dashoffset: -420; } }
+@keyframes float-phone { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-9px) rotate(0deg); } }
+@keyframes fade-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes route-enter { from { opacity: 0; transform: translateY(8px); filter: blur(2px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .topo-lines, .topo-contours, .phone-float, .hero-copy, .route-transition { animation: none !important; }
+  .feature-card { transition: none !important; }
 }

@@ -1,5 +1,5 @@
-import { Suspense, lazy } from "react";
-import { Route, Router, Switch } from "wouter";
+import { Suspense, lazy, useEffect, useRef } from "react";
+import { Route, Router, Switch, useLocation } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { SessionProvider } from "@/stores/session";
@@ -27,8 +27,20 @@ const ProjectsPage = lazy(() => import("@/pages/projects"));
  * redirect to a hash route.
  */
 export function AppRoutes() {
+  const [location] = useLocation();
+  const transitionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const page = transitionRef.current;
+    if (!page) return;
+    page.classList.remove("route-transition");
+    void page.offsetWidth;
+    page.classList.add("route-transition");
+  }, [location]);
+
   return (
     <Suspense fallback={<div className="grid h-dvh place-items-center"><Spinner label="Loading" /></div>}>
+    <div ref={transitionRef} className="min-h-dvh">
     <Switch>
       <Route path="/" component={LandingPage} />
       <Route path="/signin" component={SignInPage} />
@@ -80,6 +92,7 @@ export function AppRoutes() {
       </Route>
       <Route component={NotFoundPage} />
     </Switch>
+    </div>
     </Suspense>
   );
 }
