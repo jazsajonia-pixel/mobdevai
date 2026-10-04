@@ -14,7 +14,7 @@ import { toPublic } from "./state";
 export async function providerContext(req: Request, mutating: boolean) {
   if (mutating) assertSameOrigin(req);
   const session = await requireSession(req);
-  rateLimit(`ai-providers:${session.user.id}`, mutating ? 30 : 120, 60_000);
+  await rateLimit(`ai-providers:${session.user.id}`, mutating ? 30 : 120, 60_000);
   const store = openStore(req, session);
   const state = await store.load();
   return { session, store, state };

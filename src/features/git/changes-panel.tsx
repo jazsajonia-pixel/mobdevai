@@ -134,7 +134,7 @@ export function ChangesPanel({ target, onEdit, version = 0 }: { target: GitTarge
               size="sm"
               onClick={() => downloadText(patchFileName(target.repo, branch), toPatch(selected.length ? selected : ws.changes))}
               data-testid="button-download-patch"
-              aria-label={`Download ${selected.length || ws.changes.length} changed files as a patch`}
+              aria-label={`Download ${selected.length || ws.changes.length} changed file${(selected.length || ws.changes.length) === 1 ? "" : "s"} as a patch`}
             >
               <Download className="size-4" aria-hidden /> .patch
             </Button>

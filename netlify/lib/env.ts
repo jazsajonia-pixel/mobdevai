@@ -76,3 +76,52 @@ export function appOrigin(req: Request, env: Env = process.env): string {
 export function encryptionSecret(env: Env = process.env): string | null {
   return capabilities(env).encryption ? env.ENCRYPTION_KEY!.trim() : null;
 }
+
+/* ── Production readiness (Phase 8) ─────────────────────────────── */
+
+/** Netlify sets CONTEXT=production for production deploys; APP_ENV=production forces it elsewhere. */
+export function isProduction(env: Env = process.env): boolean {
+  return env.CONTEXT === "production" || env.APP_ENV === "production";
+}
+
+export interface ReadinessCheck {
+  id: string;
+  ok: boolean;
+  /** error = the app is broken or unsafe in production; warn = degraded. */
+  level: "error" | "warn";
+  message: string;
+}
+
+/** Validate configuration. Messages name variables, never their values. */
+export function readiness(env: Env = process.env, production = isProduction(env)): { ready: boolean; checks: ReadinessCheck[] } {
+  const caps = capabilities(env);
+  const checks: ReadinessCheck[] = [];
+  const add = (id: string, ok: boolean, level: "error" | "warn", message: string) => checks.push({ id, ok, level, message });
+
+  add("github-oauth", caps.githubOAuth, "error", "GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET are required for GitHub sign-in.");
+  add("session-secret", caps.sessions, "error", "SESSION_SECRET must be at least 32 random characters.");
+  add("encryption-key", caps.encryption, "warn", "ENCRYPTION_KEY (32+ chars) is needed to save AI provider keys.");
+  add("database", caps.database, "warn", "DATABASE_URL enables shared rate limits and saved AI providers across devices.");
+  add("keys-distinct", !(caps.sessions && caps.encryption && env.SESSION_SECRET?.trim() === env.ENCRYPTION_KEY?.trim()), "warn", "Use different values for SESSION_SECRET and ENCRYPTION_KEY.");
+
+  let appUrlOk = false;
+  if (isSet(env.APP_URL)) {
+    try {
+      const u = new URL(env.APP_URL);
+      appUrlOk = !production || u.protocol === "https:";
+    } catch {
+      appUrlOk = false;
+    }
+  }
+  add("app-url", appUrlOk || (!production && !isSet(env.APP_URL)), production ? "error" : "warn", "APP_URL must be the site's https:// URL (used for the OAuth callback).");
+
+  const secretVite = Object.keys(env).filter((k) => k.startsWith("VITE_") && /SECRET|KEY|TOKEN|PASSWORD|PRIVATE/i.test(k));
+  add("no-client-secrets", secretVite.length === 0, "error", `Secret-looking VITE_* variables are bundled into client JavaScript: ${secretVite.join(", ") || "none"}.`);
+
+  if (production) {
+    add("no-private-ai-urls", env.AI_ALLOW_PRIVATE_BASE_URLS !== "true", "error", "AI_ALLOW_PRIVATE_BASE_URLS must not be set in production (SSRF risk). It is ignored there.");
+    add("github-endpoints", !isSet(env.GITHUB_API_URL) && !isSet(env.GITHUB_WEB_URL), "warn", "GITHUB_API_URL / GITHUB_WEB_URL are overridden — only do this for GitHub Enterprise.");
+    add("rate-limit-store", env.RATE_LIMIT_STORE !== "memory" && caps.database, "warn", "Rate limits are per function instance without DATABASE_URL (or with RATE_LIMIT_STORE=memory).");
+  }
+  return { ready: checks.every((c) => c.ok || c.level !== "error"), checks };
+}

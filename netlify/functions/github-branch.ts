@@ -14,7 +14,7 @@ export default handle(["POST"], async (req, ctx) => {
   assertSameOrigin(req);
   const { owner, repo } = repoParams(ctx.params);
   const { gh, session } = await githubForRequest(req);
-  rateLimit(`git-branch:${session.user.id}`, 20, 60_000);
+  await rateLimit(`git-branch:${session.user.id}`, 20, 60_000);
   const { name, from } = await readJson(req, schema);
   try {
     await gh.send("POST", `/repos/${owner}/${repo}/git/refs`, { ref: `refs/heads/${name}`, sha: from });

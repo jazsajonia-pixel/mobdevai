@@ -39,7 +39,7 @@ export function EmptyState({
 }
 
 export function ErrorState({ error, onRetry, className }: { error: unknown; onRetry?: () => void; className?: string }) {
-  const { title, hint, code } = describeError(error);
+  const { title, hint, code, requestId } = describeError(error);
   return (
     <div role="alert" className={cn("rounded-lg border border-danger/30 bg-danger/5 p-4", className)}>
       <div className="flex gap-3">
@@ -47,7 +47,10 @@ export function ErrorState({ error, onRetry, className }: { error: unknown; onRe
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">{title}</p>
           <p className="mt-1 text-sm text-muted-foreground">{hint}</p>
-          <p className="mt-2 font-mono text-[11px] uppercase tracking-wide text-muted-foreground">{code}</p>
+          <p className="mt-2 font-mono text-[11px] tracking-wide text-muted-foreground">
+            <span className="uppercase">{code}</span>
+            {requestId ? <span data-testid="text-request-id"> · ref {requestId}</span> : null}
+          </p>
         </div>
       </div>
       {onRetry ? (

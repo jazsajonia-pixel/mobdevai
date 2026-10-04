@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { reportError } from "@/lib/monitoring";
 
 interface State {
   error: Error | null;
@@ -14,8 +15,9 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // TODO(phase-8): forward to monitoring. Never include tokens or file contents.
+    // Forwarded to /api/client-errors (message + trimmed stack + route only — never file contents).
     console.error("[ui] unhandled error", error.message, info.componentStack);
+    reportError("boundary", error);
   }
 
   render() {

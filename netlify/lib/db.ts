@@ -1,3 +1,4 @@
+import { log } from "./log";
 import { neon } from "@neondatabase/serverless";
 import { isSet } from "./env";
 import type { SessionUser } from "../../src/types/github";
@@ -30,6 +31,6 @@ export async function recordLogin(user: SessionUser, scopes: string[], includePr
         SET scopes = EXCLUDED.scopes, include_private = EXCLUDED.include_private, updated_at = now()`;
   } catch (err) {
     // Non-fatal: sign-in must not depend on the database being reachable.
-    console.error("[db] recordLogin failed", err instanceof Error ? err.message : "unknown");
+    log("warn", "db recordLogin failed", { error: err instanceof Error ? err.message : "unknown" });
   }
 }

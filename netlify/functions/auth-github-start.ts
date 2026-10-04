@@ -16,7 +16,7 @@ const bodySchema = z.object({ includePrivate: z.boolean().default(false) }).stri
  */
 export default handle(["POST"], async (req, ctx) => {
   assertSameOrigin(req);
-  rateLimit(`auth-start:${clientKey(req, ctx)}`, 10, 60_000);
+  await rateLimit(`auth-start:${clientKey(req, ctx)}`, 10, 60_000);
 
   const cfg = githubConfig();
   if (!cfg) {

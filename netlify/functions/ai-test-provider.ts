@@ -21,7 +21,7 @@ import { findProvider, recordTest } from "../lib/ai/state";
 export default handle(["POST"], async (req) => {
   assertSameOrigin(req);
   const session = await requireSession(req);
-  rateLimit(`ai-test:${session.user.id}`, 10, 60_000);
+  await rateLimit(`ai-test:${session.user.id}`, 10, 60_000);
   const body = await readJson(req, testSchema);
 
   let target: ResolvedProvider;

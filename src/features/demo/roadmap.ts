@@ -10,5 +10,5 @@ export const PHASES: readonly { n: number; title: string; status: PhaseStatus }[
   { n: 5, title: "Live preview", status: "done" },
   { n: 6, title: "Git shipping", status: "done" },
   { n: 7, title: "Polish", status: "done" },
-  { n: 8, title: "Production", status: "next" },
+  { n: 8, title: "Production", status: "done" },
 ];

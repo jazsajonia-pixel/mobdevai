@@ -14,7 +14,7 @@ export default handle(["POST"], async (req, ctx) => {
   assertSameOrigin(req);
   const { owner, repo } = repoParams(ctx.params);
   const { gh, session } = await githubForRequest(req);
-  rateLimit(`git-commit:${session.user.id}`, 20, 60_000);
+  await rateLimit(`git-commit:${session.user.id}`, 20, 60_000);
   const body = (await readJson(req, commitRequestSchema, MAX_COMMIT_BODY)) as CommitRequest;
   return json(await commitChanges(gh, owner, repo, body));
 });

@@ -131,18 +131,21 @@ const COPY: Record<ErrorCode, ErrorCopy> = {
 export class AppError extends Error {
   readonly code: ErrorCode;
   readonly status?: number;
+  /** Server request id (X-Request-Id) — quote it when reporting a problem. */
+  readonly requestId?: string;
 
-  constructor(code: ErrorCode, message?: string, status?: number) {
+  constructor(code: ErrorCode, message?: string, status?: number, requestId?: string) {
     super(message ?? COPY[code].title);
     this.name = "AppError";
     this.code = code;
     this.status = status;
+    this.requestId = requestId;
   }
 }
 
-export function describeError(error: unknown): ErrorCopy & { code: ErrorCode } {
+export function describeError(error: unknown): ErrorCopy & { code: ErrorCode; requestId?: string } {
   const code: ErrorCode = error instanceof AppError ? error.code : "INTERNAL";
-  return { code, ...COPY[code] };
+  return { code, ...COPY[code], requestId: error instanceof AppError ? error.requestId : undefined };
 }
 
 /** Map an HTTP status to the closest error code when the server didn't send one. */

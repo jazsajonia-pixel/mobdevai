@@ -73,7 +73,7 @@ function checkSequence(messages: AgentMessage[]): void {
 export default handle(["POST"], async (req) => {
   assertSameOrigin(req);
   const session = await requireSession(req);
-  rateLimit(`ai-agent:${session.user.id}`, 40, 60_000);
+  await rateLimit(`ai-agent:${session.user.id}`, 40, 60_000);
   const body = await readJson(req, bodySchema, MAX_BODY);
   const messages = body.messages as AgentMessage[];
   checkSequence(messages);
