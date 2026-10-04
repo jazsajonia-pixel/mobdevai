@@ -18,6 +18,16 @@
     --warning: 32 92% 38%;
     --success: 158 74% 28%;
     --ring: 158 74% 34%;
+    --syn-keyword: 292 55% 42%;
+    --syn-string: 145 55% 30%;
+    --syn-number: 24 85% 42%;
+    --syn-comment: 220 9% 52%;
+    --syn-fn: 214 80% 44%;
+    --syn-type: 186 70% 32%;
+    --syn-tag: 352 62% 46%;
+    --syn-attr: 36 80% 36%;
+    --diff-add: 145 60% 40%;
+    --diff-del: 0 70% 50%;
     color-scheme: light;
   }
 
@@ -36,6 +46,16 @@
     --warning: 38 92% 60%;
     --success: 156 64% 52%;
     --ring: 156 64% 52%;
+    --syn-keyword: 286 70% 76%;
+    --syn-string: 100 50% 68%;
+    --syn-number: 28 90% 68%;
+    --syn-comment: 218 10% 48%;
+    --syn-fn: 208 90% 72%;
+    --syn-type: 180 55% 64%;
+    --syn-tag: 354 75% 72%;
+    --syn-attr: 40 85% 70%;
+    --diff-add: 145 55% 50%;
+    --diff-del: 0 75% 62%;
     color-scheme: dark;
   }
 
@@ -72,4 +92,6 @@
   .tabular { font-variant-numeric: tabular-nums; }
   .scrollbar-none { scrollbar-width: none; }
   .scrollbar-none::-webkit-scrollbar { display: none; }
+  /* While typing in the editor, the workspace tab bar hides to give the keyboard + symbol bar room. */
+  html.editor-focused nav[aria-label="Workspace"] { display: none; }
 }

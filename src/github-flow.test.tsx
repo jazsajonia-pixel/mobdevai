@@ -106,13 +106,12 @@ describe("GitHub workspace", () => {
         json({ ref: "main", commitSha: "c1", truncated: false, entries: [{ path: "README.md", type: "blob", size: 5 }, { path: "src", type: "tree" }, { path: "src/a.ts", type: "blob", size: 3 }] }),
       "/api/github/repos/octo/hello/tree?ref=feature%2Fx": () =>
         json({ ref: "feature/x", commitSha: "c2", truncated: true, entries: [{ path: "NEW.md", type: "blob", size: 5 }] }),
-      "/api/github/repos/octo/hello/file?ref=main&path=README.md": () => json({ path: "README.md", ref: "main", sha: "s", size: 7, content: "# Hello" }),
+      "/api/github/repos/octo/hello/file?ref=c1&path=README.md": () => json({ path: "README.md", ref: "main", sha: "s", size: 7, content: "# Hello" }),
     });
     renderAt("/app/projects/octo/hello");
 
     fireEvent.click(await screen.findByText("README.md"));
-    expect(await screen.findByTestId("code-viewer")).toHaveTextContent("# Hello");
-    fireEvent.click(screen.getByTestId("button-back-files"));
+    expect(await screen.findByTestId("code-editor")).toHaveTextContent("# Hello");
 
     fireEvent.click(screen.getByTestId("button-branch"));
     fireEvent.click(await screen.findByTestId("branch-feature/x"));
@@ -127,7 +126,7 @@ describe("GitHub workspace", () => {
       "/api/github/repos/octo/hello": () => json({ repo }),
       "/api/github/repos/octo/hello/branches": () => json({ branches: [], truncated: false }),
       "/api/github/repos/octo/hello/tree?ref=main": () => json({ ref: "main", commitSha: "c1", truncated: false, entries: [{ path: "logo.png", type: "blob", size: 5 }] }),
-      "/api/github/repos/octo/hello/file?ref=main&path=logo.png": () => json({ error: { code: "BINARY_FILE", message: "binary" } }, 415),
+      "/api/github/repos/octo/hello/file?ref=c1&path=logo.png": () => json({ error: { code: "BINARY_FILE", message: "binary" } }, 415),
     });
     renderAt("/app/projects/octo/hello");
     fireEvent.click(await screen.findByText("logo.png"));

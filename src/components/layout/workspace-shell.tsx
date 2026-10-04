@@ -5,6 +5,7 @@ import { WORKSPACE_TABS, WORKSPACE_TAB_META, projectPath, type WorkspaceTab } fr
 import { cn } from "@/lib/utils";
 import type { ProjectRef } from "@/types/workspace";
 import { Badge } from "@/components/ui/badge";
+import { useOptionalWorkspace } from "@/features/workspace/context";
 import { DemoBanner } from "./demo-banner";
 import { OfflineBanner } from "./offline-banner";
 
@@ -14,6 +15,7 @@ export function WorkspaceShell({
   branch,
   tab,
   onBranchClick,
+  gitBadge,
   children,
 }: {
   project: ProjectRef;
@@ -21,11 +23,17 @@ export function WorkspaceShell({
   tab: WorkspaceTab;
   /** When provided the branch label becomes a button that opens the branch picker. */
   onBranchClick?: () => void;
+  /** Number of changed files, shown on the Git tab. */
+  gitBadge?: number;
   children: ReactNode;
 }) {
+  const ws = useOptionalWorkspace();
+  const badge = gitBadge ?? (ws ? ws.changes.length : 0);
   return (
-    <div className="flex min-h-dvh flex-col">
-      <div className="sticky top-0 z-30 bg-background/90 pt-safe backdrop-blur">
+    // Fixed-height column: header · scrolling main · tab bar. The editor fills `main` exactly,
+    // and with interactive-widget=resizes-content the whole column shrinks above the keyboard.
+    <div className="flex h-dvh flex-col overflow-hidden">
+      <div className="z-30 shrink-0 bg-background pt-safe">
         <OfflineBanner />
         <DemoBanner />
         <header className="mx-auto flex h-14 w-full max-w-3xl items-center gap-1 border-b pl-1 pr-3">
@@ -64,9 +72,9 @@ export function WorkspaceShell({
         </header>
       </div>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 pb-28">{children}</main>
+      <main className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col overflow-y-auto">{children}</main>
 
-      <nav aria-label="Workspace" className="fixed inset-x-0 bottom-0 z-30 border-t bg-surface/95 pb-safe backdrop-blur">
+      <nav aria-label="Workspace" className="z-30 shrink-0 border-t bg-surface pb-safe">
         <ul className="mx-auto grid max-w-lg grid-cols-4">
           {WORKSPACE_TABS.map((t) => {
             const meta = WORKSPACE_TAB_META[t];
@@ -82,7 +90,15 @@ export function WorkspaceShell({
                     active ? "text-foreground" : "text-muted-foreground",
                   )}
                 >
-                  <meta.icon className={cn("size-5", active && "text-primary")} aria-hidden />
+                  <span className="relative">
+                    <meta.icon className={cn("size-5", active && "text-primary")} aria-hidden />
+                    {t === "git" && badge > 0 ? (
+                      <span className="absolute -right-2.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground tabular" data-testid="badge-changes">
+                        {badge > 99 ? "99+" : badge}
+                        <span className="sr-only"> changed files</span>
+                      </span>
+                    ) : null}
+                  </span>
                   {meta.label}
                 </Link>
               </li>

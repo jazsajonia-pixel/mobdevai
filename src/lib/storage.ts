@@ -39,6 +39,21 @@ export const safeStorage = {
       memory.set(`${kind}:${key}`, value);
     }
   },
+  /** Like set(), but reports whether the value was persisted (false on quota errors / no storage). */
+  trySet(key: string, value: string, kind: Area = "local"): boolean {
+    const s = area(kind);
+    if (!s) {
+      memory.set(`${kind}:${key}`, value);
+      return false;
+    }
+    try {
+      s.setItem(PREFIX + key, value);
+      return true;
+    } catch {
+      memory.set(`${kind}:${key}`, value);
+      return false;
+    }
+  },
   remove(key: string, kind: Area = "local"): void {
     const s = area(kind);
     try {

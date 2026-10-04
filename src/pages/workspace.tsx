@@ -1,13 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "wouter";
-import { ExternalLink, FolderGit2, ShieldAlert } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation } from "wouter";
+import { ExternalLink, FolderGit2 } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { AppShell } from "@/components/layout/app-shell";
 import { PhaseBoundary } from "@/components/phase-boundary";
 import { EmptyState, ErrorState } from "@/components/states";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { FilesPanel } from "@/features/editor/files-panel";
+import { FilesTab } from "@/features/editor/files-tab";
+import { ChangesPanel } from "@/features/git/changes-panel";
+import { WorkspaceProvider, useWorkspace, type WorkspaceSource } from "@/features/workspace/context";
+import { workspaceKey } from "@/features/workspace/persist";
+import { projectPath } from "@/lib/nav";
 import { BranchPicker } from "@/features/github/branch-picker";
 import { githubApi } from "@/features/github/api";
 import { lastBranch, rememberRepo } from "@/features/github/recent";
@@ -17,7 +21,7 @@ import { useSession } from "@/stores/session";
 import { isWorkspaceTab, type WorkspaceTab } from "@/lib/nav";
 import { PROJECT_KIND_LABEL, detectProjectKind, detectProjectKindFromPaths } from "@/lib/tree";
 import { describeError } from "@/lib/errors";
-import type { ProjectKind, ProjectRef, WorkspaceFile } from "@/types/workspace";
+import type { ProjectKind, ProjectRef } from "@/types/workspace";
 import type { RepoSummary } from "@/types/github";
 
 /* ── Shared tab bodies ─────────────────────────────────────────────── */
@@ -52,59 +56,49 @@ function PreviewTab({ kind }: { kind: ProjectKind | null }) {
   );
 }
 
-function GitTab({ project, branch, repo }: { project: ProjectRef; branch: string; repo?: RepoSummary }) {
+/* ── Demo workspace ───────────────────────────────────────────────── */
+
+const DEMO_SOURCE: WorkspaceSource = {
+  storageKey: workspaceKey("demo", DEMO_PROJECT.owner, DEMO_PROJECT.name, DEMO_PROJECT.defaultBranch),
+  commitSha: "demo-v1",
+  basePaths: DEMO_FILES.map((f) => f.path),
+  baseSizes: new Map(DEMO_FILES.map((f) => [f.path, f.content.length])),
+  loadBase: async (path) => {
+    const f = DEMO_FILES.find((x) => x.path === path);
+    if (!f) throw new Error("missing demo file");
+    return f.content;
+  },
+};
+
+function DemoWorkspace({ tab }: { tab: WorkspaceTab }) {
+  const gitHref = projectPath(DEMO_PROJECT.owner, DEMO_PROJECT.name, "git");
   return (
-    <div className="space-y-4 p-4">
-      <div className="rounded-lg border bg-surface p-4 text-sm">
-        <p className="font-semibold">Working tree clean</p>
-        <p className="mt-1 text-muted-foreground">
-          {project.source === "demo"
-            ? "Demo project — commits and pushes are never sent to GitHub."
-            : `On ${branch}. Nothing has been changed in this workspace yet.`}
-        </p>
-      </div>
-      {repo && !repo.permissions.push ? (
-        <div role="note" className="flex gap-3 rounded-lg border border-warning/30 bg-warning/10 p-4 text-sm">
-          <ShieldAlert className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
-          <p>
-            <span className="font-semibold">Read-only access.</span>{" "}
-            <span className="text-muted-foreground">You can browse this repository but can't push to it. Fork it on GitHub to make changes.</span>
-          </p>
-        </div>
-      ) : null}
-      <PhaseBoundary
-        phase={6}
-        title="Branch, commit, push, PR"
-        description="AI changes go to a working branch named ai/mobile-development-ai/<task>, never silently to the default branch."
-        planned={["Generated, editable commit message", "Push and open a pull request", "Destructive operations require confirmation"]}
-      />
-    </div>
+    <WorkspaceProvider source={DEMO_SOURCE}>
+      <WorkspaceShell project={DEMO_PROJECT} branch={DEMO_PROJECT.defaultBranch} tab={tab}>
+        {tab === "files" ? (
+          <FilesTab gitHref={gitHref} />
+        ) : tab === "ai" ? (
+          <AiTab />
+        ) : tab === "preview" ? (
+          <PreviewTab kind={detectProjectKind(DEMO_FILES)} />
+        ) : (
+          <EditFromGit owner={DEMO_PROJECT.owner} name={DEMO_PROJECT.name}>
+            {(onEdit) => <ChangesPanel branch={DEMO_PROJECT.defaultBranch} isDemo canPush onEdit={onEdit} />}
+          </EditFromGit>
+        )}
+      </WorkspaceShell>
+    </WorkspaceProvider>
   );
 }
 
-/* ── Demo workspace ───────────────────────────────────────────────── */
-
-function DemoWorkspace({ tab }: { tab: WorkspaceTab }) {
-  const paths = useMemo(() => DEMO_FILES.map((f) => f.path), []);
-  const loadFile = useCallback(async (path: string): Promise<WorkspaceFile> => {
-    const f = DEMO_FILES.find((x) => x.path === path);
-    if (!f) throw new Error("missing demo file");
-    return f;
-  }, []);
-
-  return (
-    <WorkspaceShell project={DEMO_PROJECT} branch={DEMO_PROJECT.defaultBranch} tab={tab}>
-      {tab === "files" ? (
-        <FilesPanel paths={paths} loadFile={loadFile} cacheKey="demo" />
-      ) : tab === "ai" ? (
-        <AiTab />
-      ) : tab === "preview" ? (
-        <PreviewTab kind={detectProjectKind(DEMO_FILES)} />
-      ) : (
-        <GitTab project={DEMO_PROJECT} branch={DEMO_PROJECT.defaultBranch} />
-      )}
-    </WorkspaceShell>
-  );
+/** Git → "edit this file" jumps to the Files tab with the file open. */
+function EditFromGit({ owner, name, children }: { owner: string; name: string; children: (onEdit: (path: string) => void) => React.ReactNode }) {
+  const [, navigate] = useLocation();
+  const ws = useWorkspace();
+  return <>{children((path) => {
+    ws.openFile(path);
+    navigate(projectPath(owner, name, "files"));
+  })}</>;
 }
 
 /* ── GitHub workspace ─────────────────────────────────────────────── */
@@ -147,13 +141,20 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
 
   const paths = useMemo(() => (tree.status === "success" ? tree.data.entries.filter((e) => e.type === "blob").map((e) => e.path) : []), [tree]);
 
-  const loadFile = useCallback(
-    async (path: string): Promise<WorkspaceFile> => {
-      const f = await githubApi.file(owner, name, branch!, path);
-      return { path: f.path, content: f.content };
-    },
-    [owner, name, branch],
-  );
+  const source = useMemo<WorkspaceSource | null>(() => {
+    if (tree.status !== "success" || !branch) return null;
+    const blobs = tree.data.entries.filter((e) => e.type === "blob");
+    return {
+      storageKey: workspaceKey("github", owner, name, branch),
+      commitSha: tree.data.commitSha,
+      basePaths: blobs.map((e) => e.path),
+      baseSizes: new Map(blobs.map((e) => [e.path, e.size ?? 0])),
+      truncated: tree.data.truncated,
+      // Pin reads to the commit so every file comes from the same snapshot.
+      loadBase: async (path) => (await githubApi.file(owner, name, tree.data.commitSha, path)).content,
+      githubUrl: (p) => `https://github.com/${owner}/${name}/blob/${encodeURIComponent(branch)}/${p.split("/").map(encodeURIComponent).join("/")}`,
+    };
+  }, [tree, owner, name, branch]);
 
   const placeholder: ProjectRef = {
     id: `github/${owner}/${name}`,
@@ -176,57 +177,59 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
         </Button>
       </div>
     );
-  } else if (tab === "files") {
+  } else if (tab === "ai") {
+    body = <AiTab />;
+  } else if (tab === "preview") {
+    body = <PreviewTab kind={tree.status === "success" ? detectProjectKindFromPaths(paths) : null} />;
+  } else if (tree.status === "loading" || !source) {
     body =
-      tree.status === "loading" ? (
+      tree.status === "error" ? null : (
         <div className="space-y-1 p-3" aria-label="Loading files">
           <Skeleton className="mb-3 h-11" />
           {[45, 60, 35, 70, 50, 40, 65].map((w, i) => (
             <Skeleton key={i} className="h-8" style={{ width: `${w}%` }} />
           ))}
         </div>
-      ) : tree.status === "error" ? (
-        describeError(tree.error).code === "EMPTY_REPOSITORY" ? (
-          <EmptyState icon={<FolderGit2 className="size-5" />} title="This repository is empty" className="py-12">
-            Push a first commit on GitHub, then come back.
-          </EmptyState>
-        ) : (
-          <div className="p-4">
-            <ErrorState error={tree.error} onRetry={tree.retry} />
-          </div>
-        )
-      ) : (
-        <FilesPanel
-          paths={paths}
-          loadFile={loadFile}
-          cacheKey={`${owner}/${name}@${tree.data.commitSha}`}
-          truncated={tree.data.truncated}
-          githubUrl={(p) => `https://github.com/${owner}/${name}/blob/${encodeURIComponent(branch ?? "")}/${p.split("/").map(encodeURIComponent).join("/")}`}
-        />
       );
-  } else if (tab === "ai") {
-    body = <AiTab />;
-  } else if (tab === "preview") {
-    body = <PreviewTab kind={tree.status === "success" ? detectProjectKindFromPaths(paths) : null} />;
+  } else if (tab === "files") {
+    body = <FilesTab gitHref={projectPath(owner, name, "git")} />;
   } else {
-    body = <GitTab project={project} branch={shownBranch} repo={repo.status === "success" ? repo.data : undefined} />;
+    body = (
+      <EditFromGit owner={owner} name={name}>
+        {(onEdit) => <ChangesPanel branch={shownBranch} isDemo={false} canPush={repo.status === "success" ? repo.data.permissions.push : true} onEdit={onEdit} />}
+      </EditFromGit>
+    );
+  }
+  if (repo.status !== "error" && tree.status === "error" && (tab === "files" || tab === "git")) {
+    body =
+      describeError(tree.error).code === "EMPTY_REPOSITORY" ? (
+        <EmptyState icon={<FolderGit2 className="size-5" />} title="This repository is empty" className="py-12">
+          Push a first commit on GitHub, then come back.
+        </EmptyState>
+      ) : (
+        <div className="p-4">
+          <ErrorState error={tree.error} onRetry={tree.retry} />
+        </div>
+      );
   }
 
-  return (
+  const shell = (
     <WorkspaceShell project={project} branch={shownBranch} tab={tab} onBranchClick={repo.status === "success" ? () => setPickerOpen(true) : undefined}>
       {body}
       {repo.status === "success" ? (
         <>
-          <div className="px-4 pb-4 pt-2">
-            <a
-              href={`https://github.com/${owner}/${name}`}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <ExternalLink className="size-3.5" aria-hidden /> Open on GitHub
-            </a>
-          </div>
+          {tab !== "files" || !source ? (
+            <div className="px-4 pb-4 pt-2">
+              <a
+                href={`https://github.com/${owner}/${name}`}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <ExternalLink className="size-3.5" aria-hidden /> Open on GitHub
+              </a>
+            </div>
+          ) : null}
           <BranchPicker
             open={pickerOpen}
             onOpenChange={setPickerOpen}
@@ -242,6 +245,15 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
         </>
       ) : null}
     </WorkspaceShell>
+  );
+
+  // Keyed by branch + commit: switching branches swaps to that branch's own saved workspace.
+  return source ? (
+    <WorkspaceProvider key={`${source.storageKey}#${source.commitSha}`} source={source}>
+      {shell}
+    </WorkspaceProvider>
+  ) : (
+    shell
   );
 }
 
