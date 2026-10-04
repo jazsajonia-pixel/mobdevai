@@ -80,7 +80,7 @@ export default function AIProvidersPage() {
                 ) : null
               }
             >
-              Add an OpenAI, Anthropic, Google Gemini, or OpenAI-compatible API key. The AI agent (next phase) uses your default provider.
+              Add an OpenAI, Anthropic, Google Gemini, or OpenAI-compatible API key. The AI agent (each project's AI tab) uses your default provider.
             </EmptyState>
           ) : (
             <div className="space-y-3" data-testid="list-providers">

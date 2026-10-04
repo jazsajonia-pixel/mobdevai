@@ -33,10 +33,10 @@ export function repoParams(params: Record<string, string> | undefined): { owner:
   };
 }
 
-/** Read a JSON body (≤ 16 KB) and validate it. */
-export async function readJson<T>(req: Request, schema: z.ZodType<T>): Promise<T> {
+/** Read a JSON body (default ≤ 16 KB) and validate it. */
+export async function readJson<T>(req: Request, schema: z.ZodType<T>, maxChars = 16_384): Promise<T> {
   const raw = await req.text();
-  if (raw.length > 16_384) throw new HttpError(413, "VALIDATION_FAILED", "Request body is too large.");
+  if (raw.length > maxChars) throw new HttpError(413, "VALIDATION_FAILED", "Request body is too large.");
   let value: unknown = {};
   if (raw) {
     try {
