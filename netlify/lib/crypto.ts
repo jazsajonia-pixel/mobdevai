@@ -81,3 +81,33 @@ export function safeEqual(a: string, b: string): boolean {
   for (let i = 0; i < Math.max(ab.length, bb.length); i++) diff |= (ab[i] ?? 0) ^ (bb[i] ?? 0);
   return diff === 0;
 }
+
+/* ── Field encryption for stored secrets (AI provider keys) ───────────────
+ * AES-256-GCM with a key derived from ENCRYPTION_KEY and *additional authenticated data*
+ * binding each ciphertext to its owner + record, so a ciphertext copied to another user or
+ * provider row fails to decrypt. Format: "v1." + base64url(iv | ciphertext+tag).
+ */
+
+export async function encryptField(plain: string, secret: string, aad: string): Promise<string> {
+  const key = await deriveKey(secret, "field-encryption");
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: enc.encode(aad) }, key, enc.encode(plain)));
+  const out = new Uint8Array(iv.length + ct.length);
+  out.set(iv);
+  out.set(ct, iv.length);
+  return `v1.${toB64url(out)}`;
+}
+
+/** Returns null when the ciphertext was tampered with, moved to another record, or the key changed. */
+export async function decryptField(token: string, secret: string, aad: string): Promise<string | null> {
+  if (!token.startsWith("v1.")) return null;
+  try {
+    const raw = fromB64url(token.slice(3));
+    if (raw.length < 13) return null;
+    const key = await deriveKey(secret, "field-encryption");
+    const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: raw.slice(0, 12), additionalData: enc.encode(aad) }, key, raw.slice(12));
+    return dec.decode(pt);
+  } catch {
+    return null;
+  }
+}

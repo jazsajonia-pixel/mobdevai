@@ -2,7 +2,7 @@ import type { Config } from "@netlify/functions";
 import { capabilities } from "../lib/env";
 import { handle, json } from "../lib/http";
 
-export const PHASE = 2;
+export const PHASE = 3;
 
 export default handle(["GET"], async () =>
   json({
