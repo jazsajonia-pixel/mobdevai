@@ -36,7 +36,7 @@ export function WorkspaceShell({
       <div className="z-30 shrink-0 bg-background pt-safe">
         <OfflineBanner />
         <DemoBanner />
-        <header className="mx-auto flex h-14 w-full max-w-3xl items-center gap-1 border-b pl-1 pr-3">
+        <header className="mx-auto flex h-14 w-full max-w-5xl items-center gap-1 border-b pl-1 pr-3">
           <Link href="/app/projects" aria-label="Back to projects" className="grid size-11 place-items-center rounded-md text-muted-foreground hover:bg-surface-2">
             <ChevronLeft className="size-5" />
           </Link>
@@ -72,7 +72,7 @@ export function WorkspaceShell({
         </header>
       </div>
 
-      <main className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col overflow-y-auto">{children}</main>
+      <main className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col overflow-y-auto">{children}</main>
 
       <nav aria-label="Workspace" className="z-30 shrink-0 border-t bg-surface pb-safe">
         <ul className="mx-auto grid max-w-lg grid-cols-4">

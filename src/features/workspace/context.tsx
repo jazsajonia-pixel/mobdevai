@@ -120,23 +120,46 @@ export function WorkspaceProvider({ source, children }: { source: WorkspaceSourc
   // (the parent keys this provider by storageKey + commit, so a branch switch remounts it).
   const key = source.storageKey;
   const mounted = useRef(true);
+  // Only write when something changed since the last write/read, so an idle tab never clobbers
+  // work saved by another tab.
+  const lastWritten = useRef<WorkspaceData>(state.data);
+  const persist = useCallback(
+    (data: WorkspaceData) => {
+      if (data === lastWritten.current) return true;
+      lastWritten.current = data;
+      return saveWorkspace(key, data);
+    },
+    [key],
+  );
   useEffect(() => {
-    const t = setTimeout(() => setStorageOk(saveWorkspace(key, state.data)), 400);
+    const t = setTimeout(() => setStorageOk(persist(state.data)), 400);
     return () => clearTimeout(t);
-  }, [key, state.data]);
+  }, [persist, state.data]);
   useEffect(() => {
     mounted.current = true;
-    const flush = () => saveWorkspace(key, dataRef.current);
+    const flush = () => persist(dataRef.current);
     const onVis = () => document.visibilityState === "hidden" && flush();
+    // Another tab edited the same repo + branch: adopt its state.
+    const onStorage = (e: StorageEvent) => {
+      if (!e.key?.endsWith(key)) return;
+      const incoming = loadWorkspace(key) ?? emptyWorkspace(source.commitSha);
+      lastWritten.current = incoming;
+      dataRef.current = incoming;
+      editorStates.current.clear();
+      setState((s) => ({ ...s, data: incoming }));
+    };
     window.addEventListener("pagehide", flush);
+    window.addEventListener("storage", onStorage);
     document.addEventListener("visibilitychange", onVis);
     return () => {
       mounted.current = false;
       window.removeEventListener("pagehide", flush);
+      window.removeEventListener("storage", onStorage);
       document.removeEventListener("visibilitychange", onVis);
       flush();
     };
-  }, [key]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, persist]);
 
   const update = useCallback(
     (fn: (d: WorkspaceData) => WorkspaceData) => {
@@ -144,10 +167,10 @@ export function WorkspaceProvider({ source, children }: { source: WorkspaceSourc
       if (next === dataRef.current) return;
       dataRef.current = next;
       // Late updates (e.g. an editor flushing its draft while unmounting) are written straight through.
-      if (!mounted.current) saveWorkspace(key, next);
+      if (!mounted.current) persist(next);
       else setState((s) => ({ ...s, data: next }));
     },
-    [key],
+    [persist],
   );
 
   const peekBase = useCallback(

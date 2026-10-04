@@ -2,8 +2,8 @@
 export const PHASES = [
   { n: 0, title: "Foundation", status: "done" },
   { n: 1, title: "Auth + GitHub", status: "done" },
-  { n: 2, title: "Mobile editor", status: "next" },
-  { n: 3, title: "AI providers", status: "planned" },
+  { n: 2, title: "Mobile editor", status: "done" },
+  { n: 3, title: "AI providers", status: "next" },
   { n: 4, title: "AI coding agent", status: "planned" },
   { n: 5, title: "Live preview", status: "planned" },
   { n: 6, title: "Git shipping", status: "planned" },
