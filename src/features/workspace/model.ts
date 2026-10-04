@@ -179,6 +179,24 @@ export function revertAll(ws: WorkspaceData): WorkspaceData {
   return { ...ws, changes: {}, drafts: {}, tabs, active: ws.active && added.has(ws.active) ? (tabs[0] ?? null) : ws.active };
 }
 
+/**
+ * After a commit: the committed files are now part of the branch, so drop their local changes
+ * (keeping tabs open, except for deleted files). With `newBaseSha` the remaining changes are
+ * re-based onto the new commit — only valid when nothing else changed upstream.
+ */
+export function afterCommit(ws: WorkspaceData, committed: readonly string[], newBaseSha: string | null): WorkspaceData {
+  const changes = { ...ws.changes };
+  const drafts = { ...ws.drafts };
+  const deleted = new Set<string>();
+  for (const p of committed) {
+    if (changes[p]?.status === "deleted") deleted.add(p);
+    delete changes[p];
+    delete drafts[p];
+  }
+  const tabs = ws.tabs.filter((t) => !deleted.has(t));
+  return { ...ws, baseSha: newBaseSha ?? ws.baseSha, changes, drafts, tabs, active: ws.active && deleted.has(ws.active) ? (tabs[0] ?? null) : ws.active };
+}
+
 export const MAX_TABS = 8;
 
 export function openTab(ws: WorkspaceData, path: string): WorkspaceData {

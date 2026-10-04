@@ -115,6 +115,16 @@ const COPY: Record<ErrorCode, ErrorCopy> = {
     title: "Unsupported project type",
     hint: "This project requires a runtime that Mobile Development AI cannot run in-browser yet.",
   },
+  GIT_CONFLICT: {
+    title: "The branch changed on GitHub",
+    hint: "Someone pushed changes to the same files. Commit to a new branch instead and open a pull request — nothing was lost.",
+  },
+  BRANCH_EXISTS: { title: "That branch already exists", hint: "Pick another branch name, or commit to the existing branch." },
+  BRANCH_PROTECTED: {
+    title: "Branch is protected",
+    hint: "GitHub doesn't allow direct commits to this branch. Commit to a new branch and open a pull request.",
+  },
+  NO_CHANGES: { title: "Nothing to commit", hint: "These changes are already on the branch." },
   INTERNAL: { title: "Something went wrong", hint: "An unexpected error occurred. Try again." },
 };
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   MAX_TABS,
+  afterCommit,
   WorkspaceError,
   closeTab,
   createFile,
@@ -104,5 +105,19 @@ describe("tabs", () => {
     for (let i = 0; i < MAX_TABS + 3; i++) ws = openTab(ws, `f${i}`);
     expect(ws.tabs.length).toBe(MAX_TABS);
     expect(ws.tabs).toContain("dirty");
+  });
+});
+
+describe("afterCommit", () => {
+  it("drops committed paths, keeps the rest, and moves the base when given", () => {
+    let ws = saveFile(ws0(), "src/a.ts", "1", "0");
+    ws = saveFile(ws, "src/b.ts", "2", "0");
+    ws = deleteFile(ws, "README.md", "readme");
+    ws = openTab(openTab(ws, "src/a.ts"), "README.md");
+    const next = afterCommit(ws, ["src/a.ts", "README.md"], "sha2");
+    expect(Object.keys(next.changes)).toEqual(["src/b.ts"]);
+    expect(next.baseSha).toBe("sha2");
+    expect(next.tabs).not.toContain("README.md");
+    expect(afterCommit(ws, ["src/a.ts"], null).baseSha).toBe("sha1");
   });
 });

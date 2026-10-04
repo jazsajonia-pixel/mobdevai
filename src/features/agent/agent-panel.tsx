@@ -1,3 +1,4 @@
+import { ShippedNote } from "@/features/git/shipped-note";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { History, KeyRound, Loader2, Plus, RotateCw, Sparkles, Trash2 } from "lucide-react";
@@ -203,6 +204,7 @@ export function AgentPanel({ project }: { project: AgentProject }) {
           <div className="space-y-4">
             <Timeline task={task} onApprove={() => agent.approvePlan()} onRevise={agent.revisePlan} />
             <StatusLine task={task} onResume={agent.resume} />
+            {task.shipped ? <ShippedNote info={task.shipped} /> : null}
             <ProposalSummary proposal={task.proposal} onReview={() => setReviewOpen(true)} previewHref={projectPath(project.owner, project.repo, "preview")} />
             {task.provider && task.status === "done" ? (
               <p className="text-center font-mono text-[10px] text-muted-foreground">

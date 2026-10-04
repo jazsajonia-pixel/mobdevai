@@ -10,31 +10,44 @@ export const API_VERSION = "2022-11-28";
 
 export interface GitHubClient {
   get<T>(path: string, query?: Record<string, string | number | undefined>): Promise<{ data: T; headers: Headers }>;
+  /** Write request (POST/PATCH/DELETE) with a JSON body. */
+  send<T>(method: "POST" | "PATCH" | "DELETE", path: string, body?: unknown): Promise<{ data: T; headers: Headers }>;
 }
 
 export function githubClient(token: string, apiUrl: string, fetchImpl: typeof fetch = fetch): GitHubClient {
+  async function call<T>(method: string, path: string, query?: Record<string, string | number | undefined>, body?: unknown) {
+    const url = new URL(apiUrl + path);
+    for (const [k, v] of Object.entries(query ?? {})) if (v !== undefined) url.searchParams.set(k, String(v));
+    let res: Response;
+    try {
+      res = await fetchImpl(url, {
+        method,
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${token}`,
+          "X-GitHub-Api-Version": API_VERSION,
+          "User-Agent": "mobile-development-ai",
+          ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+        },
+        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+        signal: AbortSignal.timeout(method === "GET" ? 12_000 : 20_000),
+      });
+    } catch {
+      throw new HttpError(502, "GITHUB_UNAVAILABLE", "Couldn't reach GitHub.");
+    }
+    if (!res.ok) throw await toHttpError(res);
+    const text = res.status === 204 ? "" : await res.text();
+    return { data: (text ? JSON.parse(text) : null) as T, headers: res.headers };
+  }
   return {
-    async get<T>(path: string, query?: Record<string, string | number | undefined>) {
-      const url = new URL(apiUrl + path);
-      for (const [k, v] of Object.entries(query ?? {})) if (v !== undefined) url.searchParams.set(k, String(v));
-      let res: Response;
-      try {
-        res = await fetchImpl(url, {
-          headers: {
-            Accept: "application/vnd.github+json",
-            Authorization: `Bearer ${token}`,
-            "X-GitHub-Api-Version": API_VERSION,
-            "User-Agent": "mobile-development-ai",
-          },
-          signal: AbortSignal.timeout(12_000),
-        });
-      } catch {
-        throw new HttpError(502, "GITHUB_UNAVAILABLE", "Couldn't reach GitHub.");
-      }
-      if (!res.ok) throw await toHttpError(res);
-      return { data: (await res.json()) as T, headers: res.headers };
-    },
+    get: (path, query) => call("GET", path, query),
+    send: (method, path, body) => call(method, path, undefined, body),
   };
+}
+
+/** Encode a branch name for URL paths (keeps the slashes git uses as separators). */
+export function encodeRef(name: string): string {
+  return name.split("/").map(encodeURIComponent).join("/");
 }
 
 export async function toHttpError(res: Response): Promise<HttpError> {
@@ -52,6 +65,9 @@ export async function toHttpError(res: Response): Promise<HttpError> {
     return new HttpError(429, "RATE_LIMITED", mins ? `GitHub rate limit reached. Resets in about ${mins} min.` : "GitHub rate limit reached.");
   }
   if (res.status === 401) return new HttpError(401, "SESSION_EXPIRED", "GitHub rejected the session token. Sign in again.");
+  if ((res.status === 403 || res.status === 422) && /protected branch|branch protection|required status/i.test(message)) {
+    return new HttpError(409, "BRANCH_PROTECTED", "GitHub branch protection rejected this update.");
+  }
   if (res.status === 403) {
     return new HttpError(403, "FORBIDDEN", /SAML|organization/i.test(message)
       ? "This organization requires you to authorize the app (SAML SSO or OAuth app restrictions)."
@@ -61,6 +77,7 @@ export async function toHttpError(res: Response): Promise<HttpError> {
     return new HttpError(404, "NOT_FOUND", "Not found on GitHub — or it's private and the app wasn't granted private repository access.");
   }
   if (res.status === 409 && /empty/i.test(message)) return new HttpError(409, "EMPTY_REPOSITORY", "This repository has no commits yet.");
+  if (res.status === 409) return new HttpError(409, "GIT_CONFLICT", message || "GitHub reported a conflict.");
   if (res.status === 422) return new HttpError(422, "VALIDATION_FAILED", message || "GitHub rejected the request.");
   return new HttpError(502, "GITHUB_UNAVAILABLE", `GitHub returned ${res.status}.`);
 }

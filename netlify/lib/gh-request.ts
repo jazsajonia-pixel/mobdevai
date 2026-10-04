@@ -10,17 +10,15 @@ export async function githubForRequest(req: Request): Promise<{ gh: GitHubClient
   const session = await requireSession(req);
   const client = githubClient(session.token, cfg.apiUrl);
   // A revoked/expired GitHub token clears our cookie too, so the UI returns to sign-in cleanly.
+  const expired = (err: unknown): never => {
+    if (err instanceof HttpError && err.code === "SESSION_EXPIRED") {
+      throw new HttpError(401, "SESSION_EXPIRED", err.message, [clearCookie(req, SESSION_COOKIE)]);
+    }
+    throw err;
+  };
   const gh: GitHubClient = {
-    async get(path, query) {
-      try {
-        return await client.get(path, query);
-      } catch (err) {
-        if (err instanceof HttpError && err.code === "SESSION_EXPIRED") {
-          throw new HttpError(401, "SESSION_EXPIRED", err.message, [clearCookie(req, SESSION_COOKIE)]);
-        }
-        throw err;
-      }
-    },
+    get: <T,>(path: string, query?: Record<string, string | number | undefined>) => client.get<T>(path, query).catch(expired),
+    send: <T,>(method: "POST" | "PATCH" | "DELETE", path: string, body?: unknown) => client.send<T>(method, path, body).catch(expired),
   };
   return { gh, session };
 }

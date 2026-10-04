@@ -5,7 +5,7 @@
 A mobile-first web IDE and AI coding agent: connect GitHub, pick a repository, ask the AI for a change,
 review the diff, preview the real app, and commit/push/open a PR — without a desktop.
 
-**Status: Phase 5 (live preview) complete.** See [docs/PHASES.md](docs/PHASES.md) for what works today and what's next.
+**Status: Phase 6 (Git shipping — branch, commit, push, PR) complete.** See [docs/PHASES.md](docs/PHASES.md) for what works today and what's next.
 
 ## Stack
 

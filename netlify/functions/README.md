@@ -16,6 +16,10 @@ session/encryption keys) may be read. Each `.ts` file here is one function with 
 | `github-branches.ts` | `GET /api/github/repos/:owner/:repo/branches` | Up to 300 |
 | `github-tree.ts` | `GET /api/github/repos/:owner/:repo/tree?ref=` | Recursive, capped at 10,000 entries |
 | `github-file.ts` | `GET /api/github/repos/:owner/:repo/file?ref=&path=` | Text only, ≤ 1 MB |
+| `github-commit.ts` | `POST /api/github/repos/:owner/:repo/commit` | Atomic commit + push (optionally to a new branch); conflict-checked, never forced; 20/min |
+| `github-commits.ts` | `GET /api/github/repos/:owner/:repo/commits?ref=` | 10 most recent |
+| `github-branch.ts` | `POST /api/github/repos/:owner/:repo/branch` | `{ name, from }` |
+| `github-pulls.ts` | `GET, POST /api/github/repos/:owner/:repo/pulls` | Open PRs for `?head=`; create (reuses an existing one) |
 | `ai-providers.ts` | `GET, POST /api/ai/providers` | List (masked) + storage mode; create. Keys never returned |
 | `ai-provider.ts` | `PATCH, DELETE /api/ai/providers/:id` | Edit / replace key / enable / default; remove |
 | `ai-test-provider.ts` | `POST /api/ai/test-provider` | Saved (`{id}`) or unsaved settings; 10/min per user |
@@ -31,4 +35,4 @@ keys, never execute repository code on the server.
 
 Preview (Phase 5) needs no functions — it builds and runs entirely in the browser sandbox.
 
-Planned: Phase 6 `github-branch`, `github-commit`, `github-pull-request`.
+Git writes (Phase 6) use the user's OAuth token (`public_repo`/`repo` scope already grants push).

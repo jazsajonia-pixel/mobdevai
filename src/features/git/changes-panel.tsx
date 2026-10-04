@@ -3,12 +3,13 @@ import { AlertTriangle, ChevronRight, FilePen, RotateCcw, ShieldAlert } from "lu
 import { Button } from "@/components/ui/button";
 import { ConfirmSheet } from "@/components/dialogs";
 import { EmptyState } from "@/components/states";
-import { PhaseBoundary } from "@/components/phase-boundary";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/features/workspace/context";
 import type { FileChange } from "@/features/workspace/model";
 import { diffChange } from "./diff";
 import { DiffView } from "./diff-view";
+import { ShipPanel, type GitTarget } from "./ship-panel";
+import { GitStatus } from "./git-status";
 
 const STATUS: Record<FileChange["status"], { letter: string; cls: string; label: string }> = {
   added: { letter: "A", cls: "text-[hsl(var(--diff-add))] bg-[hsl(var(--diff-add)/0.12)]", label: "Added" },
@@ -16,14 +17,17 @@ const STATUS: Record<FileChange["status"], { letter: string; cls: string; label:
   deleted: { letter: "D", cls: "text-[hsl(var(--diff-del))] bg-[hsl(var(--diff-del)/0.12)]", label: "Deleted" },
 };
 
-function ChangeRow({ change, onDiscard, onOpen }: { change: FileChange; onDiscard: () => void; onOpen?: () => void }) {
+function ChangeRow({ change, onDiscard, onOpen, selected, onToggle }: { change: FileChange; onDiscard: () => void; onOpen?: () => void; selected: boolean; onToggle: () => void }) {
   const [open, setOpen] = useState(false);
   const diff = useMemo(() => diffChange(change), [change]);
   const s = STATUS[change.status];
   return (
     <li className="border-b last:border-0" data-testid={`change-${change.path}`}>
       <div className="flex items-center">
-        <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex min-h-12 min-w-0 flex-1 items-center gap-2.5 pl-3 text-left">
+        <label className="grid size-11 shrink-0 cursor-pointer place-items-center" title="Include in commit">
+          <input type="checkbox" checked={selected} onChange={onToggle} aria-label={`Include ${change.path} in the commit`} className="size-[18px] accent-[hsl(var(--primary))]" data-testid={`checkbox-${change.path}`} />
+        </label>
+        <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex min-h-12 min-w-0 flex-1 items-center gap-2.5 text-left">
           <ChevronRight className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")} aria-hidden />
           <span className={cn("grid size-5 shrink-0 place-items-center rounded font-mono text-[11px] font-bold", s.cls)} aria-label={s.label}>{s.letter}</span>
           <span className="min-w-0 flex-1 truncate font-mono text-[13px]">{change.path}</span>
@@ -45,10 +49,22 @@ function ChangeRow({ change, onDiscard, onOpen }: { change: FileChange; onDiscar
   );
 }
 
-/** Git tab: review local changes as diffs, discard per file or all. Commit/push lands in Phase 6. */
-export function ChangesPanel({ branch, isDemo, canPush, onEdit }: { branch: string; isDemo: boolean; canPush: boolean; onEdit: (path: string) => void }) {
+/** Git tab: review local changes as diffs, pick files, commit/push/PR, branch status. */
+export function ChangesPanel({ target, onEdit, version = 0 }: { target: GitTarget; onEdit: (path: string) => void; version?: number }) {
+  const { branch, isDemo, canPush } = target;
   const ws = useWorkspace();
   const [discard, setDiscard] = useState<string | "all" | null>(null);
+  // Track exclusions so newly changed files are included by default.
+  const [excluded, setExcluded] = useState<Set<string>>(() => new Set());
+  const selected = useMemo(() => ws.changes.filter((c) => !excluded.has(c.path)), [ws.changes, excluded]);
+  const toggle = (path: string) =>
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+  const allSelected = selected.length === ws.changes.length;
   const drafts = Object.keys(ws.data.drafts);
   const totals = useMemo(() => {
     let a = 0;
@@ -85,19 +101,29 @@ export function ChangesPanel({ branch, isDemo, canPush, onEdit }: { branch: stri
       ) : (
         <section aria-labelledby="changes-title" className="overflow-hidden rounded-lg border bg-surface">
           <div className="flex items-center gap-2 border-b px-3 py-2.5">
-            <h2 id="changes-title" className="text-sm font-semibold">
+            <h2 id="changes-title" className="whitespace-nowrap text-sm font-semibold">
               {ws.changes.length} changed file{ws.changes.length === 1 ? "" : "s"}
             </h2>
-            <span className="font-mono text-[11px] tabular">
+            <span className="hidden font-mono text-[11px] tabular min-[400px]:inline">
               <span className="text-[hsl(var(--diff-add))]">+{totals.a}</span> <span className="text-[hsl(var(--diff-del))]">−{totals.r}</span>
             </span>
-            <Button variant="ghost" size="sm" className="ml-auto text-danger" onClick={() => setDiscard("all")} data-testid="button-discard-all">
+            <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setExcluded(allSelected ? new Set(ws.changes.map((c) => c.path)) : new Set())} aria-label={allSelected ? "Deselect all files" : "Select all files"} data-testid="button-select-all">
+              {allSelected ? "None" : "All"}
+            </Button>
+            <Button variant="ghost" size="sm" className="text-danger" onClick={() => setDiscard("all")} data-testid="button-discard-all">
               Discard all
             </Button>
           </div>
           <ul>
             {ws.changes.map((c) => (
-              <ChangeRow key={c.path} change={c} onDiscard={() => setDiscard(c.path)} onOpen={c.status === "deleted" ? undefined : () => onEdit(c.path)} />
+              <ChangeRow
+                key={c.path}
+                change={c}
+                selected={!excluded.has(c.path)}
+                onToggle={() => toggle(c.path)}
+                onDiscard={() => setDiscard(c.path)}
+                onOpen={c.status === "deleted" ? undefined : () => onEdit(c.path)}
+              />
             ))}
           </ul>
         </section>
@@ -120,12 +146,9 @@ export function ChangesPanel({ branch, isDemo, canPush, onEdit }: { branch: stri
         </div>
       ) : null}
 
-      <PhaseBoundary
-        phase={6}
-        title="Branch, commit, push, PR"
-        description="AI changes go to a working branch named ai/mobile-development-ai/<task>, never silently to the default branch."
-        planned={["Generated, editable commit message", "Push and open a pull request", "Destructive operations require confirmation"]}
-      />
+      {ws.changes.length ? <ShipPanel target={target} selected={selected} /> : null}
+
+      <GitStatus key={`${branch}#${version}`} target={target} version={version} />
 
       <ConfirmSheet
         open={discard !== null}

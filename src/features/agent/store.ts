@@ -1,5 +1,5 @@
 import { safeStorage } from "@/lib/storage";
-import { compactForStorage, type AgentTask } from "./task";
+import { compactForStorage, type AgentTask, type ShippedInfo } from "./task";
 
 /**
  * Agent tasks are kept per repo + branch on this device (localStorage). They hold conversation
@@ -26,7 +26,10 @@ export function loadTasks(workspaceKey: string): AgentTask[] {
 }
 
 export function saveTasks(workspaceKey: string, tasks: AgentTask[]): boolean {
-  const list = [...tasks].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, MAX_TASKS).map(compactForStorage);
+  // Shipping info is written from the Git tab; never let an in-memory copy without it erase it.
+  const shipped = new Map(loadTasks(workspaceKey).flatMap((t) => (t.shipped ? [[t.id, t.shipped] as const] : [])));
+  const list = tasks
+    .map((t) => (t.shipped || !shipped.has(t.id) ? t : { ...t, shipped: shipped.get(t.id) })).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, MAX_TASKS).map(compactForStorage);
   try {
     // trySet reports quota failures instead of silently falling back to memory.
     return safeStorage.trySet(tasksKey(workspaceKey), JSON.stringify(list));
@@ -59,4 +62,18 @@ export function recentAgentTasks(limit = 8): RecentTask[] {
     for (const task of loadTasks(wsKey)) out.push({ source: m[1] as "demo" | "github", owner: m[2]!, repo: m[3]!, branch: m[4]!, task });
   }
   return out.sort((a, b) => b.task.updatedAt.localeCompare(a.task.updatedAt)).slice(0, limit);
+}
+
+/** Tasks whose accepted changes touch any of `paths` and that haven't been shipped yet. */
+export function tasksForPaths(workspaceKey: string, paths: readonly string[]): AgentTask[] {
+  const set = new Set(paths);
+  return loadTasks(workspaceKey).filter((t) => !t.shipped && Object.values(t.proposal).some((f) => f.decision === "accepted" && set.has(f.path)));
+}
+
+/** Record commit/PR information on the tasks that produced the committed changes. */
+export function markTasksShipped(workspaceKey: string, taskIds: readonly string[], info: ShippedInfo): void {
+  if (!taskIds.length) return;
+  const ids = new Set(taskIds);
+  const list = loadTasks(workspaceKey).map((t) => (ids.has(t.id) ? { ...t, shipped: info } : t));
+  saveTasks(workspaceKey, list);
 }

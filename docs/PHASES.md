@@ -67,7 +67,7 @@ Implemented:
 - **File tree drawer** with change markers (A / M / ● unsaved; folders show a dot if they contain changes).
 - **Create, rename/move and delete** files with path validation (no `..`, `.git/`, control characters, clashes).
 - **Workspace model**: base snapshot (pinned to the branch's commit) + saved changes + unsaved drafts.
-  Saving writes to the local workspace only — nothing is sent to GitHub until a commit (Phase 6).
+  Saving writes to the local workspace only — nothing is sent to GitHub until you commit from the Git tab.
 - **Local draft protection**: workspaces are stored per repo + branch in `localStorage`, flushed on
   every change (debounced), on tab hide and on unmount. Survives reloads and crashes. Tabs editing
   the same branch stay in sync. A banner warns if storage is full, and if the branch moved on GitHub.
@@ -180,11 +180,48 @@ aren't loaded (no token is ever put in a URL); no HMR (full reload on rebuild); 
 are approximate (lines are exact). The `POST /api/preview/*` endpoints and `PreviewSession` model from
 the plan aren't needed — previews never touch the server.
 
-## Phase 6 — Git shipping (next)
+## Phase 6 — Git shipping ✅
 
-Create a branch, commit workspace changes, push, and open a pull request — never pushing to the
-default branch silently.
+The Git tab turns reviewed workspace changes into a real commit, pushed to GitHub, with an optional PR.
+
+- **Pick files**: every changed file has a checkbox (all selected by default; All/None). Unsaved
+  editor drafts in the selection block the commit until saved.
+- **Where it goes**: *New branch* is the default and recommended — named
+  `ai/mobile-development-ai/<task-slug>` from the AI task (or the change), editable, de-duplicated
+  (`-2`, `-3`) and validated. *Commit to the current branch* is available; on the default branch it
+  is styled as dangerous and needs an explicit confirm. Nothing is ever force-pushed.
+- **Commit message**: generated from the actual changes (subject from the AI task title or the
+  files, body lists each file with `+/-` counts) — fully editable, with Regenerate.
+- **Pull request**: on by default for a new branch (into the branch you started from) and for a
+  non-default branch (into the default branch). An existing open PR for the branch is reused.
+- **Confirm sheet** summarises branch, files, message and PR before anything is sent.
+- **Safe push**: one atomic commit through the Git Data API (tree → commit → fast-forward ref update,
+  `force: false`). File modes (e.g. executables) are kept. If GitHub's branch moved since your
+  changes were made and touched the same files, the commit is refused with *"The branch changed on
+  GitHub"* and a one-tap *Use a new branch instead* — nothing is lost. A branch created for a failed
+  commit is deleted again. Protected branches return a clear error with the same fallback.
+- **After shipping**: committed paths leave the workspace; remaining changes stay. With a new branch,
+  the app switches to it and carries the remaining work over; the original branch is untouched.
+  A result card links the commit and PR (or retries just the PR); the Git tab shows the branch's PR
+  status and recent commits. AI tasks that produced the committed files record the commit/PR, shown
+  on the AI tab and in Recent tasks.
+- **Demo mode** simulates the whole flow without network calls and labels it everywhere as
+  *"Simulated commit — nothing was sent to GitHub"*.
+
+Endpoints: `POST …/commit`, `GET …/commits`, `POST …/branch`, `GET/POST …/pulls` under
+`/api/github/repos/:owner/:repo`. Errors: `GIT_CONFLICT`, `BRANCH_EXISTS`, `BRANCH_PROTECTED`,
+`NO_CHANGES`. Limits: 300 files / 5 MB per commit, 20 commits per minute per user.
+
+Not in this phase: the agent tools `create_branch` / `commit_changes` / `create_pull_request` (the
+agent still only proposes — shipping is always a user action), merging PRs, and pulling upstream
+changes into a stale workspace (use a new branch instead).
+
+## Phase 7 — Polish (next)
+
+Task history, project dashboard (current branch, last sync, recent commits, Git status), better
+mobile UX, offline/local draft protection, performance, security review, accessibility and more
+automated tests.
 
 ## Later phases
 
-7 Polish · 8 Production
+8 Production
