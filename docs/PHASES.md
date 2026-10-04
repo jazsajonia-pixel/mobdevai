@@ -104,11 +104,51 @@ Known limitations: session-only storage holds up to 6 providers (cookie size); D
 is best effort (resolved before the call, not pinned); the database backend is covered by type checks and
 shared state tests but not exercised against a live Neon instance in CI.
 
-## Phase 4 — AI coding agent (next)
+## Phase 4 — AI coding agent ✅
 
-Project-aware chat and agent tasks using the default provider: plan, explicit logged tools, multi-file
-diffs reviewed in the existing Git view, approval before applying.
+Implemented (workspace **AI** tab, `src/features/agent`, `POST /api/ai/agent`):
+
+- **Two modes.** **Ask** is read-only chat about the repository (tools: `list_files`, `read_file`,
+  `search_code`, `get_git_status`, `inspect_package_json`). **Agent** adds `propose_plan` and the edit
+  tools `create_file`, `update_file`, `apply_patch` (exact find/replace edits), `rename_file`,
+  `delete_file`. The server decides which tools each mode gets; calls to anything else are refused.
+- **Loop design.** The browser runs the loop: each `POST /api/ai/agent` makes exactly one model call
+  with native tool calling (OpenAI / compatible `tool_calls`, Anthropic `tool_use`, Gemini
+  `functionCall` with thought signatures echoed back), so every request stays well under Netlify's
+  60 s function limit. Tools run in the browser against the local workspace (drafts → saved → GitHub
+  base), so the agent sees your unsaved edits and needs no GitHub token of its own.
+- **Plan first.** In Agent mode the model must call `propose_plan` before editing; the run pauses on a
+  plan card with **Approve** / **Change plan** (typing a message while a plan waits also counts as feedback).
+- **Proposals, not writes.** Edit tools only stage changes in a per-task proposal; later reads see the
+  proposed content. The proposal card lists files with +/− counts; **Review** opens per-file diffs
+  (reusing the Git diff viewer) with Accept / Reject per file or all. Accepted files become ordinary
+  saved workspace changes (visible in the Git tab, revertible there). Deletions and files you edited after
+  the agent read them need an extra confirmation. Nothing is committed or pushed.
+- **Every tool call is logged** in the task timeline (expand to see arguments and output; errors in red).
+- **Composer:** attach the open file (toggle), `@path` mentions with autocomplete, quick actions
+  (Explain this · Fix this · Find bugs · Implement… · Review changes), Stop, and Continue after a stop,
+  error or the 24-step limit. Replies render as Markdown (raw HTML disabled, safe links only).
+- **Tasks** are saved per repo + branch on this device (last 15; long tool outputs trimmed) with a
+  history sheet; the AI page lists recent tasks across projects.
+- **Safety:** server-only system prompt; tool output and attached files are fenced as untrusted data
+  and the model is told to report suspected prompt injection; request size/shape validation (every tool
+  call must have a result); 40 steps/min per user; provider keys resolved server-side and redacted from
+  errors.
+- **Demo mode:** a clearly labelled **Simulated AI** runs scripted requests on the sample project (add a
+  delete button, clear completed, dark mode, explain) through the same real loop — tool calls, plan,
+  diffs, review, apply — without any model. It never claims anything reached GitHub.
+- `scripts/mock-ai.ts` now scripts a tool-calling agent for local end-to-end QA.
+- 137 tests (incl. per-provider tool mapping, mode filtering, plan pause/resume, stop/error, patch
+  failures, demo flow plan → approve → review → accept → Git tab).
+
+Known limitations: steps aren't streamed (each step shows a spinner, then the result); "chat" is Ask
+mode on the same endpoint rather than a separate `/api/ai/chat`; tasks live in `localStorage`; the agent
+can't run commands or tests yet (Phase 5 adds preview; there is no server-side code execution).
+
+## Phase 5 — Live preview (next)
+
+Sandboxed in-browser preview for static HTML/CSS/JS and Vite + React projects, with console output.
 
 ## Later phases
 
-4 AI coding agent · 5 Live preview · 6 Git shipping · 7 Polish · 8 Production
+5 Live preview · 6 Git shipping · 7 Polish · 8 Production

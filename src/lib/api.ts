@@ -17,7 +17,7 @@ const API_BASE = "/api";
 export const SESSION_EXPIRED_EVENT = "mdai:session-expired";
 
 export async function api<T>(path: string, options: ApiOptions = {}): Promise<T> {
-  const { body, timeoutMs = 15_000, headers, ...rest } = options;
+  const { body, timeoutMs = 15_000, headers, signal: outer, ...rest } = options;
 
   if (typeof navigator !== "undefined" && navigator.onLine === false) {
     throw new AppError("NETWORK_OFFLINE");
@@ -25,6 +25,10 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  // Caller cancellation (e.g. "Stop" in the agent) aborts the request too.
+  const onAbort = () => controller.abort();
+  if (outer?.aborted) controller.abort();
+  outer?.addEventListener("abort", onAbort, { once: true });
 
   let response: Response;
   try {
@@ -41,10 +45,14 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
       signal: controller.signal,
     });
   } catch (err) {
-    if (err instanceof DOMException && err.name === "AbortError") throw new AppError("NETWORK_TIMEOUT");
+    if (err instanceof DOMException && err.name === "AbortError") {
+      if (outer?.aborted) throw err;
+      throw new AppError("NETWORK_TIMEOUT");
+    }
     throw new AppError("BACKEND_UNAVAILABLE");
   } finally {
     clearTimeout(timer);
+    outer?.removeEventListener("abort", onAbort);
   }
 
   const contentType = response.headers.get("content-type") ?? "";

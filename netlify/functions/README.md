@@ -19,6 +19,7 @@ session/encryption keys) may be read. Each `.ts` file here is one function with 
 | `ai-providers.ts` | `GET, POST /api/ai/providers` | List (masked) + storage mode; create. Keys never returned |
 | `ai-provider.ts` | `PATCH, DELETE /api/ai/providers/:id` | Edit / replace key / enable / default; remove |
 | `ai-test-provider.ts` | `POST /api/ai/test-provider` | Saved (`{id}`) or unsaved settings; 10/min per user |
+| `ai-agent.ts` | `POST /api/ai/agent` | One agent step (Ask = chat, Agent = plan + edits) with native tool calling; 40/min per user |
 
 Shared helpers in `netlify/lib`: `crypto` (AES-GCM seal/unseal), `session`, `cookies`, `security`
 (same-origin check, rate limit), `validate` (zod schemas for owner/repo/ref/path), `github` (client,
@@ -28,5 +29,5 @@ guard, encrypted provider store, `resolveProvider()` for the agent).
 Rules: validate every input, return `{ error: { code, message } }` on failure, never log tokens or
 keys, never execute repository code on the server.
 
-Planned: Phase 4 `ai-chat`, `ai-agent` · Phase 5 `preview-*` ·
+Planned: Phase 5 `preview-*` ·
 Phase 6 `github-branch`, `github-commit`, `github-pull-request`.

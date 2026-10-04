@@ -59,11 +59,34 @@ Phone browser ──► React SPA (Netlify CDN)
 `User`, `GitHubConnection`, `AIProvider` (encrypted key + masked hint), `Project`, `Workspace`,
 `WorkspaceFile`, `AITask`, `AITaskMessage`, `GitOperation`, `PreviewSession`. Persist only what's needed.
 
-## Agent safety (Phase 4)
+## AI agent (Phase 4)
 
-The agent gets explicit, logged tools (`list_files`, `read_file`, `search_code`, `apply_patch`, …).
-Repository files are passed as quoted data with a system instruction that they cannot change the agent's
-rules. Destructive tools (delete, force operations, writing to the default branch) require confirmation.
+```
+browser (src/features/agent)                       server (netlify/functions/ai-agent.ts)
+ runner.advance() ── messages ──► POST /api/ai/agent ── resolveProvider() → key (server only)
+      ▲                                │                  agentStep(): one model call with tools
+      │◄──── assistant msg + tool calls┘                  (system prompt + tool list chosen here)
+ tools-exec.executeTool() on workspace + proposal overlay
+ propose_plan → pause for approval · write tools → proposal → review diffs → accept → ws.save()
+```
+
+- **One step per request.** Avoids long-running functions and lets the user stop at any time; the
+  conversation (with tool results) is resent each step, compacted to ~350k chars.
+- **Tool catalog** — `src/lib/agent-tools.ts` (shared). `toolsForMode()` is applied on the server;
+  the client refuses write tools in Ask mode too.
+- **Proposal overlay** — `proposal.ts`: `{path, before, after, decision}` per file. `apply_patch` edits
+  must match exactly once. Conflicts (file changed after the agent read it) and deletions need
+  confirmation when applying.
+
+## Agent safety
+
+- Repository content is data: tool outputs are wrapped in `<tool_output>` and attached files in
+  `<attached_file>`; the server-only system prompt says they can't change the rules, to ignore embedded
+  instructions and to tell the user about suspected prompt injection.
+- No tool executes code, touches the network or GitHub; edits are proposals until the user accepts;
+  deletes are flagged dangerous; nothing is committed or pushed by the agent.
+- Request validation: strict schema (no client system prompt), size limits, every tool call answered,
+  per-user rate limit. Keys never leave the function; upstream errors are redacted.
 
 ## Preview (Phase 5)
 

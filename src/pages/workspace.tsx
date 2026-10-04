@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { ExternalLink, FolderGit2 } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { AppShell } from "@/components/layout/app-shell";
-import { ActiveProviderLink } from "@/features/ai/active-provider";
 import { PhaseBoundary } from "@/components/phase-boundary";
 import { EmptyState, ErrorState } from "@/components/states";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,17 +26,14 @@ import type { RepoSummary } from "@/types/github";
 
 /* ── Shared tab bodies ─────────────────────────────────────────────── */
 
-function AiTab() {
+// Loaded on demand: Markdown rendering + agent code only ship when the AI tab opens.
+const AgentPanel = lazy(() => import("@/features/agent/agent-panel").then((m) => ({ default: m.AgentPanel })));
+
+function AiTab({ project, branch }: { project: ProjectRef; branch: string }) {
   return (
-    <div className="space-y-4 p-4">
-      <ActiveProviderLink />
-      <PhaseBoundary
-        phase={4}
-        title="Ask the agent about this project"
-        description="The agent will inspect this repository, propose a plan, and generate diffs you can accept or reject file by file."
-        planned={["Explain, fix, implement, review", "Attach the current file or @mention files", "Every tool call logged in the task view"]}
-      />
-    </div>
+    <Suspense fallback={<div className="space-y-2 p-4"><Skeleton className="h-10" /><Skeleton className="h-24" /></div>}>
+      <AgentPanel project={{ owner: project.owner, repo: project.name, branch, source: project.source === "demo" ? "demo" : "github" }} />
+    </Suspense>
   );
 }
 
@@ -80,7 +76,7 @@ function DemoWorkspace({ tab }: { tab: WorkspaceTab }) {
         {tab === "files" ? (
           <FilesTab gitHref={gitHref} />
         ) : tab === "ai" ? (
-          <AiTab />
+          <AiTab project={DEMO_PROJECT} branch={DEMO_PROJECT.defaultBranch} />
         ) : tab === "preview" ? (
           <PreviewTab kind={detectProjectKind(DEMO_FILES)} />
         ) : (
@@ -179,8 +175,6 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
         </Button>
       </div>
     );
-  } else if (tab === "ai") {
-    body = <AiTab />;
   } else if (tab === "preview") {
     body = <PreviewTab kind={tree.status === "success" ? detectProjectKindFromPaths(paths) : null} />;
   } else if (tree.status === "loading" || !source) {
@@ -193,6 +187,8 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
           ))}
         </div>
       );
+  } else if (tab === "ai") {
+    body = <AiTab project={project} branch={shownBranch} />;
   } else if (tab === "files") {
     body = <FilesTab gitHref={projectPath(owner, name, "git")} />;
   } else {
@@ -202,7 +198,7 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
       </EditFromGit>
     );
   }
-  if (repo.status !== "error" && tree.status === "error" && (tab === "files" || tab === "git")) {
+  if (repo.status !== "error" && tree.status === "error" && (tab === "files" || tab === "git" || tab === "ai")) {
     body =
       describeError(tree.error).code === "EMPTY_REPOSITORY" ? (
         <EmptyState icon={<FolderGit2 className="size-5" />} title="This repository is empty" className="py-12">
@@ -220,7 +216,7 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
       {body}
       {repo.status === "success" ? (
         <>
-          {tab !== "files" || !source ? (
+          {(tab !== "files" && tab !== "ai") || !source ? (
             <div className="px-4 pb-4 pt-2">
               <a
                 href={`https://github.com/${owner}/${name}`}

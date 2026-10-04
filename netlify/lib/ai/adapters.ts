@@ -41,6 +41,8 @@ export interface ProviderAdapter {
 }
 
 const TIMEOUT_MS = 30_000;
+/** Agent steps can generate whole files; Netlify's synchronous limit is 60 s. */
+export const AGENT_TIMEOUT_MS = 52_000;
 
 /** Upstream messages can echo key fragments — strip anything token-like before showing it. */
 export function redact(text: string): string {
@@ -63,8 +65,10 @@ function upstreamError(status: number, detail: string, provider: string): HttpEr
   return new HttpError(502, "AI_PROVIDER_UNAVAILABLE", `${provider} returned an error (${status}).`);
 }
 
-async function call(provider: string, url: string, init: RequestInit & { signal?: AbortSignal }): Promise<unknown> {
-  const signal = init.signal ? AbortSignal.any([init.signal, AbortSignal.timeout(TIMEOUT_MS)]) : AbortSignal.timeout(TIMEOUT_MS);
+export async function call(provider: string, url: string, init: RequestInit & { signal?: AbortSignal; timeoutMs?: number }): Promise<unknown> {
+  const { timeoutMs = TIMEOUT_MS, ...rest } = init;
+  init = rest;
+  const signal = init.signal ? AbortSignal.any([init.signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs);
   let res: Response;
   try {
     // redirect: "manual" — a redirect could bounce the key to another host.
@@ -91,7 +95,7 @@ async function call(provider: string, url: string, init: RequestInit & { signal?
 
 /* ── OpenAI + OpenAI-compatible (Chat Completions) ───────────────── */
 
-async function openAiBase(p: ResolvedProvider): Promise<string> {
+export async function openAiBase(p: ResolvedProvider): Promise<string> {
   if (p.kind === "openai") return PROVIDERS.openai.defaultBaseUrl!;
   if (!p.baseUrl) throw new HttpError(422, "AI_BAD_BASE_URL", "This provider needs a base URL.");
   const base = normalizeBaseUrl(p.baseUrl);
@@ -140,8 +144,8 @@ const openAi: ProviderAdapter = {
 
 /* ── Anthropic (Messages API) ─────────────────────────────────────── */
 
-const ANTHROPIC = PROVIDERS.anthropic.defaultBaseUrl!;
-const anthropicHeaders = (key: string) => ({ "x-api-key": key, "anthropic-version": "2023-06-01", "Content-Type": "application/json" });
+export const ANTHROPIC = PROVIDERS.anthropic.defaultBaseUrl!;
+export const anthropicHeaders = (key: string) => ({ "x-api-key": key, "anthropic-version": "2023-06-01", "Content-Type": "application/json" });
 
 const anthropic: ProviderAdapter = {
   async chat(p, req) {
@@ -172,7 +176,7 @@ const anthropic: ProviderAdapter = {
 
 /* ── Google Gemini (generateContent) ──────────────────────────────── */
 
-const GEMINI = PROVIDERS.gemini.defaultBaseUrl!;
+export const GEMINI = PROVIDERS.gemini.defaultBaseUrl!;
 
 const gemini: ProviderAdapter = {
   async chat(p, req) {
