@@ -13,6 +13,9 @@ export interface ApiOptions extends Omit<RequestInit, "body"> {
 
 const API_BASE = "/api";
 
+/** Fired when the server says the GitHub session is gone; the session store signs the user out. */
+export const SESSION_EXPIRED_EVENT = "mdai:session-expired";
+
 export async function api<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const { body, timeoutMs = 15_000, headers, ...rest } = options;
 
@@ -30,6 +33,7 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
       ...rest,
       headers: {
         Accept: "application/json",
+        "X-Requested-With": "mobile-development-ai",
         ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
         ...headers,
       },
@@ -58,6 +62,9 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
         : undefined;
     const code = isErrorCode(serverCode?.code) ? serverCode.code : codeFromStatus(response.status);
     const message = typeof serverCode?.message === "string" ? serverCode.message : undefined;
+    if (code === "SESSION_EXPIRED" || (code === "UNAUTHENTICATED" && path.startsWith("/github/"))) {
+      window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT, { detail: code }));
+    }
     throw new AppError(code, message, response.status);
   }
 

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "wouter";
-import { ChevronLeft, GitBranch } from "lucide-react";
+import { ChevronDown, ChevronLeft, GitBranch, Lock } from "lucide-react";
 import { WORKSPACE_TABS, WORKSPACE_TAB_META, projectPath, type WorkspaceTab } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import type { ProjectRef } from "@/types/workspace";
@@ -13,11 +13,14 @@ export function WorkspaceShell({
   project,
   branch,
   tab,
+  onBranchClick,
   children,
 }: {
   project: ProjectRef;
   branch: string;
   tab: WorkspaceTab;
+  /** When provided the branch label becomes a button that opens the branch picker. */
+  onBranchClick?: () => void;
   children: ReactNode;
 }) {
   return (
@@ -34,11 +37,30 @@ export function WorkspaceShell({
               <span className="text-muted-foreground">{project.owner}/</span>
               {project.name}
             </p>
-            <p className="flex items-center gap-1 font-mono text-xs text-muted-foreground" data-testid="text-branch">
-              <GitBranch className="size-3" aria-hidden /> {branch}
-            </p>
+            {onBranchClick ? (
+              <button
+                type="button"
+                onClick={onBranchClick}
+                data-testid="button-branch"
+                className="-mx-1 -my-1 flex max-w-full items-center gap-1 rounded px-1 py-1 font-mono text-xs text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+              >
+                <GitBranch className="size-3 shrink-0" aria-hidden />
+                <span className="truncate" data-testid="text-branch">{branch}</span>
+                <ChevronDown className="size-3 shrink-0" aria-hidden />
+              </button>
+            ) : (
+              <p className="flex items-center gap-1 font-mono text-xs text-muted-foreground" data-testid="text-branch">
+                <GitBranch className="size-3" aria-hidden /> {branch}
+              </p>
+            )}
           </div>
-          {project.source === "demo" ? <Badge tone="warning">Demo</Badge> : null}
+          {project.source === "demo" ? (
+            <Badge tone="warning">Demo</Badge>
+          ) : project.visibility === "private" ? (
+            <Badge>
+              <Lock className="size-3" aria-hidden /> Private
+            </Badge>
+          ) : null}
         </header>
       </div>
 

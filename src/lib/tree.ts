@@ -75,3 +75,16 @@ export function languageFromPath(path: string): string {
   };
   return map[ext] ?? "Text";
 }
+
+/**
+ * Cheaper detection from file paths only (used before file contents are loaded, e.g. GitHub trees).
+ * Phase 5 will confirm by reading package.json.
+ */
+export function detectProjectKindFromPaths(paths: readonly string[]): ProjectKind {
+  const set = new Set(paths);
+  const hasPkg = set.has("package.json");
+  const hasVite = paths.some((p) => /^vite\.config\.(js|ts|mjs|mts|cjs)$/.test(p));
+  if (hasPkg && hasVite) return paths.some((p) => /\.(jsx|tsx)$/.test(p)) ? "vite-react" : "vite-ts";
+  if (!hasPkg && set.has("index.html")) return "static-html";
+  return "unknown";
+}

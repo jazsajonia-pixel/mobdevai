@@ -1,21 +1,28 @@
 # Netlify Functions
 
 Server-side code. This is the only place secrets (GitHub client secret, AI provider keys,
-session/encryption keys) may be read. Each `.ts` file here is one function (tests live in `netlify/tests` so they are never deployed) with an explicit `config.path`.
+session/encryption keys) may be read. Each `.ts` file here is one function with an explicit
+`config.path` (tests live in `netlify/tests` so they are never deployed).
 
-| Function | Route | Phase | Status |
-| --- | --- | --- | --- |
-| `health.ts` | `GET /api/health` | 0 | Live — reports configured capabilities as booleans |
-| `auth-github-start.ts` | `POST /api/auth/github/start` | 1 | Stub — returns `GITHUB_OAUTH_NOT_CONFIGURED` / `NOT_IMPLEMENTED` |
-| `auth-session.ts` | `GET /api/auth/session` | 1 | Stub — always `{ authenticated: false }` |
+| Function | Route | Notes |
+| --- | --- | --- |
+| `health.ts` | `GET /api/health` | Configured capabilities as booleans only |
+| `auth-github-start.ts` | `POST /api/auth/github/start` | Same-origin + rate limited. Seals a one-time `state` cookie, returns the authorize URL |
+| `auth-github-callback.ts` | `GET /api/auth/github/callback` | Verifies state, exchanges code server-side, sets the encrypted session cookie |
+| `auth-session.ts` | `GET /api/auth/session` | Profile + scopes. Never the token |
+| `auth-logout.ts` | `POST /api/auth/logout` | Revokes the GitHub token (best effort), clears the cookie |
+| `github-repos.ts` | `GET /api/github/repos?page=` | 50 per page, most recently pushed first |
+| `github-repo.ts` | `GET /api/github/repos/:owner/:repo` | Metadata + your permissions |
+| `github-branches.ts` | `GET /api/github/repos/:owner/:repo/branches` | Up to 300 |
+| `github-tree.ts` | `GET /api/github/repos/:owner/:repo/tree?ref=` | Recursive, capped at 10,000 entries |
+| `github-file.ts` | `GET /api/github/repos/:owner/:repo/file?ref=&path=` | Text only, ≤ 1 MB |
 
-Planned (see the master prompt's API design):
+Shared helpers in `netlify/lib`: `crypto` (AES-GCM seal/unseal), `session`, `cookies`, `security`
+(same-origin check, rate limit), `validate` (zod schemas for owner/repo/ref/path), `github` (client,
+error mapping, mappers), `db` (optional Neon), `http` (`handle()` wrapper + JSON errors).
 
-- Phase 1 — `auth-github-callback`, `auth-logout`, `github-repos`, `github-tree`, `github-file`
-- Phase 3 — `ai-test-provider`, provider settings (encrypted at rest)
-- Phase 4 — `ai-chat`, `ai-agent` (tool-based, repository content treated as untrusted data)
-- Phase 5 — `preview-start`, `preview-stop`, `preview-status`
-- Phase 6 — `github-branch`, `github-commit`, `github-pull-request`
+Rules: validate every input, return `{ error: { code, message } }` on failure, never log tokens or
+keys, never execute repository code on the server.
 
-Rules: validate every input (zod), return `{ error: { code, message } }` on failure,
-never log tokens/keys, never execute repository code on the server.
+Planned: Phase 3 `ai-test-provider` · Phase 4 `ai-chat`, `ai-agent` · Phase 5 `preview-*` ·
+Phase 6 `github-branch`, `github-commit`, `github-pull-request`.

@@ -1,14 +1,25 @@
 import type { Config } from "@netlify/functions";
-import { json, methodNotAllowed } from "../lib/http";
+import { handle, json } from "../lib/http";
+import { SESSION_COOKIE, clearCookie, readSession } from "../lib/session";
+import { parseCookies } from "../lib/cookies";
+import type { AuthSessionResponse } from "../../src/types/github";
 
-/**
- * GET /api/auth/session — who is signed in.
- * TODO(phase-1): read and verify the encrypted session cookie; return the GitHub profile
- * (login, name, avatar) — never the access token.
- */
-export default async (req: Request): Promise<Response> => {
-  if (req.method !== "GET") return methodNotAllowed(["GET"]);
-  return json({ authenticated: false });
-};
+/** GET /api/auth/session — who is signed in. Never returns the access token. */
+export default handle(["GET"], async (req) => {
+  const session = await readSession(req);
+  if (!session) {
+    const stale = SESSION_COOKIE in parseCookies(req.headers.get("cookie"));
+    const body: AuthSessionResponse = { authenticated: false };
+    return json(body, { cookies: stale ? [clearCookie(req, SESSION_COOKIE)] : [] });
+  }
+  const body: AuthSessionResponse = {
+    authenticated: true,
+    user: session.user,
+    scopes: session.scopes,
+    includePrivate: session.includePrivate,
+    expiresAt: new Date(session.exp * 1000).toISOString(),
+  };
+  return json(body);
+});
 
 export const config: Config = { path: "/api/auth/session" };
