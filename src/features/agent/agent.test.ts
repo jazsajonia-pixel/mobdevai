@@ -191,3 +191,39 @@ describe("mentions", () => {
     expect(mentionedPaths("fix @src/a.ts, and @nope.ts", ["src/a.ts"])).toEqual(["src/a.ts"]);
   });
 });
+
+describe("request_preview tool", () => {
+  it("builds the demo with proposed edits and reports build errors with a location", async () => {
+    const files = Object.fromEntries(DEMO_FILES.map((f) => [f.path, f.content])) as Record<string, string>;
+    const w = ws(files);
+    const ok = await executeTool(call("request_preview", {}), w, {}, "ask");
+    expect(ok.isError).toBe(false);
+    expect(ok.content).toMatch(/Build OK \(Vite \+ React\)/);
+    expect(ok.content).toMatch(/npm: .*react/);
+    expect(ok.content).toMatch(/Runtime check unavailable/);
+
+    const broken = propose({}, "src/App.jsx", files["src/App.jsx"]!, `const x = ;\n${files["src/App.jsx"]!}`);
+    const bad = await executeTool(call("request_preview", {}), w, broken, "agent");
+    expect(bad.content).toMatch(/BUILD FAILED in src\/App\.jsx:1/);
+
+    const probed = await executeTool(call("request_preview", {}), { ...w, probe: async () => ({ booted: true, errors: [{ message: "boom", where: "src/App.jsx:3" }], console: [] }) }, {}, "agent");
+    expect(probed.content).toMatch(/RUNTIME ERROR at src\/App\.jsx:3: boom/);
+  });
+
+  it("explains unsupported projects", async () => {
+    const r = await executeTool(call("request_preview", {}), ws({ "package.json": JSON.stringify({ dependencies: { next: "14.0.0" } }), "pages/index.js": "" }), {}, "ask");
+    expect(r.content).toMatch(/Preview not available: Next\.js/);
+  });
+});
+
+describe("mergeDecisions", () => {
+  it("keeps decisions made during a run unless the proposed content changed", async () => {
+    const { mergeDecisions } = await import("./proposal");
+    const base = propose(propose({}, "a.ts", "1", "2"), "b.ts", "x", "y");
+    const latest = setDecision(base, ["a.ts", "b.ts"], "accepted");
+    const incoming = propose(base, "b.ts", "x", "z"); // agent revised b.ts meanwhile
+    const m = mergeDecisions(latest, incoming);
+    expect(m["a.ts"]!.decision).toBe("accepted");
+    expect(m["b.ts"]!.decision).toBe("pending");
+  });
+});

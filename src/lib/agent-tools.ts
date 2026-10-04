@@ -30,6 +30,7 @@ export const TOOL_NAMES = [
   "search_code",
   "get_git_status",
   "inspect_package_json",
+  "request_preview",
   "propose_plan",
   "create_file",
   "update_file",
@@ -77,6 +78,13 @@ export const TOOLS: Record<ToolName, ToolDef> = {
     kind: "read",
     description: "Summarise package.json: name, scripts, dependencies, devDependencies and the detected project type.",
     parameters: { type: "object", properties: { path: str("Path to package.json (default: root)") }, required: [] },
+  },
+  request_preview: {
+    name: "request_preview",
+    kind: "read",
+    description:
+      "Build the in-browser preview of the project INCLUDING your proposed changes, run it briefly in a sandbox, and report build errors, runtime errors and console warnings. Use it after editing to verify your changes work. Only browser-compatible frontends (HTML/CSS/JS, Vite/React, CRA) can be previewed.",
+    parameters: { type: "object", properties: { page: str("Optional HTML page to build, e.g. about.html (default: the entry page)") }, required: [] },
   },
   propose_plan: {
     name: "propose_plan",

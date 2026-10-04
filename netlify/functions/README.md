@@ -29,5 +29,6 @@ guard, encrypted provider store, `resolveProvider()` for the agent).
 Rules: validate every input, return `{ error: { code, message } }` on failure, never log tokens or
 keys, never execute repository code on the server.
 
-Planned: Phase 5 `preview-*` ·
-Phase 6 `github-branch`, `github-commit`, `github-pull-request`.
+Preview (Phase 5) needs no functions — it builds and runs entirely in the browser sandbox.
+
+Planned: Phase 6 `github-branch`, `github-commit`, `github-pull-request`.

@@ -90,6 +90,25 @@ browser (src/features/agent)                       server (netlify/functions/ai-
 
 ## Preview (Phase 5)
 
-Sandboxed iframe (`sandbox="allow-scripts"`, separate origin) with an in-browser bundler for
-HTML/CSS/JS and Vite + React. Projects that need a server runtime get an explicit "not supported" message.
-`detectProjectKind()` in `src/lib/tree.ts` already classifies projects by reading `package.json` as data.
+Browser-only — there are no preview endpoints and repository code never runs on our server.
+
+```
+workspace (base + saved + drafts) ─▶ analyzeProject() ─▶ buildPreview() ─▶ srcdoc HTML ─▶ <iframe sandbox>
+                                       detect.ts          bundler.ts         runtime.ts       │ postMessage
+                                                                                               ▼ (nonce + source check)
+                                                                              usePreview(): console · errors · navigate
+```
+
+- **Bundle**: each local module is transformed with Sucrase to CommonJS and registered with a small
+  loader (`runtime.ts`) that evaluates it with `//# sourceURL=preview:///path`, so stack traces map back
+  to workspace lines. Bare imports become external ESM from `esm.sh` (`?dev`, React marked external
+  and provided once through an import map); package CSS comes from jsDelivr.
+- **Isolation**: `sandbox="allow-scripts allow-forms allow-modals allow-popups
+  allow-popups-to-escape-sandbox"` — no `allow-same-origin`, so the frame's origin is opaque: it can't
+  read this app's cookies or storage or call `/api/*` with credentials. `localStorage`,
+  `sessionStorage` and `document.cookie` are in-memory shims; form submits and external navigations are
+  blocked or reported. "Open in new tab" uses a script-free blob page wrapping the same sandboxed frame.
+- **Messages**: the parent accepts only messages whose `source` is the preview frame and whose nonce
+  matches the current build; payloads are truncated strings rendered as text.
+- **Agent**: `request_preview` reuses the same build on the proposal overlay and `probe.ts` runs it in a
+  hidden sandboxed frame for ≤5 s.

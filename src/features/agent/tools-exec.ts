@@ -19,6 +19,8 @@ export interface WorkspaceView {
   read: (path: string) => Promise<string>;
   changes: () => FileChange[];
   baseSize?: (path: string) => number | undefined;
+  /** Runs a built preview briefly in a hidden sandboxed frame (browser only). */
+  probe?: (result: import("@/features/preview/bundler").BuildResult) => Promise<import("@/features/preview/probe").ProbeReport>;
 }
 
 export interface ToolResult {
@@ -37,6 +39,7 @@ const schemas = {
   search_code: z.object({ query: z.string().min(1).max(500), regex: z.boolean().optional(), path: z.string().max(1024).optional(), max_results: z.number().int().min(1).max(200).optional() }),
   get_git_status: z.object({ include_diff: z.boolean().optional() }),
   inspect_package_json: z.object({ path: z.string().max(1024).optional() }),
+  request_preview: z.object({ page: z.string().max(1024).optional() }),
   propose_plan: z.object({ summary: z.string().min(1).max(2000), steps: z.array(z.string().min(1).max(1000)).min(1).max(15) }),
   create_file: z.object({ path: z.string().min(1).max(1024), content: z.string().max(400_000) }),
   update_file: z.object({ path: z.string().min(1).max(1024), content: z.string().max(400_000) }),
@@ -197,6 +200,45 @@ async function exec(name: ToolName, args: Record<string, unknown>, ws: Workspace
         content: [`Detected project type: ${kind}`, `name: ${String(pkg.name ?? "—")}`, `type: ${String(pkg.type ?? "commonjs")}`, `scripts: ${pick("scripts")}`, `dependencies: ${pick("dependencies")}`, `devDependencies: ${pick("devDependencies")}`].join("\n"),
         proposal,
       };
+    }
+    case "request_preview": {
+      const { page: rawPage } = a as z.infer<typeof schemas.request_preview>;
+      const [{ analyzeProject }, { buildPreview, BuildError }] = await Promise.all([import("@/features/preview/detect"), import("@/features/preview/bundler")]);
+      const paths = overlayPaths(ws, proposal);
+      const read = (p: string) => overlayRead(ws, proposal, p).catch(() => null);
+      const plan = await analyzeProject(paths, read);
+      if (!plan.supported) return { content: `Preview not available: ${plan.label}. ${plan.reason}`, proposal };
+      const page = rawPage ? cleanPath(rawPage) : undefined;
+      if (page && !plan.pages.includes(page)) throw new ToolError(`${page} is not an HTML page in this project. Pages: ${plan.pages.slice(0, 20).join(", ")}`);
+      let result;
+      try {
+        result = await buildPreview({
+          plan,
+          page,
+          paths,
+          read: async (p) => {
+            const t = await read(p);
+            if (t === null) throw new Error("not in the workspace");
+            return t;
+          },
+        });
+      } catch (e) {
+        if (!(e instanceof BuildError)) throw e;
+        const where = e.file ? ` in ${e.file}${e.line ? `:${e.line}` : ""}` : "";
+        return { content: [`BUILD FAILED${where}: ${e.message}`, e.frame ?? ""].filter(Boolean).join("\n\n"), proposal };
+      }
+      const out = [`Build OK (${plan.label}) · page ${result.page} · ${result.modules} modules${result.packages.length ? ` · npm: ${result.packages.join(", ")}` : ""}`];
+      for (const w of result.warnings.slice(0, 10)) out.push(`warning: ${w}`);
+      if (ws.probe) {
+        const r = await ws.probe(result);
+        if (!r.booted && r.errors.length === 0) out.push("Runtime: the app didn't finish loading within 5s (slow network/CDN or an infinite loop).");
+        for (const err of r.errors) out.push(`RUNTIME ERROR${err.where ? ` at ${err.where}` : ""}: ${err.message}`);
+        for (const c of r.console) out.push(`console.${c.level}: ${c.text}`);
+        if (r.booted && r.errors.length === 0) out.push("Runtime: loaded without errors.");
+      } else {
+        out.push("Runtime check unavailable here; build only.");
+      }
+      return { content: out.join("\n"), proposal };
     }
     case "propose_plan":
       // Handled by the runner (pauses for approval); reaching here means auto-approve.

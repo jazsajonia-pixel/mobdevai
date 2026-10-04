@@ -1,6 +1,6 @@
 {
   "name": "mobile-development-ai",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Mobile Development AI — the first AI development environment built for developers who code from their phone.",
   "scripts": {
     "dev": "vite",
@@ -43,6 +43,7 @@
     "react-dom": "^18.3.1",
     "react-markdown": "^9.1.0",
     "remark-gfm": "^4.0.1",
+    "sucrase": "^3.35.1",
     "tailwind-merge": "^3.7.0",
     "vaul": "^1.1.2",
     "wouter": "^3.13.0",
