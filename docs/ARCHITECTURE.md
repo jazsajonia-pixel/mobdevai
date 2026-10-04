@@ -145,3 +145,17 @@ Git tab ─ selected FileChange[] + message + target ─▶ POST /api/github/rep
   last preview outcome (`preview-status:<workspaceKey>`, written by `usePreview`).
 - **Patch export** (`src/features/git/patch.ts`): `diff`'s `createTwoFilesPatch` with Git headers.
 - **CSRF** is enforced in `netlify/lib/http.ts#handle()` for every non-GET request.
+
+## Production (Phase 8)
+
+- `netlify/lib/http.ts › handle()` is the single entry point for every function: method check →
+  same-origin check for writes → handler → error mapping. It assigns the request id (Netlify's
+  `x-nf-request-id` when present), sets `X-Request-Id`, and writes one structured log line.
+- `netlify/lib/log.ts` — JSON logger + redactor (`LOG_LEVEL`; silent under tests unless set).
+- `netlify/lib/security.ts › rateLimit()` — async; `postgresStore` (shared) or `memoryStore`.
+- `netlify/lib/env.ts › readiness()` — production configuration checks used by `/api/health` and
+  `scripts/verify-env.ts`.
+- `src/lib/monitoring.ts` — client crash reporting to `/api/client-errors`; `APP_VERSION` is injected
+  from `package.json` at build time.
+- `e2e/` + `playwright.config.ts` — starts mock GitHub, mock AI, the functions runner and Vite on
+  dedicated ports (5273/8887/8890/8891) and drives mobile device profiles.

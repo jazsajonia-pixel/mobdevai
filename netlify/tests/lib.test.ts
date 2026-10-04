@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { randomToken, safeEqual, seal, unseal } from "../lib/crypto";
 import { parseCookies, serializeCookie } from "../lib/cookies";
 import { looksBinary, mapTree, MAX_TREE_ENTRIES } from "../lib/github";
-import { rateLimit } from "../lib/security";
+import { postgresStore, rateLimit, setRateStore } from "../lib/security";
 import { HttpError } from "../lib/http";
 
 const SECRET = "s".repeat(16) + "t".repeat(16);
@@ -55,10 +55,48 @@ describe("github helpers", () => {
 });
 
 describe("rateLimit", () => {
-  it("allows up to the limit per window", () => {
+  it("allows up to the limit per window", async () => {
     const key = `t-${Math.random()}`;
-    for (let i = 0; i < 3; i++) rateLimit(key, 3, 1000, 0);
-    expect(() => rateLimit(key, 3, 1000, 10)).toThrow(HttpError);
-    expect(() => rateLimit(key, 3, 1000, 2000)).not.toThrow();
+    for (let i = 0; i < 3; i++) await rateLimit(key, 3, 1000, 0);
+    await expect(rateLimit(key, 3, 1000, 10)).rejects.toThrow(HttpError);
+    await expect(rateLimit(key, 3, 1000, 2000)).resolves.toBeUndefined();
+  });
+
+  it("uses one atomic upsert per hit in Postgres, with hashed keys", async () => {
+    const counts = new Map<string, number>();
+    const queries: string[] = [];
+    const sql = (async (strings: TemplateStringsArray, ...values: unknown[]) => {
+      const text = strings.join("?");
+      queries.push(text);
+      if (text.includes("INSERT INTO rate_limits")) {
+        const k = `${String(values[0])}@${String(values[1])}`;
+        counts.set(k, (counts.get(k) ?? 0) + 1);
+        return [{ count: String(counts.get(k)) }];
+      }
+      return [];
+    }) as unknown as Parameters<typeof postgresStore>[0];
+    setRateStore(postgresStore(sql, () => 1));
+    try {
+      await rateLimit("user:42", 2, 60_000, 1_000);
+      await rateLimit("user:42", 2, 60_000, 2_000);
+      const err = await rateLimit("user:42", 2, 60_000, 3_000).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(HttpError);
+      expect((err as HttpError).headers["Retry-After"]).toBe("57");
+      expect([...counts.keys()][0]).not.toContain("user:42");
+      expect(queries.every((q) => q.includes("ON CONFLICT"))).toBe(true);
+    } finally {
+      setRateStore(null);
+    }
+  });
+
+  it("falls back to memory when the shared store fails", async () => {
+    setRateStore({ kind: "postgres", hit: async () => { throw new Error("db down"); } });
+    try {
+      const key = `f-${Math.random()}`;
+      await rateLimit(key, 1, 1000, 0);
+      await expect(rateLimit(key, 1, 1000, 1)).rejects.toThrow(HttpError);
+    } finally {
+      setRateStore(null);
+    }
   });
 });

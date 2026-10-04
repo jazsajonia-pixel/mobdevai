@@ -105,6 +105,7 @@ export function WorkspaceShell({
                   href={projectPath(project.owner, project.name, t)}
                   aria-current={active ? "page" : undefined}
                   data-testid={`tab-${t}`}
+                  aria-label={t === "git" && badge > 0 ? `${meta.label}, ${badge} changed file${badge === 1 ? "" : "s"}` : undefined}
                   className={cn(
                     "flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium",
                     active ? "text-foreground" : "text-muted-foreground",
@@ -113,9 +114,8 @@ export function WorkspaceShell({
                   <span className="relative">
                     <meta.icon className={cn("size-5", active && "text-primary")} aria-hidden />
                     {t === "git" && badge > 0 ? (
-                      <span className="absolute -right-2.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground tabular" data-testid="badge-changes">
+                      <span className="absolute -right-2.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground tabular" data-testid="badge-changes" aria-hidden>
                         {badge > 99 ? "99+" : badge}
-                        <span className="sr-only"> changed files</span>
                       </span>
                     ) : null}
                   </span>

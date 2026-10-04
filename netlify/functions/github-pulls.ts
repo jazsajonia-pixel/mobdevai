@@ -35,7 +35,7 @@ export default handle(["GET", "POST"], async (req, ctx) => {
 
   assertSameOrigin(req);
   const { gh, session } = await githubForRequest(req);
-  rateLimit(`git-pr:${session.user.id}`, 10, 60_000);
+  await rateLimit(`git-pr:${session.user.id}`, 10, 60_000);
   const input = await readJson(req, createSchema, 80_000);
   try {
     const { data } = await gh.send<GhPull>("POST", `${base}/pulls`, input);

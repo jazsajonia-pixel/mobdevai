@@ -73,7 +73,8 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
     if (code === "SESSION_EXPIRED" || (code === "UNAUTHENTICATED" && path.startsWith("/github/"))) {
       window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT, { detail: code }));
     }
-    throw new AppError(code, message, response.status);
+    const requestId = (response.headers.get("x-request-id") ?? "").slice(0, 40) || undefined;
+    throw new AppError(code, message, response.status, requestId);
   }
 
   return payload as T;

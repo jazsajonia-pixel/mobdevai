@@ -5,7 +5,7 @@
 A mobile-first web IDE and AI coding agent: connect GitHub, pick a repository, ask the AI for a change,
 review the diff, preview the real app, and commit/push/open a PR — without a desktop.
 
-**Status: Phase 7 (polish — task history, project dashboard, offline/patch export, security & accessibility review) complete.** See [docs/PHASES.md](docs/PHASES.md) for what works today and what's next.
+**Status: Phase 8 (production — deployment guide, env validation, structured logging & crash reports, shared rate limits, end-to-end tests on mobile browsers, CI) complete.** See [docs/PHASES.md](docs/PHASES.md) for what works today and what's next.
 
 ## Stack
 
@@ -48,16 +48,22 @@ npm run dev:api & npm run dev
 
 ## Deploying to Netlify
 
-1. New site → import this repository. Build command and publish dir come from `netlify.toml`.
-2. Create a GitHub OAuth App (GitHub → Settings → Developer settings → OAuth Apps):
-   - Homepage URL: `https://<your-site>.netlify.app`
-   - Authorization callback URL: `https://<your-site>.netlify.app/api/auth/github/callback`
-3. In **Site configuration → Environment variables** set `APP_URL`, `GITHUB_CLIENT_ID`,
-   `GITHUB_CLIENT_SECRET`, `SESSION_SECRET` (`openssl rand -base64 32`), and optionally `DATABASE_URL`.
-   For AI keys that persist across sign-outs and devices, also set `ENCRYPTION_KEY` (`openssl rand -base64 32`)
-   together with `DATABASE_URL`; without them, keys users add are session-only (encrypted cookie).
-4. Optional: `DATABASE_URL=… npm run db:migrate` to create the Neon tables (incl. `ai_providers`).
-5. Redeploy, open the site on your phone, and sign in.
+Full guide: **[docs/DEPLOY.md](docs/DEPLOY.md)** (OAuth App, environment variables, database,
+verification, monitoring, rollback). In short:
+
+1. Import the repository in Netlify — build settings come from `netlify.toml`.
+2. Create a GitHub OAuth App with callback `https://<your-site>/api/auth/github/callback`.
+3. Set `APP_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `SESSION_SECRET`, and ideally
+   `ENCRYPTION_KEY` + `DATABASE_URL` (then `npm run db:migrate`). Check with `npm run verify:env`.
+4. Redeploy, then `npm run verify:env -- --url https://<your-site>` and sign in from your phone.
+
+## Testing
+
+```bash
+npm run check        # typecheck + unit/integration tests + production build
+npm run e2e:install  # once — Playwright browsers
+npm run e2e          # end-to-end on Pixel 7 / iPhone 14 profiles with mock GitHub + mock AI
+```
 
 ## Project layout
 

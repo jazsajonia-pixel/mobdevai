@@ -1,6 +1,6 @@
 {
   "name": "mobile-development-ai",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Mobile Development AI — the first AI development environment built for developers who code from their phone.",
   "scripts": {
     "dev": "vite",
@@ -14,7 +14,10 @@
     "dev:api": "tsx watch scripts/dev-api.ts",
     "dev:mock-github": "tsx scripts/mock-github.ts",
     "db:migrate": "tsx scripts/migrate.ts",
-    "dev:mock-ai": "tsx scripts/mock-ai.ts"
+    "dev:mock-ai": "tsx scripts/mock-ai.ts",
+    "verify:env": "tsx scripts/verify-env.ts",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install chromium webkit"
   },
   "license": "UNLICENSED",
   "dependencies": {
@@ -51,6 +54,7 @@
   },
   "devDependencies": {
     "@netlify/functions": "^5.3.0",
+    "@playwright/test": "^1.59.0",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",

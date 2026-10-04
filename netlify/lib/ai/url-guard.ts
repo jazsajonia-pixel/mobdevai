@@ -1,3 +1,4 @@
+import { isProduction } from "../env";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { HttpError } from "../http";
@@ -39,7 +40,8 @@ export function isPrivateAddress(ip: string): boolean {
   return true;
 }
 
-const allowPrivate = () => process.env.AI_ALLOW_PRIVATE_BASE_URLS === "true";
+// Local development only — never honoured in production deploys.
+const allowPrivate = () => process.env.AI_ALLOW_PRIVATE_BASE_URLS === "true" && !isProduction();
 
 /** Normalise + validate syntax (no DNS). Returns the URL without a trailing slash. */
 export function normalizeBaseUrl(input: string): string {

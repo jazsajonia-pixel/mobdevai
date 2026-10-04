@@ -5,6 +5,7 @@
  */
 import type { ErrorCode } from "../../src/lib/error-codes";
 import { appOrigin } from "./env";
+import { log, newRequestId } from "./log";
 
 export type ServerErrorCode = ErrorCode;
 
@@ -78,18 +79,47 @@ export function assertSameOrigin(req: Request): void {
  */
 export function handle(methods: string[], fn: Handler) {
   return async (req: Request, ctx: FnContext = {}): Promise<Response> => {
-    if (!methods.includes(req.method)) return methodNotAllowed(methods);
-    try {
-      if (req.method !== "GET" && req.method !== "HEAD") assertSameOrigin(req);
-      return await fn(req, ctx);
-    } catch (err) {
-      if (err instanceof HttpError) {
-        const res = errorResponse(err.status, err.code, err.message, err.cookies);
-        for (const [k, v] of Object.entries(err.headers)) res.headers.set(k, v);
-        return res;
+    const started = Date.now();
+    // Netlify sets x-nf-request-id; reuse it so our logs line up with the platform's.
+    const requestId = (req.headers.get("x-nf-request-id") ?? "").replace(/[^\w-]/g, "").slice(0, 40) || newRequestId();
+    const path = safePath(req.url);
+    let res: Response;
+    let code: string | undefined;
+    if (!methods.includes(req.method)) {
+      res = methodNotAllowed(methods);
+      code = "METHOD_NOT_ALLOWED";
+    } else {
+      try {
+        if (req.method !== "GET" && req.method !== "HEAD") assertSameOrigin(req);
+        res = await fn(req, ctx);
+      } catch (err) {
+        if (err instanceof HttpError) {
+          code = err.code;
+          res = json({ error: { code: err.code, message: err.message, requestId } }, { status: err.status, cookies: err.cookies });
+          for (const [k, v] of Object.entries(err.headers)) res.headers.set(k, v);
+        } else {
+          code = "INTERNAL";
+          log("error", "unhandled", { requestId, path, method: req.method, error: err instanceof Error ? `${err.name}: ${err.message}` : "unknown error" });
+          res = json({ error: { code: "INTERNAL", message: "Unexpected server error.", requestId } }, { status: 500 });
+        }
       }
-      console.error("[fn] unhandled", err instanceof Error ? `${err.name}: ${err.message}` : "unknown error");
-      return errorResponse(500, "INTERNAL", "Unexpected server error.");
     }
+    try {
+      res.headers.set("X-Request-Id", requestId);
+    } catch {
+      /* immutable headers (e.g. a passthrough Response) */
+    }
+    const ms = Date.now() - started;
+    log(res.status >= 500 ? "error" : res.status >= 400 ? "warn" : "info", "request", { requestId, method: req.method, path, status: res.status, ms, code });
+    return res;
   };
+}
+
+/** Path without query string (queries can carry refs/paths but never secrets — still, keep logs lean). */
+function safePath(url: string): string {
+  try {
+    return new URL(url).pathname.slice(0, 200);
+  } catch {
+    return "?";
+  }
 }

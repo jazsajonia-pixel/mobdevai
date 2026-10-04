@@ -1,3 +1,4 @@
+import { log } from "../lib/log";
 import type { Config } from "@netlify/functions";
 import { appOrigin, githubConfig } from "../lib/env";
 import { HttpError, handle, redirect } from "../lib/http";
@@ -19,7 +20,7 @@ export default handle(["GET"], async (req, ctx) => {
   const fail = (code: ErrorCode) => redirect(`${origin}/?auth_error=${code}#/signin`, [clearState]);
 
   try {
-    rateLimit(`auth-callback:${clientKey(req, ctx)}`, 20, 60_000);
+    await rateLimit(`auth-callback:${clientKey(req, ctx)}`, 20, 60_000);
     const cfg = githubConfig();
     if (!cfg) return fail("GITHUB_OAUTH_NOT_CONFIGURED");
 
@@ -46,7 +47,7 @@ export default handle(["GET"], async (req, ctx) => {
     return redirect(`${origin}/#/app/projects`, [clearState, session]);
   } catch (err) {
     if (err instanceof HttpError) return fail(err.code);
-    console.error("[auth] callback failed", err instanceof Error ? err.name : "unknown");
+    log("error", "auth callback failed", { error: err instanceof Error ? err.name : "unknown" });
     return fail("INTERNAL");
   }
 });

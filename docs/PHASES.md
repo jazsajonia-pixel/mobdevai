@@ -246,10 +246,34 @@ changes into a stale workspace (use a new branch instead).
 - **Tests**: 191 total (history, dashboard, patch export incl. a real `git apply`, security
   invariants, accessibility).
 
-## Phase 8 — Production (next)
+## Phase 8 — Production ✅
 
-Netlify deployment, production environment variables, logging/monitoring, shared rate limiting,
-final security review, end-to-end tests and real mobile browser verification.
+- **Deployment**: step-by-step [DEPLOY.md](DEPLOY.md) (Netlify site, OAuth App, env vars, Neon,
+  verification, real-device checklist, rollback). Node 22 on Netlify.
+- **Production environment validation**: `readiness()` in `netlify/lib/env.ts` checks required
+  secrets, secret length, https `APP_URL`, distinct session/encryption keys, secret-looking `VITE_*`
+  variables, and production-only rules (`AI_ALLOW_PRIVATE_BASE_URLS` is refused and now **ignored**
+  when `CONTEXT=production`). Exposed as `ready` + failing check ids on `/api/health` (with `version`,
+  `commit`, `context`) and as `npm run verify:env` (local file or `--url` of a live site). Never prints values.
+- **Logging & monitoring**: structured JSON logs (`netlify/lib/log.ts`) — one line per request with
+  request id, method, path (no query), status, duration and error code; a redactor masks GitHub/OpenAI/
+  Google tokens, bearer values, JWTs and secret-named fields. Every response carries `X-Request-Id`;
+  error bodies include it and error screens show `ref …`. Client crashes (error boundary, `error`,
+  `unhandledrejection`) are reported to `POST /api/client-errors` — message, trimmed stack, masked route,
+  version only; capped and de-duplicated client-side; schema-validated, size- and rate-limited server-side.
+- **Shared rate limiting**: with `DATABASE_URL`, fixed-window counters live in Postgres
+  (`003_rate_limits.sql`, one atomic upsert per hit, hashed keys, periodic pruning); falls back to the
+  in-memory limiter if the database is unreachable. `rateLimit()` is now async everywhere.
+- **End-to-end tests** (`e2e/`, Playwright): GitHub sign-in → edit → commit to a new branch → PR →
+  dashboard; default branch needs explicit confirmation (cancel leaves `main` untouched); add an
+  OpenAI-compatible provider → test → agent plan/proposal on a GitHub repo (key never shown back);
+  demo agent → accept → live preview → simulated commit → history; health/readiness, CSRF refusal
+  with request id, 429 + `Retry-After`, offline commit blocking and recovery; no horizontal overflow.
+  Runs on Pixel 7 and iPhone 14 profiles (and WebKit in CI).
+- **CI**: `.github/workflows/ci.yml` — check, `npm audit`, e2e on Chromium + WebKit, report artifact on failure.
+- **Fixes found by e2e**: Git tab accessible name ("Git, 1 changed file"), patch button pluralization,
+  branch summary no longer breaks words mid-way.
+- **Tests**: 205 unit/integration + 16 end-to-end (8 flows × 2 device profiles locally).
 
 ## Later phases
 

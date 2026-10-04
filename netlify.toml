@@ -4,10 +4,13 @@
   functions = "netlify/functions"
 
 [build.environment]
-  NODE_VERSION = "20"
+  NODE_VERSION = "22"
 
 [functions]
   node_bundler = "esbuild"
+
+# Deploy previews and branch deploys run with the same checks but are not "production" for
+# readiness purposes (Netlify sets CONTEXT). Production-only rules: see netlify/lib/env.ts.
 
 [dev]
   framework = "vite"

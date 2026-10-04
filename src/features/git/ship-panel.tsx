@@ -316,9 +316,9 @@ export function ShipPanel({ target, selected }: { target: GitTarget; selected: F
         <dl className="mb-3 space-y-2 rounded-md border bg-background p-3 text-sm" data-testid="ship-summary">
           <div className="flex gap-2">
             <dt className="w-16 shrink-0 text-muted-foreground">Branch</dt>
-            <dd className="min-w-0 break-all font-mono text-[13px]">
-              {targetBranch}
-              {mode === "new" ? <span className="font-sans text-muted-foreground"> (new, from {branch})</span> : null}
+            <dd className="min-w-0 font-mono text-[13px]">
+              <span className="break-all">{targetBranch}</span>
+              {mode === "new" ? <span className="whitespace-nowrap font-sans text-muted-foreground"> (new, from {branch})</span> : null}
             </dd>
           </div>
           <div className="flex gap-2">
