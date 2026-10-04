@@ -5,11 +5,12 @@
 A mobile-first web IDE and AI coding agent: connect GitHub, pick a repository, ask the AI for a change,
 review the diff, preview the real app, and commit/push/open a PR — without a desktop.
 
-**Status: Phase 1 (Auth + GitHub) complete.** See [docs/PHASES.md](docs/PHASES.md) for what works today and what's next.
+**Status: Phase 2 (Mobile editor) complete.** See [docs/PHASES.md](docs/PHASES.md) for what works today and what's next.
 
 ## Stack
 
 - React 18 + TypeScript + Vite 6, Tailwind CSS 3 (shadcn-style primitives), `wouter` hash routing
+- CodeMirror 6 editor, `diff` for change review; workspaces persisted per repo + branch in `localStorage`
 - Netlify hosting + Netlify Functions (TypeScript) for everything that touches secrets
 - Vitest + Testing Library
 

@@ -49,10 +49,40 @@ Implemented:
 Known limitations: rate limiting is per function instance; GitHub App installs (fine-grained repo access)
 are not supported yet — OAuth App only.
 
-## Phase 2 — Mobile editor (next)
+## Phase 2 — Mobile editor ✅
 
-File editing with syntax highlighting, tabs, search, find/replace, undo/redo, unsaved indicators,
-local draft protection, create/delete/rename files in the workspace, and the diff viewer.
+Implemented:
+
+- **CodeMirror 6 editor** (chosen over Monaco for mobile keyboards, selection handles and IME) with
+  syntax highlighting for JS/JSX/TS/TSX, HTML, CSS, JSON, Markdown, Python, YAML, shell and TOML.
+  Languages load on demand; the whole workspace route is code-split from the landing page.
+- **Open-file tabs** with unsaved dots, per-file undo history kept across tab switches, and a
+  "Save and close / Close, keep draft / Discard" sheet for dirty tabs. Up to 8 tabs (oldest clean one closes).
+- **Thumb-reachable action bar**: Undo · Redo · Find · Save · More. `Ctrl/⌘-S` and `Ctrl/⌘-F` also work.
+- **Symbol bar** above the keyboard (`⇥ { } ( ) [ ] < > = ; : " ' \` / | & $`) while typing; the
+  workspace tab bar hides to make room (`interactive-widget=resizes-content`).
+- **Find / replace** in file: match case, whole word, regex, match counter, replace / replace all.
+- **Search across files** (plain or regex) including unsaved edits; "Load N files" fetches the rest
+  of the repo's text files (capped at 300, ≤ 256 KB each, skips binaries/build output).
+- **File tree drawer** with change markers (A / M / ● unsaved; folders show a dot if they contain changes).
+- **Create, rename/move and delete** files with path validation (no `..`, `.git/`, control characters, clashes).
+- **Workspace model**: base snapshot (pinned to the branch's commit) + saved changes + unsaved drafts.
+  Saving writes to the local workspace only — nothing is sent to GitHub until a commit (Phase 6).
+- **Local draft protection**: workspaces are stored per repo + branch in `localStorage`, flushed on
+  every change (debounced), on tab hide and on unmount. Survives reloads and crashes. Tabs editing
+  the same branch stay in sync. A banner warns if storage is full, and if the branch moved on GitHub.
+- **Diff viewer** in the Git tab: per-file unified diff with line numbers and +/− counts,
+  side-by-side on wide screens, discard per file or all (with confirmation), jump to the file.
+- 91 tests (35 server, 56 client) including editor flows: edit → save → diff → discard, undo/redo,
+  find/replace, create/rename/delete, reload persistence, project search.
+
+Known limitations: drafts live in `localStorage` (~5 MB per site); very large diffs (> 400 KB) show
+counts only; HTML tag auto-close is CodeMirror's default behaviour.
+
+## Phase 3 — AI providers (next)
+
+Server-side encrypted storage for OpenAI, Anthropic, Gemini and OpenAI-compatible keys, masked
+hints, test connection, default provider/model selection.
 
 ## Later phases
 

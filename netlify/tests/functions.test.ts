@@ -22,7 +22,7 @@ describe("GET /api/health", () => {
     expect(text).not.toContain(CLIENT_SECRET);
     const body = JSON.parse(text) as { phase: number; capabilities: { githubOAuth: boolean; sessions: boolean } };
     expect(body.capabilities).toMatchObject({ githubOAuth: true, sessions: true });
-    expect(body.phase).toBe(1);
+    expect(body.phase).toBe(2);
   });
 
   it("rejects non-GET", async () => {

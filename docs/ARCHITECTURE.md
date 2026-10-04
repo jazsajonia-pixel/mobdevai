@@ -18,7 +18,15 @@ Phone browser ──► React SPA (Netlify CDN)
 - **Errors** — `src/lib/errors.ts` defines one vocabulary of codes shared with functions; `ErrorState`
   renders title + next step + code. `src/lib/api.ts` maps network failures, timeouts, HTML fallbacks
   and HTTP statuses onto those codes.
-- **Storage** — `safeStorage` never throws (falls back to memory) and holds only UI prefs and demo flags.
+- **Storage** — `safeStorage` never throws (falls back to memory). Holds UI prefs, demo flags and
+  workspaces (file contents you edited — never tokens or keys).
+- **Workspace** (`src/features/workspace`) — pure model (`model.ts`) of *base* (files at the branch's
+  commit) + *changes* (saved: added / modified / deleted, with base content for diffs) + *drafts*
+  (unsaved buffers) + open tabs. `WorkspaceProvider` loads base files lazily, persists per
+  `ws:<source>:<owner>/<repo>@<branch>`, and is remounted per branch + commit. Renames are delete + add.
+  Phase 4 (agent diffs) and Phase 6 (commit) read `changes` from here.
+- **Editor** (`src/features/editor`) — one CodeMirror `EditorView`; an `EditorStateCache` keeps each
+  file's state (undo history) with epochs so reverted/renamed files can't be written back stale.
 - **Shells** — `AppShell` (Home / Projects / AI / Preview / Settings; bottom bar on phones, rail on desktop)
   and `WorkspaceShell` (Files / AI / Preview / Git inside a repository).
 
