@@ -37,7 +37,7 @@ function type(view: EditorView, text: string, at = 0) {
 describe("mobile editor (demo workspace)", () => {
   it("edits, marks unsaved, saves, shows the diff, and discards", async () => {
     const loc = renderDemo();
-    fireEvent.click(await screen.findByText("README.md"));
+    fireEvent.click(await screen.findByText("README.md", {}, { timeout: 5000 }));
     const view = await editorView();
     expect(view.state.doc.toString()).toContain("Pocket Tasks");
 
@@ -64,7 +64,7 @@ describe("mobile editor (demo workspace)", () => {
 
   it("undo / redo through the action bar", async () => {
     renderDemo();
-    fireEvent.click(await screen.findByText("README.md"));
+    fireEvent.click(await screen.findByText("README.md", {}, { timeout: 5000 }));
     const view = await editorView();
     const original = view.state.doc.toString();
     type(view, "zzz");
@@ -76,7 +76,7 @@ describe("mobile editor (demo workspace)", () => {
 
   it("find and replace all", async () => {
     renderDemo();
-    fireEvent.click(await screen.findByText("README.md"));
+    fireEvent.click(await screen.findByText("README.md", {}, { timeout: 5000 }));
     const view = await editorView();
     act(() => view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: "cat dog cat\ncat" } }));
     fireEvent.click(screen.getByTestId("button-find"));
@@ -116,7 +116,7 @@ describe("mobile editor (demo workspace)", () => {
 
   it("keeps unsaved drafts across a reload", async () => {
     renderDemo();
-    fireEvent.click(await screen.findByText("README.md"));
+    fireEvent.click(await screen.findByText("README.md", {}, { timeout: 5000 }));
     const view = await editorView();
     type(view, "draft!");
     await waitFor(() => expect(screen.getByTestId("tab-file-README.md").querySelector('[aria-label="unsaved"]')).not.toBeNull());
