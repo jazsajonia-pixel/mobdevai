@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, AtSign, Paperclip, Square, X } from "lucide-react";
+import { ArrowUp, AtSign, Paperclip, Square, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { AgentMode } from "@/types/agent";
+import type { AgentAttachment, AgentMode } from "@/types/agent";
 
 export interface QuickAction {
   label: string;
   mode: AgentMode;
   text: string;
 }
+const UPLOAD_MAX_BYTES = 2_000_000;
+const UPLOAD_TOTAL_BYTES = 5_000_000;
+const UPLOAD_TYPES = new Set(["text/plain", "text/markdown", "application/json", "text/javascript", "application/javascript", "text/typescript", "text/css", "text/html", "image/png", "image/jpeg", "image/webp", "image/gif"]);
 
 /** Paths mentioned as @path that exist in the workspace. */
 export function mentionedPaths(text: string, paths: readonly string[]): string[] {
@@ -42,13 +45,15 @@ export function Composer({
   paths: readonly string[];
   activeFile: string | null;
   quickActions: QuickAction[];
-  onSend: (text: string, attach: string[]) => void;
+  onSend: (text: string, attach: string[], uploads: AgentAttachment[]) => void;
   onStop: () => void;
   /** Pre-filled message (e.g. "Fix with AI" from the preview). */
   initialText?: string;
 }) {
   const [text, setText] = useState(initialText);
   const [attachActive, setAttachActive] = useState(true);
+  const [uploads, setUploads] = useState<AgentAttachment[]>([]);
+  const uploadRef = useRef<HTMLInputElement>(null);
   const [caret, setCaret] = useState(0);
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => () => document.documentElement.classList.remove("editor-focused"), []);
@@ -90,12 +95,25 @@ export function Composer({
     });
   }
 
+  async function addUploads(files: FileList | null) {
+    if (!files?.length) return;
+    const next = [...uploads];
+    for (const file of Array.from(files)) {
+      if (!UPLOAD_TYPES.has(file.type) && !/\.(txt|md|json|js|jsx|ts|tsx|css|html|py|sql)$/i.test(file.name)) continue;
+      if (file.size > UPLOAD_MAX_BYTES || next.reduce((n, x) => n + x.size, 0) + file.size > UPLOAD_TOTAL_BYTES) continue;
+      const dataUrl = await new Promise<string>((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(String(r.result)); r.onerror = reject; r.readAsDataURL(file); });
+      const data = dataUrl.split(",", 2)[1] ?? "";
+      next.push({ name: file.name.slice(0, 120), mimeType: file.type || "application/octet-stream", data, size: file.size });
+    }
+    setUploads(next.slice(-6));
+  }
   function submit() {
     const t = text.trim();
     if (!t || running || disabled) return;
     const attach = [...(attachActive && activeFile ? [activeFile] : []), ...mentionedPaths(t, paths)];
-    onSend(t, attach);
+    onSend(t, attach, uploads);
     setText("");
+    setUploads([]);
   }
 
   // Hide the tab bar while typing (more room above the keyboard). Restoring it is delayed so a tap on
@@ -177,6 +195,8 @@ export function Composer({
         ) : null}
       </div>
 
+      {uploads.length ? <div className="mb-2 flex gap-1.5 overflow-x-auto" aria-label="Uploaded attachments">{uploads.map((file, i) => <button key={`${file.name}-${i}`} type="button" onClick={() => setUploads((list) => list.filter((_, j) => j !== i))} className="flex shrink-0 items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-xs text-primary" aria-label={`Remove ${file.name}`}><Paperclip className="size-3" aria-hidden /><span className="max-w-32 truncate">{file.name}</span><X className="size-3" aria-hidden /></button>)}</div> : null}
+      <input ref={uploadRef} type="file" multiple accept="image/*,.txt,.md,.json,.js,.jsx,.ts,.tsx,.css,.html,.py,.sql" className="sr-only" onChange={(e) => { void addUploads(e.target.files); e.currentTarget.value = ""; }} data-testid="input-agent-upload" />
       <form
         className="flex items-end gap-2"
         onSubmit={(e) => {
@@ -184,6 +204,7 @@ export function Composer({
           submit();
         }}
       >
+        <Button type="button" size="icon" variant="secondary" onClick={() => uploadRef.current?.click()} aria-label="Attach files or images" data-testid="button-agent-upload"><Upload /></Button>
         <textarea
           ref={ref}
           value={text}

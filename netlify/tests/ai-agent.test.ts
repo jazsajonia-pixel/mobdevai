@@ -65,7 +65,7 @@ describe("POST /api/ai/agent", () => {
     const calls = mockGitHub({
       "POST /v1/chat/completions": () =>
         gh({
-          model: "Chrono 1.3",
+          model: "gemini-2.5-flash",
           choices: [
             {
               message: {

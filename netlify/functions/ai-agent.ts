@@ -10,6 +10,7 @@ import { agentStep } from "../lib/ai/agent-step";
 import { systemPrompt } from "../lib/ai/agent-prompt";
 import { resolveProvider } from "../lib/ai/resolve";
 import { providerIdSchema } from "../lib/ai/schemas";
+import { CUSTOM_SKILLS } from "../../src/lib/skills";
 
 /**
  * POST /api/ai/agent — run ONE agent step.
@@ -29,7 +30,7 @@ const toolCall = z.object({
 });
 
 const message = z.discriminatedUnion("role", [
-  z.object({ role: z.literal("user"), content: z.string().max(200_000) }),
+  z.object({ role: z.literal("user"), content: z.string().max(200_000), attachments: z.array(z.object({ name: z.string().min(1).max(120), mimeType: z.string().min(1).max(120), data: z.string().max(2_800_000).regex(/^[A-Za-z0-9+/=]*$/), size: z.number().int().min(0).max(2_000_000) })).max(6).optional() }).superRefine((m, ctx) => { if ((m.attachments ?? []).reduce((n, a) => n + a.size, 0) > 5_000_000) ctx.addIssue({ code: "custom", message: "Attachments are too large." }); }),
   z.object({ role: z.literal("assistant"), content: z.string().max(200_000), toolCalls: z.array(toolCall).max(32).optional(), providerState: z.unknown().optional() }),
   z.object({ role: z.literal("tool"), toolCallId: z.string().min(1).max(200), name: z.string().min(1).max(64), content: z.string().max(200_000), isError: z.boolean().optional() }),
 ]);
@@ -48,6 +49,7 @@ const bodySchema = z
       activeFile: z.string().max(1024).nullish(),
     }),
     messages: z.array(message).min(1).max(MAX_MESSAGES),
+    skillIds: z.array(z.string().max(60)).max(12).default([]),
   })
   .strict();
 
@@ -79,9 +81,11 @@ export default handle(["POST"], async (req) => {
   checkSequence(messages);
 
   const provider = await resolveProvider(req, session, body.providerId ?? null);
+  const knownSkills = new Set(CUSTOM_SKILLS.map((skill) => skill.id));
+  if (body.skillIds.some((id) => !knownSkills.has(id))) throw new HttpError(422, "VALIDATION_FAILED", "Unknown skill selected.");
   const tools = toolsForMode(body.mode);
   const out = await agentStep(provider, {
-    system: systemPrompt(body.mode, body.project),
+    system: systemPrompt(body.mode, body.project, body.skillIds),
     messages,
     tools,
     maxTokens: 8192,

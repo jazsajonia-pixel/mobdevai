@@ -1,6 +1,6 @@
 import { MAX_AGENT_STEPS } from "@/lib/agent-tools";
 import { AppError } from "@/lib/errors";
-import type { AgentMessage, AgentStepResponse, ToolCall } from "@/types/agent";
+import type { AgentAttachment, AgentMessage, AgentStepResponse, ToolCall } from "@/types/agent";
 import type { AgentTask } from "./task";
 import { compactForWire } from "./task";
 import { executeTool, type WorkspaceView } from "./tools-exec";
@@ -110,11 +110,11 @@ export async function advance(task: AgentTask, deps: RunDeps): Promise<AgentTask
 }
 
 /** Add a user message (new turn). Answers a waiting plan with feedback first. */
-export function withUserMessage(task: AgentTask, content: string): AgentTask {
+export function withUserMessage(task: AgentTask, content: string, attachments: AgentAttachment[] = []): AgentTask {
   // Typing while a plan waits = "change the plan like this".
   if (task.status === "awaiting_plan" && task.pending[0]) return answerPlan(task, false, content);
   const t = closeOpenCalls(task, "Not run: the user sent a new message.");
-  return touch(t, { messages: [...t.messages, { role: "user", content }] });
+  return touch(t, { messages: [...t.messages, { role: "user", content, ...(attachments.length ? { attachments } : {}) }] });
 }
 
 /** Approve the plan (continue) or reject it with feedback (model revises). */

@@ -1,8 +1,7 @@
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import {
   ArrowRight,
   Bot,
-  FlaskConical,
   GitPullRequestArrow,
   KeyRound,
   Layers,
@@ -13,8 +12,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { GitHubIcon, Wordmark } from "@/components/brand";
 import { useSession } from "@/stores/session";
-import { DEMO_PROJECT } from "@/features/demo/sample-project";
-import { projectPath } from "@/lib/nav";
 
 const FEATURES = [
   { icon: GitHubIcon, title: "Edit GitHub repositories", body: "Browse branches and files, edit code, and keep every change in a reviewable workspace." },
@@ -67,14 +64,7 @@ function PhoneIllustration() {
 }
 
 export default function LandingPage() {
-  const { enterDemo, isAuthed } = useSession();
-  const [, navigate] = useLocation();
-
-  const tryDemo = () => {
-    enterDemo();
-    navigate(projectPath(DEMO_PROJECT.owner, DEMO_PROJECT.name));
-  };
-
+  const { isAuthed } = useSession();
   return (
     <div className="min-h-dvh overflow-x-hidden">
       <header className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 pt-safe">
@@ -107,11 +97,8 @@ export default function LandingPage() {
                 Start Building <ArrowRight />
               </Link>
             </Button>
-            <Button size="lg" variant="secondary" onClick={tryDemo} data-testid="button-try-demo">
-              <FlaskConical /> Try Demo
-            </Button>
           </div>
-          <p className="mt-4 text-xs text-muted-foreground">Demo runs on a bundled sample project — no account or API key needed.</p>
+          <p className="mt-4 text-xs text-muted-foreground">Start with GitHub and keep your provider keys protected on the server.</p>
         </div>
         <PhoneIllustration />
       </section>
@@ -162,7 +149,7 @@ export default function LandingPage() {
       <footer className="border-t">
         <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <span>Chrono · Early access</span>
-          <span>Demo and GitHub sign-in available now. AI agent and live preview are in progress.</span>
+          <span>GitHub sign-in, AI workspace, and live preview are available in Chrono.</span>
         </div>
       </footer>
     </div>

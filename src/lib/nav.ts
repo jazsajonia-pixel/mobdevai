@@ -1,4 +1,4 @@
-import { Code2, FolderGit2, GitBranch, Home, LayoutDashboard, MonitorSmartphone, Settings, Sparkles, type LucideIcon } from "lucide-react";
+import { Code2, FolderGit2, GitBranch, Home, LayoutDashboard, MonitorSmartphone, Settings, Sparkles, WandSparkles, type LucideIcon } from "lucide-react";
 
 export interface NavItem {
   label: string;
@@ -11,6 +11,7 @@ export const MAIN_NAV: NavItem[] = [
   { label: "Home", href: "/app", icon: Home },
   { label: "Projects", href: "/app/projects", icon: FolderGit2 },
   { label: "AI", href: "/app/ai", icon: Sparkles },
+  { label: "Skills", href: "/app/skills", icon: WandSparkles },
   { label: "Preview", href: "/app/preview", icon: MonitorSmartphone },
   { label: "Settings", href: "/app/settings", icon: Settings },
 ];

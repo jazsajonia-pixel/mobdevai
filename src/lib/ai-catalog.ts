@@ -19,8 +19,8 @@ export const PROVIDERS: Record<ProviderKind, ProviderMeta> = {
   openai: {
     kind: "openai",
     name: "OpenAI",
-    defaultModel: "Chrono 1.3",
-    suggestedModels: ["Chrono 1.0", "Chrono 1.1", "Chrono 1.2", "Chrono 1.3"],
+    defaultModel: "gpt-4o-mini",
+    suggestedModels: ["gpt-4o-mini", "gpt-4.1-mini", "gpt-4.1", "o4-mini"],
     keyPlaceholder: "sk-…",
     keyUrl: "https://platform.openai.com/api-keys",
     defaultBaseUrl: "https://api.openai.com/v1",
@@ -29,8 +29,8 @@ export const PROVIDERS: Record<ProviderKind, ProviderMeta> = {
   anthropic: {
     kind: "anthropic",
     name: "Anthropic",
-    defaultModel: "Claude 3.N",
-    suggestedModels: ["Claude 3.N", "Claude 3.N Opus", "Claude 3.N Haiku"],
+    defaultModel: "claude-3-5-sonnet-latest",
+    suggestedModels: ["claude-3-5-sonnet-latest", "claude-3-7-sonnet-latest", "claude-3-5-haiku-latest"],
     keyPlaceholder: "sk-ant-…",
     keyUrl: "https://console.anthropic.com/settings/keys",
     defaultBaseUrl: "https://api.anthropic.com",

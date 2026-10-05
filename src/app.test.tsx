@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
 import { AppRoutes } from "./App";
@@ -32,11 +32,8 @@ describe("routing", () => {
     expect(loc.history?.at(-1)).toBe("/signin");
   });
 
-  it("Try Demo enters a clearly labelled demo workspace and opens files", async () => {
+  it("does not expose a public demo entry point", () => {
     renderAt("/");
-    fireEvent.click(screen.getByTestId("button-try-demo"));
-    expect(await screen.findByTestId("text-repo-name")).toHaveTextContent("demo/pocket-tasks");
-    fireEvent.click(await screen.findByText("README.md"));
-    expect(await screen.findByTestId("code-editor")).toHaveTextContent("Pocket Tasks");
+    expect(screen.queryByTestId("button-try-demo")).not.toBeInTheDocument();
   });
 });

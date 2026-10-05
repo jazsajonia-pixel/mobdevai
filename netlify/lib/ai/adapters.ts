@@ -179,10 +179,12 @@ const anthropic: ProviderAdapter = {
 
 export const GEMINI = PROVIDERS.gemini.defaultBaseUrl!;
 
+const normalizeGeminiModel = (model: string) => model.trim().replace(/^models\//, "");
 const gemini: ProviderAdapter = {
   async chat(p, req) {
-    if (!/^[\w.\- ]+$/.test(p.model)) throw new HttpError(400, "AI_MODEL_NOT_FOUND", "Invalid Gemini model name.");
-    const data = (await call("Gemini", `${GEMINI}/models/${encodeURIComponent(p.model)}:generateContent`, {
+    const model = normalizeGeminiModel(p.model);
+    if (!/^[\w.\- ]+$/.test(model)) throw new HttpError(400, "AI_MODEL_NOT_FOUND", "Invalid Gemini model name.");
+    const data = (await call("Gemini", `${GEMINI}/models/${encodeURIComponent(model)}:generateContent`, {
       method: "POST",
       // Key in a header, not the query string, so it never lands in URL logs.
       headers: { "x-goog-api-key": p.apiKey, "Content-Type": "application/json" },
@@ -196,7 +198,7 @@ const gemini: ProviderAdapter = {
     const c = data?.candidates?.[0];
     return {
       text: (c?.content?.parts ?? []).map((x) => x.text ?? "").join(""),
-      model: data?.modelVersion ?? p.model,
+      model: data?.modelVersion?.replace(/^models\//, "") ?? model,
       usage: { inputTokens: data?.usageMetadata?.promptTokenCount ?? null, outputTokens: data?.usageMetadata?.candidatesTokenCount ?? null },
       stopReason: c?.finishReason ?? null,
     };

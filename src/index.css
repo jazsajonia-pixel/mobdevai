@@ -11,13 +11,13 @@
     --foreground: 222 24% 10%;
     --muted: 220 14% 93%;
     --muted-foreground: 220 9% 38%;
-    --primary: 158 74% 28%;
+    --primary: 214 92% 48%;
     --primary-foreground: 0 0% 100%;
     --danger: 0 70% 46%;
     --danger-foreground: 0 0% 100%;
     --warning: 32 92% 38%;
-    --success: 158 74% 28%;
-    --ring: 190 90% 42%;
+    --success: 186 88% 42%;
+    --ring: 190 95% 45%;
     --sidebar: 222 32% 12%;
     --sidebar-muted: 218 16% 66%;
     --syn-keyword: 292 55% 42%;
@@ -34,21 +34,21 @@
   }
 
   .dark {
-    --background: 220 14% 6%;
-    --surface: 220 13% 9%;
-    --surface-2: 220 12% 13%;
-    --border: 220 10% 18%;
+    --background: 222 42% 7%;
+    --surface: 222 34% 11%;
+    --surface-2: 221 30% 16%;
+    --border: 218 24% 22%;
     --foreground: 210 20% 95%;
     --muted: 220 10% 15%;
     --muted-foreground: 218 11% 64%;
-    --primary: 156 64% 52%;
-    --primary-foreground: 160 45% 6%;
+    --primary: 198 96% 58%;
+    --primary-foreground: 220 45% 8%;
     --danger: 0 78% 64%;
     --danger-foreground: 0 0% 100%;
     --warning: 38 92% 60%;
-    --success: 156 64% 52%;
-    --ring: 190 90% 58%;
-    --sidebar: 224 38% 8%;
+    --success: 185 90% 54%;
+    --ring: 190 95% 62%;
+    --sidebar: 224 52% 7%;
     --sidebar-muted: 218 18% 68%;
     --syn-keyword: 286 70% 76%;
     --syn-string: 100 50% 68%;

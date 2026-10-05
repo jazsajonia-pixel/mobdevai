@@ -60,7 +60,7 @@ function fakeServer() {
     }
     if (url.pathname === "/api/ai/test-provider") {
       if (body.apiKey === "sk-bad-key-000000") return json({ error: { code: "AI_INVALID_KEY", message: "OpenAI rejected the API key." } }, 400);
-      return json({ ok: true, latencyMs: 321, model: body.model ?? "Chrono 1.3", models: ["Chrono 1.2", "Chrono 1.3", "Chrono 1.1"], modelListed: true });
+      return json({ ok: true, latencyMs: 321, model: body.model ?? "gpt-4o-mini", models: ["gpt-4.1", "gpt-4o-mini", "gpt-4.1-mini"], modelListed: true });
     }
     return json({ ok: true, service: "x", phase: 3, capabilities: {} });
   });
@@ -108,14 +108,14 @@ describe("AI providers settings", () => {
     fireEvent.click(screen.getByTestId("button-test-connection"));
     expect(await screen.findByTestId("test-result-ok")).toHaveTextContent("Connected · 321 ms");
     // Fetched models become chips.
-    expect(screen.getByRole("button", { name: "Chrono 1.1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "gpt-4.1-mini" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("button-save-provider"));
     const card = await screen.findByTestId("card-provider-p_1abcdefgh");
     expect(within(card).getByTestId("text-key-hint")).toHaveTextContent("sk-…ABCD");
     expect(within(card).getByTestId("badge-default")).toBeInTheDocument();
 
-    expect(bodies).toContainEqual(expect.objectContaining({ kind: "openai", model: "Chrono 1.3", apiKey: KEY }));
+    expect(bodies).toContainEqual(expect.objectContaining({ kind: "openai", model: "gpt-4o-mini", apiKey: KEY }));
     expect(document.body.innerHTML).not.toContain(KEY);
     expect(JSON.stringify({ ...localStorage })).not.toContain("CLIENTKEY");
   });
@@ -162,13 +162,13 @@ describe("AI providers settings", () => {
     fireEvent.click(within(await screen.findByTestId("card-provider-p_1abcdefgh")).getByTestId("button-edit-provider"));
     const key = await screen.findByTestId("input-api-key");
     expect(key).toHaveValue("");
-    fireEvent.change(screen.getByTestId("input-model"), { target: { value: "Chrono 1.2" } });
+    fireEvent.change(screen.getByTestId("input-model"), { target: { value: "gpt-4.1" } });
     fireEvent.click(screen.getByTestId("button-test-connection"));
     await screen.findByTestId("test-result-ok");
-    expect(bodies).toContainEqual({ id: "p_1abcdefgh", model: "Chrono 1.2" });
+    expect(bodies).toContainEqual({ id: "p_1abcdefgh", model: "gpt-4.1" });
     fireEvent.click(screen.getByTestId("button-save-provider"));
-    await waitFor(() => expect(screen.getByTestId("card-provider-p_1abcdefgh")).toHaveTextContent("Chrono 1.2"));
-    const patch = bodies.find((b) => b && typeof b === "object" && "model" in b && (b as { model: string }).model === "Chrono 1.2" && !("id" in b));
+    await waitFor(() => expect(screen.getByTestId("card-provider-p_1abcdefgh")).toHaveTextContent("gpt-4.1"));
+    const patch = bodies.find((b) => b && typeof b === "object" && "model" in b && (b as { model: string }).model === "gpt-4.1" && !("id" in b));
     expect(patch).not.toHaveProperty("apiKey");
   });
 

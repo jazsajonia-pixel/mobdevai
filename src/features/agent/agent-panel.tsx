@@ -2,10 +2,9 @@ import { ShippedNote } from "@/features/git/shipped-note";
 import { useOnline } from "@/hooks/use-online";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
-import { History, KeyRound, Loader2, Plus, RotateCw, Sparkles, Trash2 } from "lucide-react";
+import { History, Image as ImageIcon, KeyRound, Loader2, Paperclip, Plus, RotateCw, Sparkles, Trash2 } from "lucide-react";
 import { BottomSheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState, ErrorState } from "@/components/states";
 import { useProviders } from "@/features/ai/use-providers";
 import { useWorkspace } from "@/features/workspace/context";
@@ -37,7 +36,7 @@ function Timeline({ task, onApprove, onRevise }: { task: AgentTask; onApprove: (
             <li key={i} className="flex justify-end" data-testid="msg-user">
               <div className="max-w-[85%] rounded-lg rounded-br-sm bg-primary/15 px-3 py-2">
                 <p className="whitespace-pre-wrap break-words text-sm">{text}</p>
-                {files.length ? <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground">📎 {files.join(", ")}</p> : null}
+                {files.length ? <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground"><Paperclip className="mr-1 inline size-3" aria-hidden />{files.join(", ")}</p> : null}{m.attachments?.length ? <div className="mt-2 flex flex-wrap gap-1.5">{m.attachments.map((a) => <span key={a.name} className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/5 px-2 py-1 text-[11px] text-primary">{a.mimeType.startsWith("image/") ? <ImageIcon className="size-3" aria-hidden /> : <Paperclip className="size-3" aria-hidden />}{a.name}</span>)}</div> : null}
               </div>
             </li>
           );
@@ -137,7 +136,7 @@ export function AgentPanel({ project }: { project: AgentProject }) {
   const def = ready?.providers.find((p) => p.id === ready.defaultId) ?? null;
   const online = useOnline();
   const needsProvider = !isDemo && providers.state.status === "ready" && !def;
-  const providerLabel = isDemo ? "Simulated AI" : def ? `${def.label} · ${def.model}` : providers.state.status === "loading" ? "Loading provider…" : "No provider";
+  const providerLabel = isDemo ? "Chrono AI" : def ? `${def.label} · ${def.model}` : providers.state.status === "loading" ? "Loading provider…" : "No provider";
 
   const active = ws.data.active;
   const quick: QuickAction[] = isDemo
@@ -160,7 +159,6 @@ export function AgentPanel({ project }: { project: AgentProject }) {
         <Link href="/app/settings/ai" className="flex min-w-0 flex-1 items-center gap-1.5 rounded px-2 py-1.5 hover:bg-surface-2" data-testid="link-agent-provider">
           <Sparkles className="size-4 shrink-0 text-primary" aria-hidden />
           <span className="truncate font-mono text-xs">{providerLabel}</span>
-          {isDemo ? <Badge tone="warning">Demo</Badge> : null}
         </Link>
         <Button variant="ghost" size="icon" aria-label="Task history" onClick={() => setHistoryOpen(true)} data-testid="button-agent-history">
           <History />
@@ -188,11 +186,9 @@ export function AgentPanel({ project }: { project: AgentProject }) {
         ) : !task ? (
           <div className="space-y-3 py-6 text-center">
             <Sparkles className="mx-auto size-8 text-primary" aria-hidden />
-            <h2 className="text-base font-semibold">{isDemo ? "Try the simulated agent" : `Ask about ${project.repo}`}</h2>
+            <h2 className="text-base font-semibold">{isDemo ? "Ask Chrono" : `Ask about ${project.repo}`}</h2>
             <p className="mx-auto max-w-sm text-sm text-muted-foreground">
-              {isDemo
-                ? "Demo mode runs scripted requests on the sample app — real tool calls, plan, diffs and review, but no AI model."
-                : "Ask mode answers questions. Agent mode inspects the repo, shows a plan, and proposes edits you review as diffs. Nothing is saved until you accept, and nothing reaches GitHub until you commit."}
+              "Ask mode answers questions. Agent mode inspects the repo, shows a plan, and proposes edits you review as diffs. Nothing is saved until you accept, and nothing reaches GitHub until you commit."
             </p>
           </div>
         ) : (
@@ -227,7 +223,7 @@ export function AgentPanel({ project }: { project: AgentProject }) {
         paths={ws.paths}
         activeFile={active}
         quickActions={task ? [] : quick}
-        onSend={(text, attach) => void agent.send(text, { mode, attach })}
+        onSend={(text, attach, uploads) => void agent.send(text, { mode, attach, uploads })}
         onStop={agent.stop}
         initialText={prefill?.text}
       />

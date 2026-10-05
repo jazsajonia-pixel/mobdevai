@@ -20,6 +20,7 @@ const PreviewPage = lazy(() => import("@/pages/preview"));
 const HistoryPage = lazy(() => import("@/pages/history"));
 const AIPage = lazy(() => import("@/pages/ai"));
 const ProjectsPage = lazy(() => import("@/pages/projects"));
+const SkillsPage = lazy(() => import("@/pages/skills"));
 
 /**
  * Hash routing keeps deep links working on any static host (Netlify, previews, embedded
@@ -50,6 +51,11 @@ export function AppRoutes() {
             </Suspense>
           </RequireSession>
         )}
+      </Route>
+      <Route path="/app/skills">
+        <RequireSession>
+          <SkillsPage />
+        </RequireSession>
       </Route>
       <Route path="/app/ai">
         <RequireSession>

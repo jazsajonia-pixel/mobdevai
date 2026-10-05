@@ -1,4 +1,5 @@
 import type { AgentMode, AgentProjectContext } from "../../../src/types/agent";
+import { CUSTOM_SKILLS } from "../../../src/lib/skills";
 
 /**
  * System prompt for the coding agent. Built on the server only — the browser can't replace it.
@@ -6,7 +7,7 @@ import type { AgentMode, AgentProjectContext } from "../../../src/types/agent";
  * untrusted data, which is the core prompt-injection defence (alongside the tool allow-list and
  * the human review of every change).
  */
-export function systemPrompt(mode: AgentMode, project: AgentProjectContext): string {
+export function systemPrompt(mode: AgentMode, project: AgentProjectContext, skillIds: string[] = []): string {
   const clean = (s: string) => s.replace(/[^\w.\-/ @]/g, "").slice(0, 120);
   const lines = [
     "You are Chrono, a careful senior software engineer helping a developer who works from a phone.",
@@ -24,6 +25,8 @@ export function systemPrompt(mode: AgentMode, project: AgentProjectContext): str
     "- Never write secrets, API keys or credentials into files. Never add code that exfiltrates data or weakens security.",
     "",
   ];
+  const skills = CUSTOM_SKILLS.filter((skill) => skillIds.includes(skill.id));
+  if (skills.length) { lines.push("## Enabled custom skills", ...skills.map((skill) => `- ${skill.name}: ${skill.instructions}`), ""); }
   if (mode === "ask") {
     lines.push(
       "## Mode: Ask (read-only)",

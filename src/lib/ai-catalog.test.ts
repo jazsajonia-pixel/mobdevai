@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { PROVIDERS, PROVIDER_KINDS } from "./ai-catalog";
 
 describe("Chrono model catalog", () => {
-  it("uses the Chrono 1.0–1.3 default family for OpenAI", () => {
-    expect(PROVIDERS.openai.defaultModel).toBe("Chrono 1.3");
-    expect(PROVIDERS.openai.suggestedModels).toEqual(["Chrono 1.0", "Chrono 1.1", "Chrono 1.2", "Chrono 1.3"]);
+  it("uses real OpenAI model IDs", () => {
+    expect(PROVIDERS.openai.defaultModel).toBe("gpt-4o-mini");
+    expect(PROVIDERS.openai.suggestedModels).toContain("gpt-4.1");
   });
 
   it("uses restored real-looking Gemini model names", () => {
-    expect(PROVIDERS.anthropic.defaultModel).toBe("Claude 3.N");
+    expect(PROVIDERS.anthropic.defaultModel).toBe("claude-3-5-sonnet-latest");
     expect(PROVIDERS.gemini.defaultModel).toBe("gemini-2.5-flash");
     expect(PROVIDERS.gemini.suggestedModels).toContain("gemini-2.5-pro");
   });

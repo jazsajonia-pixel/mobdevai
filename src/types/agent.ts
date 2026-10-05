@@ -11,8 +11,15 @@ export interface ToolCall {
   rawArgs?: string;
 }
 
+export interface AgentAttachment {
+  name: string;
+  mimeType: string;
+  /** Base64 payload without a data URL prefix. */
+  data: string;
+  size: number;
+}
 export type AgentMessage =
-  | { role: "user"; content: string }
+  | { role: "user"; content: string; attachments?: AgentAttachment[] }
   | {
       role: "assistant";
       content: string;
