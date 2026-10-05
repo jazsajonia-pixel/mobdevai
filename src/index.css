@@ -17,7 +17,9 @@
     --danger-foreground: 0 0% 100%;
     --warning: 32 92% 38%;
     --success: 158 74% 28%;
-    --ring: 158 74% 34%;
+    --ring: 190 90% 42%;
+    --sidebar: 222 32% 12%;
+    --sidebar-muted: 218 16% 66%;
     --syn-keyword: 292 55% 42%;
     --syn-string: 145 55% 30%;
     --syn-number: 24 85% 42%;
@@ -45,7 +47,9 @@
     --danger-foreground: 0 0% 100%;
     --warning: 38 92% 60%;
     --success: 156 64% 52%;
-    --ring: 156 64% 52%;
+    --ring: 190 90% 58%;
+    --sidebar: 224 38% 8%;
+    --sidebar-muted: 218 18% 68%;
     --syn-keyword: 286 70% 76%;
     --syn-string: 100 50% 68%;
     --syn-number: 28 90% 68%;
@@ -86,6 +90,11 @@
   }
 }
 
+@layer components {
+  .studio-grid { background-image: linear-gradient(to right, hsl(var(--border) / 0.18) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border) / 0.18) 1px, transparent 1px); background-size: 32px 32px; }
+  .studio-panel { @apply rounded-2xl border border-border/70 bg-surface/80 shadow-xl shadow-black/5 backdrop-blur; }
+  .studio-glow { box-shadow: 0 0 0 1px hsl(var(--primary) / 0.18), 0 14px 40px hsl(var(--primary) / 0.08); }
+}
 @layer utilities {
   .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
   .pt-safe { padding-top: env(safe-area-inset-top); }

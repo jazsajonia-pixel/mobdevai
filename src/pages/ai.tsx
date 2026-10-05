@@ -17,14 +17,15 @@ export default function AIPage() {
   const demo = session.mode !== "github";
   return (
     <AppShell title="AI">
+      <div className="mb-7"><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">Intelligence layer</p><h2 className="mt-1 text-2xl font-semibold tracking-tight">AI workspace</h2><p className="mt-1 max-w-xl text-sm text-muted-foreground">Choose how Chrono thinks, then review the work it has helped you ship.</p></div>
       <div className="space-y-6">
-        <section>
-          <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Provider</h2>
+        <section className="studio-panel studio-glow p-5">
+          <div className="mb-4 flex items-center gap-2"><span className="grid size-9 place-items-center rounded-xl bg-primary/15 text-primary"><Sparkles className="size-4" aria-hidden /></span><div><h2 className="text-sm font-semibold">Active intelligence</h2><p className="text-xs text-muted-foreground">The model behind your workspace</p></div></div>
           <ActiveProviderLink />
         </section>
 
-        <section>
-          <div className="mb-2 flex items-center justify-between">
+        <section className="studio-panel p-5">
+          <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Recent agent tasks</h2>
             {recent.length ? (
               <Link href="/app/ai/history" className="-my-2 inline-flex h-11 items-center px-1 text-sm font-medium text-primary hover:underline" data-testid="link-task-history">
@@ -45,7 +46,7 @@ export default function AIPage() {
               The agent works inside a project: open one and use the AI tab to ask questions or request changes.
             </EmptyState>
           ) : (
-            <ul className="divide-y rounded-lg border bg-surface">
+            <ul className="divide-y overflow-hidden rounded-xl border border-border/70 bg-background/40">
               {recent.map((r) => {
                 const files = proposalFiles(r.task.proposal);
                 const pending = files.filter((f) => f.decision === "pending").length;

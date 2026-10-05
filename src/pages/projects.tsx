@@ -25,7 +25,7 @@ function SearchBox({ value, onChange, placeholder }: { value: string; onChange: 
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         data-testid="input-search-projects"
-        className="h-11 w-full rounded-md border bg-surface pl-9 pr-3 text-base placeholder:text-muted-foreground sm:text-sm"
+        className="h-12 w-full rounded-xl border border-border/70 bg-surface/80 pl-10 pr-3 text-base shadow-sm placeholder:text-muted-foreground focus:border-primary/50 sm:text-sm"
       />
     </label>
   );
@@ -148,7 +148,7 @@ function GitHubProjects() {
             {needle ? `${filtered.length} of ${repos.length} loaded` : `${repos.length}${hasNext ? "+" : ""} repositories`} · most recently pushed first
           </p>
           {filtered.length ? (
-            <ul className="overflow-hidden rounded-lg border" data-testid="list-repos">
+            <ul className="studio-panel overflow-hidden" data-testid="list-repos">
               {filtered.map((r) => (
                 <li key={r.id} className="border-b last:border-b-0">
                   <RepoRow repo={r} />
@@ -176,7 +176,7 @@ function GitHubProjects() {
       ) : null}
 
       <h2 className="mb-2 mt-8 text-xs font-medium uppercase tracking-wide text-muted-foreground">Sample</h2>
-      <div className="overflow-hidden rounded-lg border">
+      <div className="studio-panel overflow-hidden">
         <DemoRow />
       </div>
     </>
@@ -211,5 +211,5 @@ function DemoProjects() {
 
 export default function ProjectsPage() {
   const { session } = useSession();
-  return <AppShell title="Projects">{session.mode === "github" ? <GitHubProjects /> : <DemoProjects />}</AppShell>;
+  return <AppShell title="Projects"><div className="mb-7 flex items-end justify-between gap-4"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">Your codebase</p><h2 className="mt-1 text-2xl font-semibold tracking-tight">Projects</h2><p className="mt-1 max-w-lg text-sm text-muted-foreground">Open a repository and turn it into a focused Chrono workspace.</p></div><div className="hidden rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs text-primary sm:block">{session.mode === "github" ? "GitHub connected" : "Demo mode"}</div></div><div className="studio-panel p-4 sm:p-5">{session.mode === "github" ? <GitHubProjects /> : <DemoProjects />}</div></AppShell>;
 }

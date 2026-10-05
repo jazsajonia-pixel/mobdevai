@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { ArrowRight, FlaskConical, FolderGit2, GitBranch } from "lucide-react";
+import { ArrowRight, Bot, ExternalLink, FolderGit2, GitBranch, LayoutTemplate, Play, Plus, Sparkles, WandSparkles } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/stores/session";
@@ -9,99 +9,29 @@ import { projectPath } from "@/lib/nav";
 import { PROJECT_KIND_LABEL, detectProjectKind } from "@/lib/tree";
 import { timeAgo } from "@/lib/utils";
 
-function ProjectCard({ href, title, meta, testId }: { href: string; title: string; meta: React.ReactNode; testId: string }) {
-  return (
-    <Link href={href} data-testid={testId} className="group flex items-center gap-3 rounded-lg border bg-surface p-4 transition-colors hover:bg-surface-2">
-      <FolderGit2 className="size-5 shrink-0 text-primary" aria-hidden />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold">{title}</p>
-        <p className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">{meta}</p>
-      </div>
-      <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden />
-    </Link>
-  );
+function ProjectCard({ href, title, meta, testId, accent = "primary" }: { href: string; title: string; meta: React.ReactNode; testId: string; accent?: "primary" | "warning" }) {
+  return <Link href={href} data-testid={testId} className="group studio-panel flex items-center gap-4 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-surface-2">
+    <div className={`grid size-11 shrink-0 place-items-center rounded-xl ${accent === "warning" ? "bg-warning/15 text-warning" : "bg-primary/15 text-primary"}`}><FolderGit2 className="size-5" aria-hidden /></div>
+    <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{title}</p><p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">{meta}</p></div>
+    <span className="grid size-8 place-items-center rounded-lg bg-background text-muted-foreground transition group-hover:bg-primary/15 group-hover:text-primary"><ArrowRight className="size-4 transition group-hover:translate-x-0.5" aria-hidden /></span>
+  </Link>;
+}
+
+function QuickAction({ href, icon: Icon, title, description, testId }: { href: string; icon: typeof Sparkles; title: string; description: string; testId: string }) {
+  return <Link href={href} data-testid={testId} className="group rounded-xl border border-border/70 bg-background/60 p-4 transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5"><span className="mb-3 grid size-9 place-items-center rounded-lg bg-primary/10 text-primary"><Icon className="size-4" aria-hidden /></span><p className="text-sm font-semibold">{title}</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p></Link>;
 }
 
 export default function HomePage() {
   const { session } = useSession();
   const kind = detectProjectKind(DEMO_FILES);
   const recent = session.mode === "github" ? recentRepos() : [];
-
-  return (
-    <AppShell title="Home">
-      <section className="rounded-lg border bg-surface p-4">
-        {session.mode === "demo" ? (
-          <div className="flex items-start gap-3">
-            <div className="grid size-10 shrink-0 place-items-center rounded-md bg-warning/15 text-warning">
-              <FlaskConical className="size-5" aria-hidden />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold">Demo workspace</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">Started {timeAgo(new Date(session.startedAt))}. Everything stays in this browser tab.</p>
-            </div>
-          </div>
-        ) : session.mode === "github" ? (
-          <div className="flex items-center gap-3">
-            <img src={session.user.avatarUrl} alt="" className="size-10 rounded-full border" referrerPolicy="no-referrer" />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold" data-testid="text-user-name">
-                {session.user.name ?? session.user.login}
-              </p>
-              <p className="truncate font-mono text-xs text-muted-foreground">@{session.user.login}</p>
-            </div>
-          </div>
-        ) : null}
-      </section>
-
-      <h2 className="mb-2 mt-6 text-xs font-medium uppercase tracking-wide text-muted-foreground">Continue</h2>
-      <div className="space-y-2">
-        {session.mode === "github" ? (
-          recent.length ? (
-            recent.map((r) => (
-              <ProjectCard
-                key={`${r.owner}/${r.name}`}
-                testId={`card-recent-${r.owner}-${r.name}`}
-                href={projectPath(r.owner, r.name)}
-                title={`${r.owner}/${r.name}`}
-                meta={
-                  <>
-                    <span className="inline-flex items-center gap-1 font-mono">
-                      <GitBranch className="size-3" aria-hidden /> {r.branch}
-                    </span>
-                    <span aria-hidden>·</span>
-                    <span>Opened {timeAgo(new Date(r.openedAt))}</span>
-                  </>
-                }
-              />
-            ))
-          ) : (
-            <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-              Pick a repository to start working.
-              <Button asChild className="mt-3 w-full">
-                <Link href="/app/projects">Browse repositories</Link>
-              </Button>
-            </div>
-          )
-        ) : (
-          <ProjectCard
-            testId="card-continue-demo"
-            href={projectPath(DEMO_PROJECT.owner, DEMO_PROJECT.name)}
-            title={`${DEMO_PROJECT.owner}/${DEMO_PROJECT.name}`}
-            meta={
-              <>
-                <span className="inline-flex items-center gap-1 font-mono">
-                  <GitBranch className="size-3" aria-hidden /> {DEMO_PROJECT.defaultBranch}
-                </span>
-                <span aria-hidden>·</span>
-                <span>{PROJECT_KIND_LABEL[kind]}</span>
-                <span aria-hidden>·</span>
-                <span className="tabular">{DEMO_FILES.length} files</span>
-              </>
-            }
-          />
-        )}
-      </div>
-
-    </AppShell>
-  );
+  const demoHref = projectPath(DEMO_PROJECT.owner, DEMO_PROJECT.name);
+  return <AppShell title="Home">
+    <div className="studio-grid -mx-4 -mt-6 px-4 pb-8 pt-6 sm:-mx-6 sm:px-6">
+      <section className="studio-panel studio-glow relative overflow-hidden p-5 sm:p-7"><div className="pointer-events-none absolute -right-16 -top-20 size-56 rounded-full bg-primary/10 blur-3xl" /><div className="relative"><div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary"><Sparkles className="size-3" aria-hidden /> AI development workspace</div><h2 className="max-w-xl text-2xl font-semibold tracking-tight sm:text-3xl">Build something remarkable<span className="text-primary">.</span></h2><p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">Ask Chrono to shape an idea, open a repository, or jump back into your latest build.</p><div className="mt-5 flex flex-col gap-3 sm:flex-row"><Link href={session.mode === "github" ? "/app/projects" : `${demoHref}/ai`} data-testid="button-start-building" className="flex min-h-12 flex-1 items-center gap-3 rounded-xl border border-primary/30 bg-background/80 px-4 text-left shadow-lg shadow-primary/5 transition hover:border-primary/60 hover:bg-primary/10"><span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground"><WandSparkles className="size-4" aria-hidden /></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">Ask Chrono to build</span><span className="block truncate text-xs text-muted-foreground">Describe an idea or request a change...</span></span><ArrowRight className="size-4 text-primary" aria-hidden /></Link><Button asChild variant="secondary" className="min-h-12 rounded-xl"><Link href="/app/projects"><Plus className="size-4" aria-hidden /> Open project</Link></Button></div></div></section>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3"><QuickAction href="/app/projects" icon={FolderGit2} title="Browse projects" description="Open a GitHub repository and start working." testId="quick-browse-projects" /><QuickAction href={demoHref} icon={Play} title="Try the workspace" description="Explore Chrono with the Pocket Tasks demo." testId="quick-try-workspace" /><QuickAction href="/app/ai/providers" icon={Bot} title="Connect an AI" description="Choose the model that powers your workspace." testId="quick-connect-ai" /></div>
+    </div>
+    <section className="mt-8"><div className="mb-3 flex items-end justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">Your workspace</p><h2 className="mt-1 text-lg font-semibold tracking-tight">Continue building</h2></div><Link href="/app/projects" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">View all <ExternalLink className="size-3" aria-hidden /></Link></div><div className="space-y-3">{session.mode === "github" ? recent.length ? recent.map((r) => <ProjectCard key={`${r.owner}/${r.name}`} testId={`card-recent-${r.owner}-${r.name}`} href={projectPath(r.owner, r.name)} title={`${r.owner}/${r.name}`} meta={<><span className="inline-flex items-center gap-1 font-mono"><GitBranch className="size-3" aria-hidden /> {r.branch}</span><span aria-hidden>·</span><span>Opened {timeAgo(new Date(r.openedAt))}</span></>} />) : <div className="studio-panel border-dashed p-6 text-center"><LayoutTemplate className="mx-auto size-7 text-muted-foreground" aria-hidden /><p className="mt-3 text-sm font-semibold">Your next project starts here</p><p className="mt-1 text-xs text-muted-foreground">Pick a repository to open your first Chrono workspace.</p><Button asChild className="mt-4"><Link href="/app/projects">Browse repositories</Link></Button></div> : <ProjectCard testId="card-continue-demo" href={demoHref} title={`${DEMO_PROJECT.owner}/${DEMO_PROJECT.name}`} accent="warning" meta={<><span className="inline-flex items-center gap-1 font-mono"><GitBranch className="size-3" aria-hidden /> {DEMO_PROJECT.defaultBranch}</span><span aria-hidden>·</span><span>{PROJECT_KIND_LABEL[kind]}</span><span aria-hidden>·</span><span className="tabular">{DEMO_FILES.length} files</span></>} />}</div></section>
+    <section className="mt-8 grid gap-3 sm:grid-cols-3"><div className="rounded-xl border border-border/70 bg-surface/50 p-4"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Active model</p><p className="mt-2 text-sm font-semibold">Chrono 1.3</p><p className="mt-1 text-xs text-muted-foreground">Ready for your next request</p></div><div className="rounded-xl border border-border/70 bg-surface/50 p-4"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Preview runtime</p><p className="mt-2 flex items-center gap-2 text-sm font-semibold"><span className="size-2 rounded-full bg-primary" /> Available</p><p className="mt-1 text-xs text-muted-foreground">Build and inspect changes live</p></div><div className="rounded-xl border border-border/70 bg-surface/50 p-4"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Workspace mode</p><p className="mt-2 text-sm font-semibold">{session.mode === "github" ? "GitHub connected" : "Local demo"}</p><p className="mt-1 text-xs text-muted-foreground">Your files stay in your workspace</p></div></section>
+  </AppShell>;
 }
