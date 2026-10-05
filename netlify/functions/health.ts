@@ -13,7 +13,7 @@ export default handle(["GET"], async () => {
   const r = readiness();
   return json({
     ok: true,
-    service: "mobile-development-ai",
+    service: "chrono",
     phase: PHASE,
     version: pkg.version,
     commit: (process.env.COMMIT_REF ?? "").slice(0, 7) || null,

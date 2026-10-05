@@ -35,7 +35,7 @@ function PhoneIllustration() {
         <div className="flex items-center justify-between border-b px-3 py-2.5">
           <div>
             <p className="text-[11px] font-semibold">demo/pocket-tasks</p>
-            <p className="font-mono text-[10px] text-muted-foreground">ai/mobile-development-ai/task-count</p>
+            <p className="font-mono text-[10px] text-muted-foreground">chrono/task-count</p>
           </div>
           <span className="shrink-0 whitespace-nowrap rounded-sm bg-primary/15 px-1.5 py-0.5 font-mono text-[9px] text-primary">2 FILES</span>
         </div>

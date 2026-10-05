@@ -32,7 +32,7 @@ export type ProjectKind = "static-html" | "vite-react" | "vite-ts" | "unknown";
 /** Health payload returned by GET /api/health (booleans only — never secret values). */
 export interface HealthResponse {
   ok: true;
-  service: "mobile-development-ai";
+  service: "chrono";
   phase: number;
   time: string;
   capabilities: {
