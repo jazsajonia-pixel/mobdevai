@@ -1,4 +1,4 @@
-# Deploying Chrono (Netlify)
+# Deploying Chrono (Netlify or Vercel)
 
 This guide takes the repository to a production site on Netlify. It takes about 15 minutes. Nothing
 here requires putting a secret in the repository or in a `VITE_*` variable.
@@ -62,7 +62,26 @@ npm run verify:env            # production rules, reads .env + current environme
 
 Then **Deploys → Trigger deploy → Clear cache and deploy site**.
 
-## 5. Verify the deployment
+## 5. Deploying on Vercel
+
+The repository now includes `vercel.json` and a Vercel catch-all API function at `api/[...path].ts`.
+The adapter reuses the existing handlers in `netlify/functions/`, so the browser API paths and
+database behavior stay the same on either platform. In Vercel, import the GitHub repository, keep
+the detected Vite settings, and use Node 22 for the API function.
+
+Set the same server-side variables from the table above in **Vercel → Project Settings → Environment
+Variables**. Add them to Production, Preview, and Development only where needed. Set `APP_URL` to
+the Vercel production URL, then update the GitHub OAuth App callback to:
+
+```text
+https://<your-vercel-domain>/api/auth/github/callback
+```
+
+Run the Neon migrations once against the same `DATABASE_URL`; do not create a second database just
+because the hosting platform changed. Vercel builds with `npm run build`, publishes `dist`, and
+routes `/api/*` to the compatibility function while routing other paths to the Vite SPA.
+
+## 6. Verify the deployment
 
 ```bash
 npm run verify:env -- --url https://<your-site>
