@@ -52,13 +52,10 @@ describe("AI agent (demo, simulated)", () => {
     fireEvent.click(await screen.findByTestId("button-accept-all"));
 
     await waitFor(() => expect(screen.getByTestId("badge-changes")).toHaveTextContent("2"));
-    const card = screen.getByTestId("card-proposal");
-    expect(card).toHaveTextContent("accepted");
-    expect(card).toHaveTextContent("rejected");
+    expect(screen.queryByTestId("card-proposal")).toBeNull();
 
     // The agent checked its work with a real preview build.
     expect(await screen.findByTestId("tool-request_preview", {}, { timeout: 8000 })).toBeInTheDocument();
-    expect(await screen.findByTestId("link-preview-changes")).toBeInTheDocument();
 
     // Accepted edits are ordinary workspace changes in the Git tab.
     fireEvent.click(screen.getByTestId("tab-git"));

@@ -168,6 +168,7 @@ export function platformProviders(env: Record<string, string | undefined> = proc
   add("openai", env.OPENAI_API_KEY, env.OPENAI_MODEL);
   add("anthropic", env.ANTHROPIC_API_KEY, env.ANTHROPIC_MODEL);
   add("gemini", env.GEMINI_API_KEY, env.GEMINI_MODEL);
+  add("groq", env.GROQ_API_KEY, env.GROQ_MODEL);
   const preferred = env.AI_DEFAULT_PROVIDER?.trim().toLowerCase();
   if (!preferred) return out;
   const index = out.findIndex((p) => p.kind === preferred);

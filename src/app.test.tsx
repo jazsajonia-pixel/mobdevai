@@ -35,8 +35,7 @@ describe("routing", () => {
   it("Try Demo enters a clearly labelled demo workspace and opens files", async () => {
     renderAt("/");
     fireEvent.click(screen.getByTestId("button-try-demo"));
-    expect(await screen.findByTestId("banner-demo")).toHaveTextContent("DEMO");
-    expect(screen.getByTestId("text-repo-name")).toHaveTextContent("demo/pocket-tasks");
+    expect(await screen.findByTestId("text-repo-name")).toHaveTextContent("demo/pocket-tasks");
     fireEvent.click(await screen.findByText("README.md"));
     expect(await screen.findByTestId("code-editor")).toHaveTextContent("Pocket Tasks");
   });

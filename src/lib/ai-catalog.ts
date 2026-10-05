@@ -39,11 +39,21 @@ export const PROVIDERS: Record<ProviderKind, ProviderMeta> = {
   gemini: {
     kind: "gemini",
     name: "Google Gemini",
-    defaultModel: "Gemini 3.N",
-    suggestedModels: ["Gemini 3.N", "Gemini 3.N Pro", "Gemini 3.N Flash", "Gemini 3.N Lite"],
+    defaultModel: "gemini-2.5-flash",
+    suggestedModels: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite"],
     keyPlaceholder: "AIza…",
     keyUrl: "https://aistudio.google.com/apikey",
     defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta",
+    needsBaseUrl: false,
+  },
+  groq: {
+    kind: "groq",
+    name: "Groq",
+    defaultModel: "llama-3.3-70b-versatile",
+    suggestedModels: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "openai/gpt-oss-120b", "meta-llama/llama-4-scout-17b-16e-instruct"],
+    keyPlaceholder: "gsk_…",
+    keyUrl: "https://console.groq.com/keys",
+    defaultBaseUrl: "https://api.groq.com/openai/v1",
     needsBaseUrl: false,
   },
   "openai-compatible": {

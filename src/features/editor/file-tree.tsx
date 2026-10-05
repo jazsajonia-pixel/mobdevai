@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight, FileCode2, FileText, Folder, FolderOpen } from "lucide-react";
+import { ChevronRight, FileCode2, FileText, Folder, FolderOpen, Trash2 } from "lucide-react";
 import type { TreeNode } from "@/types/workspace";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +33,7 @@ interface NodeProps {
   node: TreeNode;
   depth: number;
   onOpen: (path: string) => void;
+  onDelete: (path: string) => void;
   marks?: ReadonlyMap<string, FileMark>;
   active?: string | null;
 }
@@ -44,26 +45,20 @@ function folderMarked(node: TreeNode, marks?: ReadonlyMap<string, FileMark>): bo
   return false;
 }
 
-function Node({ node, depth, onOpen, marks, active }: NodeProps) {
+function Node({ node, depth, onOpen, onDelete, marks, active }: NodeProps) {
   const [open, setOpen] = useState(depth < 1);
   const pad = { paddingLeft: `${12 + depth * 16}px` };
 
   if (node.type === "file") {
     return (
-      <li>
-        <button
-          type="button"
-          onClick={() => onOpen(node.path)}
-          data-testid={`file-${node.path}`}
-          aria-current={active === node.path ? "true" : undefined}
-          className={cn("flex h-11 w-full items-center gap-2.5 pr-3 text-left text-sm hover:bg-surface-2 active:bg-surface-2", active === node.path && "bg-surface-2")}
-          style={pad}
-        >
+      <li className="group flex h-11 items-center" style={pad}>
+        <button type="button" onClick={() => onOpen(node.path)} data-testid={`file-${node.path}`} aria-current={active === node.path ? "true" : undefined} className={cn("flex min-w-0 flex-1 items-center gap-2.5 text-left text-sm", active === node.path && "bg-surface-2")}>
           <span className="w-4" aria-hidden />
           <FileIcon name={node.name} />
           <span className="truncate font-mono text-[13px]">{node.name}</span>
           <Mark mark={marks?.get(node.path)} />
         </button>
+        <button type="button" aria-label={`Delete ${node.name}`} title={`Delete ${node.name}`} onClick={() => onDelete(node.path)} className="mr-2 grid size-8 shrink-0 place-items-center rounded text-muted-foreground opacity-0 hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100" data-testid={`button-delete-file-${node.path}`}><Trash2 className="size-3.5" /></button>
       </li>
     );
   }
@@ -85,7 +80,7 @@ function Node({ node, depth, onOpen, marks, active }: NodeProps) {
       {open && node.children ? (
         <ul>
           {node.children.map((child) => (
-            <Node key={child.path} node={child} depth={depth + 1} onOpen={onOpen} marks={marks} active={active} />
+            <Node key={child.path} node={child} depth={depth + 1} onOpen={onOpen} onDelete={onDelete} marks={marks} active={active} />
           ))}
         </ul>
       ) : null}
@@ -93,11 +88,11 @@ function Node({ node, depth, onOpen, marks, active }: NodeProps) {
   );
 }
 
-export function FileTree({ nodes, onOpen, marks, active }: { nodes: TreeNode[]; onOpen: (path: string) => void; marks?: ReadonlyMap<string, FileMark>; active?: string | null }) {
+export function FileTree({ nodes, onOpen, onDelete, marks, active }: { nodes: TreeNode[]; onOpen: (path: string) => void; onDelete: (path: string) => void; marks?: ReadonlyMap<string, FileMark>; active?: string | null }) {
   return (
     <ul aria-label="Files" className="py-1">
       {nodes.map((n) => (
-        <Node key={n.path} node={n} depth={0} onOpen={onOpen} marks={marks} active={active} />
+        <Node key={n.path} node={n} depth={0} onOpen={onOpen} onDelete={onDelete} marks={marks} active={active} />
       ))}
     </ul>
   );

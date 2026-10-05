@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
 import { Link } from "wouter";
-import { ChevronDown, ChevronLeft, ChevronRight, GitBranch, Lock, Play } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, GitBranch, Lock, Play, Menu, X } from "lucide-react";
 import { WORKSPACE_NAV_TABS, WORKSPACE_TAB_META, projectPath, type WorkspaceTab } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import type { ProjectRef } from "@/types/workspace";
 import { Badge } from "@/components/ui/badge";
 import { useOptionalWorkspace } from "@/features/workspace/context";
-import { DemoBanner } from "./demo-banner";
 import { SkipLink } from "./app-shell";
 import { OfflineBanner } from "./offline-banner";
 
@@ -29,16 +29,22 @@ export function WorkspaceShell({
   children: ReactNode;
 }) {
   const ws = useOptionalWorkspace();
+  const [open, setOpen] = useState(false);
   const badge = gitBadge ?? (ws ? ws.changes.length : 0);
   return (
     // Fixed-height column: header · scrolling main · tab bar. The editor fills `main` exactly,
     // and with interactive-widget=resizes-content the whole column shrinks above the keyboard.
-    <div className="flex h-dvh flex-col overflow-hidden">
-      <SkipLink />
+    <div className="flex h-dvh flex-col overflow-hidden md:pl-64">
+      {open ? <button type="button" aria-label="Close workspace navigation" className="fixed inset-0 z-40 bg-black/35 md:hidden" onClick={() => setOpen(false)} /> : null}
+      <aside className={cn("fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r bg-surface transition-transform md:translate-x-0", open ? "translate-x-0" : "-translate-x-full")}>
+        <div className="flex h-16 items-center justify-between border-b px-4"><span className="text-sm font-semibold">Workspace</span><button type="button" className="grid size-9 place-items-center md:hidden" aria-label="Close workspace navigation" onClick={() => setOpen(false)}><X className="size-5" /></button></div>
+        <nav className="space-y-1 p-3" aria-label="Workspace">{WORKSPACE_NAV_TABS.map((t) => { const meta = WORKSPACE_TAB_META[t]; const active = t === tab; return <Link key={t} href={projectPath(project.owner, project.name, t)} onClick={() => setOpen(false)} aria-current={active ? "page" : undefined} data-testid={`tab-${t}`} className={cn("flex h-11 items-center gap-3 rounded-md px-3 text-sm font-medium", active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-surface-2")}><meta.icon className="size-5" aria-hidden />{meta.label}{t === "git" && badge > 0 ? <span data-testid="badge-changes" className="ml-auto rounded-full bg-primary px-2 text-xs text-primary-foreground">{badge > 99 ? "99+" : badge}</span> : null}</Link>; })}</nav>
+      </aside>
+      <nav aria-label="Accessibility links"><SkipLink /></nav>
       <header className="z-30 shrink-0 bg-background pt-safe">
         <OfflineBanner />
-        <DemoBanner />
-        <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-1 border-b pl-1 pr-3">
+
+        <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-1 border-b pl-1 pr-3 md:pl-3"><button type="button" onClick={() => setOpen(true)} aria-label="Open workspace navigation" data-testid="button-toggle-workspace-sidebar" className="grid size-9 place-items-center md:hidden"><Menu className="size-5" /></button>
           <Link href="/app/projects" aria-label="Back to projects" className="grid size-11 place-items-center rounded-md text-muted-foreground hover:bg-surface-2">
             <ChevronLeft className="size-5" />
           </Link>
@@ -94,38 +100,7 @@ export function WorkspaceShell({
 
       <main id="main" tabIndex={-1} className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col overflow-y-auto outline-none">{children}</main>
 
-      <nav aria-label="Workspace" className="z-30 shrink-0 border-t bg-surface pb-safe">
-        <ul className="mx-auto grid max-w-lg grid-cols-4">
-          {WORKSPACE_NAV_TABS.map((t) => {
-            const meta = WORKSPACE_TAB_META[t];
-            const active = t === tab;
-            return (
-              <li key={t}>
-                <Link
-                  href={projectPath(project.owner, project.name, t)}
-                  aria-current={active ? "page" : undefined}
-                  data-testid={`tab-${t}`}
-                  aria-label={t === "git" && badge > 0 ? `${meta.label}, ${badge} changed file${badge === 1 ? "" : "s"}` : undefined}
-                  className={cn(
-                    "flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium",
-                    active ? "text-foreground" : "text-muted-foreground",
-                  )}
-                >
-                  <span className="relative">
-                    <meta.icon className={cn("size-5", active && "text-primary")} aria-hidden />
-                    {t === "git" && badge > 0 ? (
-                      <span className="absolute -right-2.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground tabular" data-testid="badge-changes" aria-hidden>
-                        {badge > 99 ? "99+" : badge}
-                      </span>
-                    ) : null}
-                  </span>
-                  {meta.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+
     </div>
   );
 }

@@ -34,6 +34,7 @@ export function ProposalSummary({ proposal, onReview, previewHref }: { proposal:
   const files = proposalFiles(proposal);
   if (!files.length) return null;
   const pending = files.filter((f) => f.decision === "pending").length;
+  if (!pending) return null;
   return (
     <section className="rounded-lg border bg-surface" aria-label="Proposed changes" data-testid="card-proposal">
       <div className="flex items-center gap-2 border-b px-4 py-3">

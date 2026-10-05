@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { AlertTriangle, FilePlus2, Search, TextSearch } from "lucide-react";
 import { EmptyState } from "@/components/states";
 import { InputSheet } from "@/components/dialogs";
-import { FileTree, Mark } from "./file-tree";
+import { FileTree } from "./file-tree";
 import { buildTree } from "@/lib/tree";
 import { useWorkspace } from "@/features/workspace/context";
 import { useFileMarks } from "@/features/workspace/use-marks";
@@ -19,6 +19,7 @@ export function FilesBrowser({ onOpen, onSearch, autoFocus = false }: { onOpen: 
   const matches = needle ? ws.paths.filter((p) => p.toLowerCase().includes(needle)).slice(0, 200) : null;
 
   // Suggest creating next to the active file.
+  const remove = (path: string) => { if (window.confirm(`Delete ${path}? This stays local until you commit.`)) void ws.remove(path); };
   const folder = ws.data.active?.includes("/") ? `${ws.data.active.slice(0, ws.data.active.lastIndexOf("/"))}/` : "";
 
   return (
@@ -59,10 +60,7 @@ export function FilesBrowser({ onOpen, onSearch, autoFocus = false }: { onOpen: 
           <ul className="py-1">
             {matches.map((p) => (
               <li key={p}>
-                <button type="button" onClick={() => onOpen(p)} className="flex h-11 w-full items-center px-4 text-left font-mono text-[13px] hover:bg-surface-2">
-                  <span className="truncate">{p}</span>
-                  <Mark mark={marks.get(p)} />
-                </button>
+                <div className="group flex h-11 items-center hover:bg-surface-2"><button type="button" onClick={() => onOpen(p)} className="min-w-0 flex-1 px-4 text-left font-mono text-[13px]"><span className="truncate">{p}</span></button><button type="button" aria-label={`Delete ${p}`} onClick={() => remove(p)} className="mr-2 grid size-8 place-items-center rounded text-muted-foreground opacity-0 hover:bg-danger/10 hover:text-danger group-hover:opacity-100 focus:opacity-100"><span className="sr-only">Delete</span>×</button></div>
               </li>
             ))}
           </ul>
@@ -70,7 +68,7 @@ export function FilesBrowser({ onOpen, onSearch, autoFocus = false }: { onOpen: 
           <EmptyState title="No files match" className="py-8" />
         )
       ) : (
-        <FileTree nodes={tree} onOpen={onOpen} marks={marks} active={ws.data.active} />
+        <FileTree nodes={tree} onOpen={onOpen} onDelete={remove} marks={marks} active={ws.data.active} />
       )}
 
       <InputSheet

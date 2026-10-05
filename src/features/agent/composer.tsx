@@ -58,6 +58,13 @@ export function Composer({
     el?.focus();
     el?.setSelectionRange(initialText.length, initialText.length);
   }, [initialText]);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+    el.style.overflowY = el.scrollHeight > 160 ? "auto" : "hidden";
+  }, [text]);
 
   // @mention autocomplete for the token under the caret.
   const token = useMemo(() => {
@@ -193,11 +200,11 @@ export function Composer({
               submit();
             }
           }}
-          rows={Math.min(6, Math.max(1, text.split("\n").length))}
+          rows={1}
           placeholder={placeholder}
           disabled={disabled}
           aria-label="Message the AI"
-          className="max-h-40 min-h-11 flex-1 resize-none rounded-md border bg-background px-3 py-2.5 text-base leading-snug disabled:opacity-60"
+          className="max-h-40 min-h-11 flex-1 resize-none overflow-y-hidden rounded-md border bg-background px-3 py-2.5 text-base leading-snug disabled:opacity-60"
           data-testid="input-agent-message"
         />
         {running ? (

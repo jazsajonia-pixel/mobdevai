@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const kindSchema = z.enum(["openai", "anthropic", "gemini", "openai-compatible"]);
+export const kindSchema = z.enum(["openai", "anthropic", "gemini", "groq", "openai-compatible"]);
 export const modelSchema = z.string().trim().regex(/^[\w.\-:/@ ]{1,120}$/, "Model names use letters, numbers, spaces and . - _ : / @");
 export const labelSchema = z.string().trim().min(1).max(60);
 export const apiKeySchema = z

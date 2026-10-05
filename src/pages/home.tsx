@@ -1,15 +1,13 @@
 import { Link } from "wouter";
 import { ArrowRight, FlaskConical, FolderGit2, GitBranch } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/stores/session";
 import { DEMO_FILES, DEMO_PROJECT } from "@/features/demo/sample-project";
-import { PHASES } from "@/features/demo/roadmap";
 import { recentRepos } from "@/features/github/recent";
 import { projectPath } from "@/lib/nav";
 import { PROJECT_KIND_LABEL, detectProjectKind } from "@/lib/tree";
-import { cn, timeAgo } from "@/lib/utils";
+import { timeAgo } from "@/lib/utils";
 
 function ProjectCard({ href, title, meta, testId }: { href: string; title: string; meta: React.ReactNode; testId: string }) {
   return (
@@ -104,23 +102,6 @@ export default function HomePage() {
         )}
       </div>
 
-      <h2 className="mb-2 mt-8 text-xs font-medium uppercase tracking-wide text-muted-foreground">Build status</h2>
-      <ol className="overflow-hidden rounded-lg border" data-testid="list-roadmap">
-        {PHASES.map((p) => (
-          <li key={p.n} className="flex items-center gap-3 border-b px-4 py-3 last:border-b-0">
-            <span
-              className={cn(
-                "grid size-6 shrink-0 place-items-center rounded-full font-mono text-[11px]",
-                p.status === "done" ? "bg-primary text-primary-foreground" : p.status === "next" ? "border border-primary text-primary" : "border text-muted-foreground",
-              )}
-            >
-              {p.n}
-            </span>
-            <span className={cn("flex-1 text-sm", p.status === "planned" && "text-muted-foreground")}>{p.title}</span>
-            {p.status === "done" ? <Badge tone="primary">Done</Badge> : p.status === "next" ? <Badge tone="warning">Next</Badge> : null}
-          </li>
-        ))}
-      </ol>
     </AppShell>
   );
 }

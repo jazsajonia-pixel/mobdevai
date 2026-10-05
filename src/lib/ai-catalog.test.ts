@@ -7,13 +7,13 @@ describe("Chrono model catalog", () => {
     expect(PROVIDERS.openai.suggestedModels).toEqual(["Chrono 1.0", "Chrono 1.1", "Chrono 1.2", "Chrono 1.3"]);
   });
 
-  it("uses fictional 3.N families for Anthropic and Gemini", () => {
+  it("uses restored real-looking Gemini model names", () => {
     expect(PROVIDERS.anthropic.defaultModel).toBe("Claude 3.N");
-    expect(PROVIDERS.gemini.defaultModel).toBe("Gemini 3.N");
-    expect(PROVIDERS.gemini.suggestedModels).toContain("Gemini 3.N Pro");
+    expect(PROVIDERS.gemini.defaultModel).toBe("gemini-2.5-flash");
+    expect(PROVIDERS.gemini.suggestedModels).toContain("gemini-2.5-pro");
   });
 
   it("preserves the provider kinds used by the server adapters", () => {
-    expect(PROVIDER_KINDS).toEqual(["openai", "anthropic", "gemini", "openai-compatible"]);
+    expect(PROVIDER_KINDS).toEqual(["openai", "anthropic", "gemini", "groq", "openai-compatible"]);
   });
 });
