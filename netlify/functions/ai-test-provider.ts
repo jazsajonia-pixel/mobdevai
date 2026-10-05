@@ -27,7 +27,7 @@ export default handle(["POST"], async (req) => {
   let target: ResolvedProvider;
   let savedId: string | null = null;
   if ("apiKey" in body) {
-    target = { kind: body.kind, model: body.model, baseUrl: cleanBaseUrl(body.kind, body.baseUrl), apiKey: body.apiKey };
+    target = { kind: body.kind, model: body.model, effort: "medium", baseUrl: cleanBaseUrl(body.kind, body.baseUrl), apiKey: body.apiKey };
   } else {
     const r = await resolveProvider(req, session, body.id);
     const editing = "model" in body && body.model !== undefined;

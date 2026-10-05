@@ -75,6 +75,7 @@ async function openAiStep(p: ResolvedProvider, input: StepInput): Promise<StepOu
   const body: Record<string, unknown> = {
     model: p.model,
     messages,
+    ...(p.kind === "openai" ? { reasoning_effort: p.effort } : {}),
     tools: input.tools.map((t) => ({ type: "function", function: { name: t.name, description: t.description, parameters: t.parameters } })),
   };
   if (p.kind === "openai") body.max_completion_tokens = input.maxTokens * 2; // reasoning tokens count too
@@ -191,7 +192,7 @@ async function geminiStep(p: ResolvedProvider, input: StepInput): Promise<StepOu
       systemInstruction: { parts: [{ text: input.system }] },
       contents,
       tools: [{ functionDeclarations: input.tools.map((t) => ({ name: t.name, description: t.description, parameters: t.parameters })) }],
-      generationConfig: { maxOutputTokens: input.maxTokens * 2 },
+      generationConfig: { maxOutputTokens: input.maxTokens * 2, thinkingConfig: /gemini-3/i.test(model) ? { thinkingLevel: p.effort.toUpperCase() } : { thinkingBudget: p.effort === "low" ? 1024 : p.effort === "high" ? 8192 : 4096 } },
     }),
     signal: input.signal,
     timeoutMs: AGENT_TIMEOUT_MS,

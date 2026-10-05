@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { PROVIDERS, PROVIDER_KINDS } from "@/lib/ai-catalog";
 import { AppError, describeError } from "@/lib/errors";
 import { cn } from "@/lib/utils";
-import type { ProviderKind, ProvidersResponse, PublicProvider } from "@/types/ai";
+import type { ProviderEffort, ProviderKind, ProvidersResponse, PublicProvider } from "@/types/ai";
 import { createProvider, testProvider, updateProvider, type TestInput } from "./api";
 import { TestResult, type TestState } from "./test-result";
 
@@ -35,6 +35,7 @@ export function ProviderForm({
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [model, setModel] = useState(PROVIDERS.openai.defaultModel);
+  const [effort, setEffort] = useState<ProviderEffort>("medium");
   const [baseUrl, setBaseUrl] = useState("");
   const [enabled, setEnabled] = useState(true);
   const [makeDefault, setMakeDefault] = useState(false);
@@ -54,6 +55,7 @@ export function ProviderForm({
     setKind(k);
     setLabel(editing?.label ?? "");
     setModel(editing?.model ?? PROVIDERS[k].defaultModel);
+    setEffort(editing?.effort ?? "medium");
     setBaseUrl(editing?.baseUrl ?? "");
     setEnabled(editing?.enabled ?? true);
     setMakeDefault(false);
@@ -113,12 +115,13 @@ export function ProviderForm({
         ? await updateProvider(editing.id, {
             label: label.trim() || meta.name,
             model: model.trim(),
+            effort,
             ...(meta.needsBaseUrl ? { baseUrl: b } : {}),
             ...(trimmedKey ? { apiKey: trimmedKey } : {}),
             enabled,
             ...(makeDefault ? { makeDefault: true } : {}),
           })
-        : await createProvider({ kind, label: label.trim() || undefined, model: model.trim(), baseUrl: b, apiKey: trimmedKey, enabled, makeDefault });
+        : await createProvider({ kind, label: label.trim() || undefined, model: model.trim(), effort, baseUrl: b, apiKey: trimmedKey, enabled, makeDefault });
       setApiKey("");
       onSaved(data);
       onOpenChange(false);
@@ -245,6 +248,7 @@ export function ProviderForm({
             ))}
           </datalist>
         </label>
+        {models.length ? <p className="-mt-2 text-xs text-primary">{models.length} models available for this API key. Choose the primary model below.</p> : !editing && trimmedKey ? <p className="-mt-2 text-xs text-muted-foreground">Test the key to fetch the models available to it.</p> : null}
         {suggestions.length ? (
           <div className="-mt-2 flex gap-1.5 overflow-x-auto pb-1" aria-label="Suggested models">
             {suggestions.slice(0, 24).map((m) => (
@@ -261,6 +265,11 @@ export function ProviderForm({
           </div>
         ) : null}
 
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium">Effort</legend>
+          <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Model effort">{(["low", "medium", "high"] as ProviderEffort[]).map((value) => <button key={value} type="button" role="radio" aria-checked={effort === value} onClick={() => setEffort(value)} className="min-h-10 rounded-md border px-2 text-sm capitalize aria-checked:border-primary aria-checked:bg-primary/10 aria-checked:text-primary">{value}</button>)}</div>
+          <p className="text-xs text-muted-foreground">Chrono maps effort to the selected provider’s native reasoning control when supported.</p>
+        </fieldset>
         <label className="block space-y-1.5">
           <span className="text-sm font-medium">
             Name <span className="font-normal text-muted-foreground">(optional)</span>

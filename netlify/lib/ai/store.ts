@@ -91,7 +91,7 @@ function dbStore(sql: Sql, session: SessionData, secret: string): ProviderStore 
     async load() {
       const id = await userId();
       const rows = (await sql`
-        SELECT id, kind, label, model, base_url, enabled, key_ciphertext, key_hint, last_test, created_at, updated_at
+        SELECT id, kind, label, model, effort, base_url, enabled, key_ciphertext, key_hint, last_test, created_at, updated_at
         FROM ai_providers WHERE user_id = ${id} ORDER BY created_at`) as Record<string, unknown>[];
       const user = (await sql`SELECT ai_default_provider FROM users WHERE id = ${id}`) as { ai_default_provider: string | null }[];
       return {
@@ -102,6 +102,7 @@ function dbStore(sql: Sql, session: SessionData, secret: string): ProviderStore 
           kind: r.kind as ProviderKind,
           label: String(r.label),
           model: String(r.model),
+          effort: (r.effort as StoredProvider["effort"]) ?? "medium",
           baseUrl: (r.base_url as string | null) ?? null,
           enabled: Boolean(r.enabled),
           keyCipher: String(r.key_ciphertext),
@@ -119,9 +120,9 @@ function dbStore(sql: Sql, session: SessionData, secret: string): ProviderStore 
         ...prev.providers.filter((p) => !keep.has(p.id)).map((p) => sql`DELETE FROM ai_providers WHERE id = ${p.id} AND user_id = ${id}`),
         ...next.providers.map(
           (p) => sql`
-          INSERT INTO ai_providers (id, user_id, kind, label, model, base_url, enabled, key_ciphertext, key_hint, last_test, created_at, updated_at)
-          VALUES (${p.id}, ${id}, ${p.kind}, ${p.label}, ${p.model}, ${p.baseUrl}, ${p.enabled}, ${p.keyCipher}, ${p.keyHint}, ${p.lastTest ? JSON.stringify(p.lastTest) : null}, ${p.createdAt}, ${p.updatedAt})
-          ON CONFLICT (id) DO UPDATE SET label = EXCLUDED.label, model = EXCLUDED.model, base_url = EXCLUDED.base_url,
+          INSERT INTO ai_providers (id, user_id, kind, label, model, effort, base_url, enabled, key_ciphertext, key_hint, last_test, created_at, updated_at)
+          VALUES (${p.id}, ${id}, ${p.kind}, ${p.label}, ${p.model}, ${p.effort}, ${p.baseUrl}, ${p.enabled}, ${p.keyCipher}, ${p.keyHint}, ${p.lastTest ? JSON.stringify(p.lastTest) : null}, ${p.createdAt}, ${p.updatedAt})
+          ON CONFLICT (id) DO UPDATE SET label = EXCLUDED.label, model = EXCLUDED.model, effort = EXCLUDED.effort, base_url = EXCLUDED.base_url,
             enabled = EXCLUDED.enabled, key_ciphertext = EXCLUDED.key_ciphertext, key_hint = EXCLUDED.key_hint,
             last_test = EXCLUDED.last_test, updated_at = EXCLUDED.updated_at
           WHERE ai_providers.user_id = ${id}`,
@@ -163,7 +164,7 @@ export function platformProviders(env: Record<string, string | undefined> = proc
   const out: (PlatformProvider & { apiKey: string })[] = [];
   const add = (kind: ProviderKind, key: string | undefined, model: string | undefined) => {
     if (!isSet(key)) return;
-    out.push({ id: `platform:${kind}`, kind, label: `${PROVIDERS[kind].name} (server)`, model: isSet(model) ? model : PROVIDERS[kind].defaultModel, apiKey: key });
+    out.push({ id: `platform:${kind}`, kind, label: `${PROVIDERS[kind].name} (server)`, model: isSet(model) ? model : PROVIDERS[kind].defaultModel, effort: "medium", apiKey: key });
   };
   add("openai", env.OPENAI_API_KEY, env.OPENAI_MODEL);
   add("anthropic", env.ANTHROPIC_API_KEY, env.ANTHROPIC_MODEL);

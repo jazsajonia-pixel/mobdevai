@@ -22,10 +22,10 @@ export async function resolveProvider(req: Request, session: SessionData, id?: s
   if (!target) throw new HttpError(409, "AI_NO_PROVIDER", "Add an AI provider in Settings first.");
 
   const plat = platform.find((p) => p.id === target);
-  if (plat) return { id: plat.id, label: plat.label, kind: plat.kind, model: plat.model, baseUrl: null, apiKey: plat.apiKey };
+  if (plat) return { id: plat.id, label: plat.label, kind: plat.kind, model: plat.model, effort: "medium", baseUrl: null, apiKey: plat.apiKey };
 
   if (!state || !store) throw new HttpError(409, "AI_NO_PROVIDER", "Add an AI provider in Settings first.");
   const rec = findProvider(state, target);
   if (!rec.enabled) throw new HttpError(409, "AI_NO_PROVIDER", `${rec.label} is disabled. Enable it in Settings.`);
-  return { id: rec.id, label: rec.label, kind: rec.kind, model: rec.model, baseUrl: rec.baseUrl, apiKey: await store.decryptKey(rec) };
+  return { id: rec.id, label: rec.label, kind: rec.kind, model: rec.model, effort: rec.effort, baseUrl: rec.baseUrl, apiKey: await store.decryptKey(rec) };
 }

@@ -1,0 +1,257 @@
+CHRONO PREVIEW PLATFORM — IMPLEMENTATION PROMPT
+
+You are working on the Chrono repository: jazsajonia-pixel/mobdevai.
+
+Goal:
+Design and implement a phased preview system that lets users preview their generated applications inside Chrono without manually visiting Netlify. The system must support static frontend projects first, then server-backed projects and temporary databases through isolated preview environments.
+
+Important context:
+- Chrono is currently deployed on Netlify.
+- Chrono uses Neon PostgreSQL for persistent application data.
+- The current preview experience primarily supports frontend/demo projects.
+- The project must not expose Chrono production secrets to user-generated code.
+- Preview URLs should be displayed inside Chrono, preferably through an iframe or an internal preview panel.
+- Do not implement all phases at once. Complete one phase at a time, keeping the application deployable and tests passing after every phase.
+
+Architecture direction:
+Use a hybrid preview architecture:
+
+1. Static preview deployer
+   - Build static projects such as React, Vite, HTML, CSS, and JavaScript.
+   - Deploy generated static output to a temporary Netlify deploy or object storage.
+   - Return a preview URL to Chrono.
+   - Display that URL inside Chrono without requiring the user to open Netlify.
+
+2. Preview session/orchestrator
+   - Track every preview in the Chrono database.
+   - Manage creation, readiness, restart, logs, expiration, and cleanup.
+   - Assign every preview a unique non-guessable ID.
+   - Store preview metadata, status, URL, owner, project, timestamps, runtime, and cleanup state.
+
+3. Full-stack preview runner
+   - Run server-backed projects in isolated short-lived containers or microVMs.
+   - Initially support one or two controlled runtimes, preferably Node.js and Python.
+   - Detect a safe start command from the project configuration.
+   - Assign an internal port and route traffic through a preview gateway.
+   - Never run arbitrary user servers directly inside the Chrono web process or shared production Netlify function environment.
+
+4. Preview gateway
+   - Provide stable URLs such as:
+     https://preview-{previewId}.chrono.app
+   - Route requests to the corresponding temporary preview runtime.
+   - Support readiness checks, build errors, logs, restart behavior, and expiration.
+   - Support WebSockets when the selected runtime requires them.
+   - Apply security headers and prevent cross-preview access.
+
+5. Temporary database provisioning
+   - For PostgreSQL projects, create an isolated temporary Neon branch or database.
+   - Pass only the temporary connection string to the preview runtime.
+   - Never provide production Chrono database credentials to user code.
+   - Delete the temporary database branch when the preview expires or is deleted.
+   - Use SQLite temporary files as a cheaper fallback for simple projects that do not need managed PostgreSQL.
+
+Suggested database table:
+
+preview_sessions
+- id
+- user_id
+- project_id
+- status
+- deployment_type
+- runtime
+- preview_url
+- internal_target
+- database_provider
+- database_reference
+- created_at
+- started_at
+- expires_at
+- stopped_at
+- last_error
+- cleanup_status
+- metadata_json
+
+Suggested API surface:
+
+POST   /api/previews
+GET    /api/previews/:id
+POST   /api/previews/:id/restart
+DELETE /api/previews/:id
+GET    /api/previews/:id/logs
+GET    /api/previews/:id/health
+
+Required lifecycle states:
+- queued
+- building
+- starting
+- ready
+- failed
+- stopping
+- stopped
+- expired
+- cleanup_failed
+
+PHASE 1 — Improve the current static preview
+
+Scope:
+- Keep the existing frontend/demo preview behavior working.
+- Add a preview_sessions database migration and server-side lifecycle model.
+- Create a preview API with create, status, restart, delete, and health operations.
+- Add expiration timestamps and cleanup metadata.
+- Integrate the current static build/deploy process with preview_sessions.
+- Display the preview URL inside Chrono.
+- Add clear build and deployment error states in the UI.
+- Ensure a user can stop and restart their preview.
+
+Static project support:
+- React/Vite
+- HTML/CSS/JavaScript
+- Existing supported frontend project types
+
+Acceptance criteria:
+- Existing tests continue to pass.
+- A preview can be created and tracked in Neon.
+- The UI shows queued, building, ready, and failed states.
+- The preview URL can be opened inside Chrono.
+- Deleting a preview removes the session record and triggers deployment cleanup.
+- Expired previews are identified and can be cleaned safely.
+
+PHASE 2 — Add isolated backend preview runners
+
+Scope:
+- Add an isolated runner abstraction.
+- Start with Node.js and Python only.
+- Run each project in a temporary container or microVM.
+- Add CPU, memory, process, filesystem, execution-time, and output-size limits.
+- Assign each preview a private workspace and internal port.
+- Route requests through the preview gateway.
+- Add logs and readiness polling.
+- Add restart and stop operations.
+
+Security requirements:
+- No access to Chrono production secrets.
+- No access to other users’ files, containers, sessions, or databases.
+- Restrict outbound network access by default.
+- Do not allow privileged containers.
+- Do not mount the host filesystem.
+- Do not trust package scripts or user-provided shell commands without sandboxing.
+- Sanitize environment variables.
+- Apply request, response, CPU, memory, and execution time limits.
+- Clean up containers even if builds fail or the client disconnects.
+
+Acceptance criteria:
+- A controlled Node.js or Python project can be started and viewed through a Chrono preview URL.
+- Server logs are visible in Chrono.
+- A failed build provides actionable error output.
+- Expired or deleted previews stop the runtime and remove temporary resources.
+- Security tests verify that one preview cannot access another preview.
+
+PHASE 3 — Add temporary databases
+
+Scope:
+- Add a database provider abstraction for preview environments.
+- Implement Neon branch provisioning first.
+- Create a temporary branch or isolated database for a preview.
+- Run project migrations only against the temporary database.
+- Inject the temporary DATABASE_URL into the preview runtime.
+- Delete the database branch during cleanup.
+- Add SQLite temporary-file fallback for lightweight projects.
+
+Database safety requirements:
+- Production Chrono database credentials must never be available to preview code.
+- Preview database credentials must be scoped to the temporary database whenever possible.
+- Database branches must have expiration metadata.
+- Cleanup must be retryable and observable.
+- A failed preview cleanup must not silently leave resources running.
+- Never run destructive production SQL automatically.
+- Test migrations on a temporary branch before applying changes to a production database.
+
+Acceptance criteria:
+- A sample Node.js or Python application can connect to its temporary database.
+- The project can run its own migrations without affecting Chrono’s production schema.
+- Deleting a preview deletes or schedules deletion of its temporary database.
+- Database provisioning failures produce a clear preview error.
+
+PHASE 4 — Preview gateway and embedded experience
+
+Scope:
+- Create or integrate a gateway that maps preview IDs to temporary deployments/runtimes.
+- Use stable, non-guessable preview URLs.
+- Embed the preview in Chrono with an iframe or equivalent preview panel.
+- Add reload, open-in-new-tab, stop, restart, and view-logs controls.
+- Add a readiness screen while the preview is building.
+- Add graceful handling for expired previews.
+
+Security and browser requirements:
+- Use appropriate iframe and content-security policies.
+- Prevent preview content from accessing Chrono cookies or local storage.
+- Avoid same-origin coupling between the Chrono app and user previews.
+- Protect gateway routes with signed, expiring preview access tokens when required.
+- Do not allow a preview to impersonate Chrono pages or call privileged Chrono APIs.
+
+Acceptance criteria:
+- Users can view a working preview without visiting Netlify or the runner host.
+- Preview controls work from inside Chrono.
+- Expired previews show a useful recovery message.
+- Browser isolation tests verify that preview content cannot read Chrono authentication state.
+
+PHASE 5 — Runtime expansion and production hardening
+
+Possible additional runtimes:
+- PHP
+- Ruby
+- Go
+- Java
+- Additional Node and Python frameworks
+
+Add runtime adapters instead of hardcoding language-specific behavior into the core preview service.
+
+Each adapter should define:
+- detection rules
+- install/build command policy
+- start command policy
+- allowed ports
+- health-check behavior
+- log parsing
+- resource profile
+- cleanup behavior
+
+Production hardening:
+- Add quotas per user and project.
+- Add concurrency limits.
+- Add preview duration limits.
+- Add rate limiting.
+- Add audit logs.
+- Add monitoring and alerts for leaked resources.
+- Add a cleanup worker for abandoned previews.
+- Add cost controls for Netlify deploys, Neon branches, containers, and storage.
+- Add feature flags so the system can be rolled back safely.
+
+Implementation rules:
+- Read the repository instructions and relevant skills before editing.
+- Inspect the existing preview, deployment, Netlify, Neon, authentication, and project workspace code before designing new APIs.
+- Prefer existing Chrono patterns and utilities over introducing duplicate infrastructure.
+- Use migrations for database schema changes.
+- Add unit, integration, security, and end-to-end tests for every phase.
+- Run typecheck, tests, lint if available, and production build before merging.
+- Use a feature branch for each phase.
+- Merge only after validation succeeds.
+- Deploy only after local validation and provider checks succeed.
+- Keep all secrets out of source code, logs, test snapshots, and client responses.
+- Do not make production-destructive changes without explicit approval.
+
+Final deliverables for each phase:
+1. Implementation code.
+2. Database migration if needed.
+3. Tests.
+4. Updated deployment/environment documentation.
+5. Security considerations and threat-model notes.
+6. Rollback instructions.
+7. A concise verification report containing:
+   - branch and commit
+   - test results
+   - deployment result
+   - database migration result
+   - known limitations
+
+Start with PHASE 1 only. First audit the existing preview implementation and deployment flow, then produce a concrete plan before modifying code.

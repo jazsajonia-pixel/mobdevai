@@ -18,6 +18,7 @@ export interface ChatRequest {
   messages: ChatMessage[];
   maxTokens?: number;
   temperature?: number;
+  effort?: "low" | "medium" | "high";
   signal?: AbortSignal;
 }
 
@@ -31,6 +32,7 @@ export interface ChatResult {
 export interface ResolvedProvider {
   kind: ProviderKind;
   model: string;
+  effort: "low" | "medium" | "high";
   baseUrl: string | null;
   apiKey: string;
 }
@@ -115,6 +117,7 @@ const openAi: ProviderAdapter = {
     if (p.kind === "openai") body.max_completion_tokens = tokens;
     else body.max_tokens = tokens;
     if (req.temperature !== undefined) body.temperature = req.temperature;
+    if (p.kind === "openai" && req.effort) body.reasoning_effort = req.effort;
     const data = (await call(name, `${base}/chat/completions`, {
       method: "POST",
       headers: { Authorization: `Bearer ${p.apiKey}`, "Content-Type": "application/json" },

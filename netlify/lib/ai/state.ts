@@ -1,4 +1,4 @@
-import type { ProviderKind, ProviderTestResult, PublicProvider } from "../../../src/types/ai";
+import type { ProviderEffort, ProviderKind, ProviderTestResult, PublicProvider} from "../../../src/types/ai";
 import { HttpError } from "../http";
 
 /** Pure state operations shared by the cookie and database backends. */
@@ -8,6 +8,7 @@ export interface StoredProvider {
   kind: ProviderKind;
   label: string;
   model: string;
+  effort: ProviderEffort;
   baseUrl: string | null;
   enabled: boolean;
   /** encryptField() output. Never leaves the server. */
@@ -31,6 +32,7 @@ export interface PlatformProvider {
   kind: ProviderKind;
   label: string;
   model: string;
+  effort: ProviderEffort;
 }
 
 export function addProvider(state: ProviderState, rec: StoredProvider, makeDefault: boolean, max: number): ProviderState {
@@ -92,6 +94,7 @@ export function toPublic(state: ProviderState, platform: PlatformProvider[]): { 
     kind: p.kind,
     label: p.label,
     model: p.model,
+    effort: p.effort,
     baseUrl: p.baseUrl,
     enabled: p.enabled,
     isDefault: p.id === defaultId,
@@ -105,6 +108,7 @@ export function toPublic(state: ProviderState, platform: PlatformProvider[]): { 
     kind: p.kind,
     label: p.label,
     model: p.model,
+    effort: p.effort,
     baseUrl: null,
     enabled: true,
     isDefault: p.id === defaultId,

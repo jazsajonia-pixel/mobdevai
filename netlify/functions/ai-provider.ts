@@ -32,6 +32,7 @@ export default handle(["PATCH", "DELETE"], async (req, ctx) => {
   const current = findProvider(state, id);
   const patch: Partial<StoredProvider> = {};
   if (body.label !== undefined) patch.label = body.label;
+  if (body.effort !== undefined) patch.effort = body.effort;
   if (body.model !== undefined && body.model !== current.model) {
     patch.model = body.model;
     patch.lastTest = null;

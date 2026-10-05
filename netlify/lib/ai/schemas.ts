@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const kindSchema = z.enum(["openai", "anthropic", "gemini", "groq", "openai-compatible"]);
+export const effortSchema = z.enum(["low", "medium", "high"]);
 export const modelSchema = z.string().trim().regex(/^[\w.\-:/@ ]{1,120}$/, "Model names use letters, numbers, spaces and . - _ : / @");
 export const labelSchema = z.string().trim().min(1).max(60);
 export const apiKeySchema = z
@@ -17,6 +18,7 @@ export const createSchema = z
     kind: kindSchema,
     label: labelSchema.optional(),
     model: modelSchema,
+    effort: effortSchema.default("medium"),
     baseUrl: baseUrlSchema,
     apiKey: apiKeySchema,
     enabled: z.boolean().default(true),
@@ -28,6 +30,7 @@ export const patchSchema = z
   .object({
     label: labelSchema.optional(),
     model: modelSchema.optional(),
+    effort: effortSchema.optional(),
     baseUrl: baseUrlSchema,
     apiKey: apiKeySchema.optional(),
     enabled: z.boolean().optional(),

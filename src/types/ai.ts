@@ -4,6 +4,7 @@ export type ProviderKind = "openai" | "anthropic" | "gemini" | "groq" | "openai-
 
 /** Where saved keys live. `session`: encrypted HTTP-only cookie, `database`: encrypted at rest. */
 export type ProviderStorage = "database" | "session" | "unavailable";
+export type ProviderEffort = "low" | "medium" | "high";
 
 export interface ProviderTestResult {
   ok: boolean;
@@ -19,6 +20,7 @@ export interface PublicProvider {
   kind: ProviderKind;
   label: string;
   model: string;
+  effort: ProviderEffort;
   baseUrl: string | null;
   enabled: boolean;
   isDefault: boolean;
@@ -43,6 +45,7 @@ export interface ProviderInput {
   kind: ProviderKind;
   label?: string;
   model: string;
+  effort?: ProviderEffort;
   baseUrl?: string | null;
   apiKey: string;
   enabled?: boolean;
@@ -52,6 +55,7 @@ export interface ProviderInput {
 export interface ProviderPatch {
   label?: string;
   model?: string;
+  effort?: ProviderEffort;
   baseUrl?: string | null;
   /** Replace the stored key. Omit to keep it. */
   apiKey?: string;

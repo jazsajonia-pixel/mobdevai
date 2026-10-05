@@ -42,7 +42,7 @@ function fakeServer() {
     if (url.pathname === "/api/ai/providers" && method === "GET") return json(resp());
     if (url.pathname === "/api/ai/providers" && method === "POST") {
       const id = `p_${providers.length + 1}abcdefgh`;
-      providers.push({ id, kind: body.kind, label: body.label ?? "OpenAI", model: body.model, baseUrl: body.baseUrl ?? null, enabled: true, isDefault: false, keyHint: "sk-…ABCD", source: "user", lastTest: null, updatedAt: new Date().toISOString() });
+      providers.push({ id, kind: body.kind, label: body.label ?? "OpenAI", model: body.model, effort: "medium", baseUrl: body.baseUrl ?? null, enabled: true, isDefault: false, keyHint: "sk-…ABCD", source: "user", lastTest: null, updatedAt: new Date().toISOString() });
       if (!defaultId || body.makeDefault) defaultId = id;
       return json(resp(), 201);
     }

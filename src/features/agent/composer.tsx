@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, AtSign, Paperclip, Square, Upload, X } from "lucide-react";
+import { ArrowUp, AtSign, Paperclip, Plus, Square, Upload, WandSparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { AgentAttachment, AgentMode } from "@/types/agent";
+import { CUSTOM_SKILLS, loadEnabledSkills, saveEnabledSkills } from "@/lib/skills";
 
 export interface QuickAction {
   label: string;
@@ -52,6 +53,9 @@ export function Composer({
 }) {
   const [text, setText] = useState(initialText);
   const [attachActive, setAttachActive] = useState(true);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [skillsOpen, setSkillsOpen] = useState(false);
+  const [enabledSkills, setEnabledSkills] = useState<string[]>(loadEnabledSkills);
   const [uploads, setUploads] = useState<AgentAttachment[]>([]);
   const uploadRef = useRef<HTMLInputElement>(null);
   const [caret, setCaret] = useState(0);
@@ -195,8 +199,9 @@ export function Composer({
         ) : null}
       </div>
 
-      {uploads.length ? <div className="mb-2 flex gap-1.5 overflow-x-auto" aria-label="Uploaded attachments">{uploads.map((file, i) => <button key={`${file.name}-${i}`} type="button" onClick={() => setUploads((list) => list.filter((_, j) => j !== i))} className="flex shrink-0 items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-xs text-primary" aria-label={`Remove ${file.name}`}><Paperclip className="size-3" aria-hidden /><span className="max-w-32 truncate">{file.name}</span><X className="size-3" aria-hidden /></button>)}</div> : null}
-      <input ref={uploadRef} type="file" multiple accept="image/*,.txt,.md,.json,.js,.jsx,.ts,.tsx,.css,.html,.py,.sql" className="sr-only" onChange={(e) => { void addUploads(e.target.files); e.currentTarget.value = ""; }} data-testid="input-agent-upload" />
+      {toolsOpen ? <div className="mb-2 rounded-xl border bg-background p-2" data-testid="chat-tools-menu"><div className="flex items-center gap-2"><button type="button" onClick={() => setSkillsOpen((open) => !open)} aria-pressed={skillsOpen} className="inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-medium aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary" data-testid="button-chat-skills"><WandSparkles className="size-4" aria-hidden /> Skills</button>{skillsOpen ? <span className="text-[11px] text-muted-foreground">{enabledSkills.length} enabled</span> : null}</div>{skillsOpen ? <div className="mt-2 flex flex-wrap gap-1.5">{CUSTOM_SKILLS.map((skill) => { const active = enabledSkills.includes(skill.id); return <button key={skill.id} type="button" aria-pressed={active} onClick={() => setEnabledSkills((current) => { const next = active ? current.filter((id) => id !== skill.id) : [...current, skill.id]; saveEnabledSkills(next); return next; })} className="rounded-full border px-2.5 py-1 text-[11px] aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary">{skill.name}</button>; })}</div> : null}</div> : null}
+      {skillsOpen && uploads.length ? <div className="mb-2 flex gap-1.5 overflow-x-auto" aria-label="Uploaded attachments">{uploads.map((file, i) => <button key={`${file.name}-${i}`} type="button" onClick={() => setUploads((list) => list.filter((_, j) => j !== i))} className="flex shrink-0 items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-xs text-primary" aria-label={`Remove ${file.name}`}><Paperclip className="size-3" aria-hidden /><span className="max-w-32 truncate">{file.name}</span><X className="size-3" aria-hidden /></button>)}</div> : null}
+      {skillsOpen ? <input ref={uploadRef} type="file" multiple accept="image/*,.txt,.md,.json,.js,.jsx,.ts,.tsx,.css,.html,.py,.sql" className="sr-only" onChange={(e) => { void addUploads(e.target.files); e.currentTarget.value = ""; }} data-testid="input-agent-upload" /> : null}
       <form
         className="flex items-end gap-2"
         onSubmit={(e) => {
@@ -204,7 +209,8 @@ export function Composer({
           submit();
         }}
       >
-        <Button type="button" size="icon" variant="secondary" onClick={() => uploadRef.current?.click()} aria-label="Attach files or images" data-testid="button-agent-upload"><Upload /></Button>
+        <Button type="button" size="icon" variant="secondary" onClick={() => setToolsOpen((open) => !open)} aria-expanded={toolsOpen} aria-label="More chat tools" data-testid="button-chat-plus"><Plus /></Button>
+        {skillsOpen ? <Button type="button" size="icon" variant="secondary" onClick={() => uploadRef.current?.click()} aria-label="Attach files or images" data-testid="button-agent-upload"><Upload /></Button> : null}
         <textarea
           ref={ref}
           value={text}

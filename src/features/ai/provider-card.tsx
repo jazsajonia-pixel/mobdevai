@@ -69,6 +69,8 @@ export function ProviderCard({
           <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
             <dt className="text-muted-foreground">Model</dt>
             <dd className="truncate font-mono">{p.model}</dd>
+            <dt className="text-muted-foreground">Effort</dt>
+            <dd className="capitalize">{p.effort}</dd>
             {p.baseUrl ? (
               <>
                 <dt className="text-muted-foreground">Base URL</dt>

@@ -33,6 +33,7 @@ export default handle(["GET", "POST"], async (req) => {
       kind: body.kind,
       label: body.label ?? PROVIDERS[body.kind].name,
       model: body.model,
+      effort: body.effort,
       baseUrl: cleanBaseUrl(body.kind, body.baseUrl),
       enabled: body.enabled,
       keyCipher: await store.encryptKey(body.apiKey, id),
