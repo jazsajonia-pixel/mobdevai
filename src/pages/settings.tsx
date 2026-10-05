@@ -1,7 +1,7 @@
 import { APP_VERSION } from "@/lib/monitoring";
 import { useState } from "react";
-import { useLocation } from "wouter";
-import { LogOut, Moon, Sun } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { ChevronRight, LogOut, Moon, Sparkles, Sun } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ActiveProviderLink } from "@/features/ai/active-provider";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,15 @@ export default function SettingsPage() {
 
       <section className="mt-6">
         <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">AI providers</h2>
-        <ActiveProviderLink />
+        <div className="space-y-2">
+          <ActiveProviderLink />
+          <Button asChild variant="secondary" className="w-full justify-between" data-testid="button-chrono-flex">
+            <Link href="/app/settings/ai">
+              <span className="flex items-center gap-2"><Sparkles className="size-4 text-primary" aria-hidden /> Chrono Flex</span>
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">Bring your own key <ChevronRight className="size-4" aria-hidden /></span>
+            </Link>
+          </Button>
+        </div>
       </section>
 
       <Section title="Backend">

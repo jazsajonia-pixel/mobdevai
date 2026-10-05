@@ -39,6 +39,8 @@ export async function loadLanguage(path: string): Promise<Extension | null> {
       return (await import("@codemirror/lang-markdown")).markdown();
     case "py":
       return (await import("@codemirror/lang-python")).python();
+    case "php":
+      return (await import("@codemirror/lang-php")).php();
     case "yml":
     case "yaml": {
       const [{ StreamLanguage }, { yaml }] = await Promise.all([import("@codemirror/language"), import("@codemirror/legacy-modes/mode/yaml")]);

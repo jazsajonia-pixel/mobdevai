@@ -31,7 +31,7 @@ export default function AIProvidersPage() {
 
   return (
     <AppShell
-      title="AI providers"
+      title="Chrono Flex"
       actions={
         canAdd ? (
           <Button size="sm" onClick={openAdd} data-testid="button-add-provider">
@@ -40,6 +40,7 @@ export default function AIProvidersPage() {
         ) : null
       }
     >
+      <p className="mb-3 text-sm text-muted-foreground">Bring your own API key, choose a provider, and make it the default for your AI workspace.</p>
       <Link href="/app/settings" className="-ml-1 mb-3 inline-flex h-11 items-center gap-1.5 px-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" aria-hidden /> Settings
       </Link>

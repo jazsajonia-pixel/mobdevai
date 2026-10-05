@@ -7,7 +7,8 @@ import { useSession } from "@/stores/session";
 import { projectPath } from "@/lib/nav";
 
 const SUPPORTED = ["Static HTML / CSS / JavaScript (multi-page)", "Vite + React / Preact (JS & TypeScript)", "Create React App", "Tailwind CSS v3 / v4, CSS modules, JSON & asset imports", "npm packages (loaded from esm.sh at your package.json versions)"];
-const NOT_YET = ["Server runtimes: Next.js, Remix, Nuxt, SvelteKit, Astro, Node/Express APIs", "Vue, Svelte, Angular, Solid single-file components", "Native apps: React Native / Expo, Flutter, Electron", "Backends and databases (Python, Go, Ruby, PHP…)"];
+const EDITOR_LANGUAGES = "PHP, Python, Go, Rust, Ruby, SQL, YAML, shell, and TOML files are syntax-highlighted in the editor.";
+const NOT_YET = ["Server runtimes: Next.js, Remix, Nuxt, SvelteKit, Astro, Node/Express APIs", "Vue, Svelte, Angular, Solid single-file components", "Native apps: React Native / Expo, Flutter, Electron", "Server-rendered backends and databases (PHP, Python, Go, Ruby…) — these need a runtime/server, not just a browser frame"];
 
 export default function PreviewPage() {
   const { session } = useSession();
@@ -56,6 +57,7 @@ export default function PreviewPage() {
           </ul>
         </div>
       </section>
+      <p className="mt-4 text-xs text-muted-foreground">Editor support and browser preview are different: {EDITOR_LANGUAGES} The browser preview only executes frontend code in a sandbox, so PHP and other server languages need deployment or a server runtime to run.</p>
     </AppShell>
   );
 }
