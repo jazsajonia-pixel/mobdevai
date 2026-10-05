@@ -1,8 +1,8 @@
 import type { Config } from "@netlify/functions";
-import { handle, json } from "../lib/http";
-import { githubForRequest } from "../lib/gh-request";
-import { mapRepo, type GhRepo } from "../lib/github";
-import { repoParams } from "../lib/validate";
+import { handle, json } from "../lib/http.js";
+import { githubForRequest } from "../lib/gh-request.js";
+import { mapRepo, type GhRepo } from "../lib/github.js";
+import { repoParams } from "../lib/validate.js";
 
 /** GET /api/github/repos/:owner/:repo — repository metadata and your permissions. */
 export default handle(["GET"], async (req, ctx) => {

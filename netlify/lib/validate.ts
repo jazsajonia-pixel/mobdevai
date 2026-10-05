@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { HttpError } from "./http";
+import { HttpError } from "./http.js";
 
 /** GitHub owner / repository names. */
 export const ownerSchema = z.string().regex(/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/, "Invalid owner");

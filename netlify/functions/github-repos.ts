@@ -1,10 +1,10 @@
 import type { Config } from "@netlify/functions";
 import { z } from "zod";
-import { handle, json } from "../lib/http";
-import { githubForRequest } from "../lib/gh-request";
-import { hasNextPage, mapRepo, type GhRepo } from "../lib/github";
-import { parse } from "../lib/validate";
-import type { RepoListResponse } from "../../src/types/github";
+import { handle, json } from "../lib/http.js";
+import { githubForRequest } from "../lib/gh-request.js";
+import { hasNextPage, mapRepo, type GhRepo } from "../lib/github.js";
+import { parse } from "../lib/validate.js";
+import type { RepoListResponse } from "../../src/types/github.js";
 
 const querySchema = z.object({ page: z.coerce.number().int().min(1).max(50).default(1) });
 

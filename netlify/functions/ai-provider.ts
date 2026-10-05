@@ -1,10 +1,10 @@
 import type { Config } from "@netlify/functions";
-import { HttpError, handle } from "../lib/http";
-import { parse, readJson } from "../lib/validate";
-import { patchSchema, providerIdSchema } from "../lib/ai/schemas";
-import { findProvider, removeProvider, setDefault, updateProvider, type StoredProvider } from "../lib/ai/state";
-import { publicPlatform } from "../lib/ai/store";
-import { cleanBaseUrl, maskKey, providerContext, respond } from "../lib/ai/handlers";
+import { HttpError, handle } from "../lib/http.js";
+import { parse, readJson } from "../lib/validate.js";
+import { patchSchema, providerIdSchema } from "../lib/ai/schemas.js";
+import { findProvider, removeProvider, setDefault, updateProvider, type StoredProvider } from "../lib/ai/state.js";
+import { publicPlatform } from "../lib/ai/store.js";
+import { cleanBaseUrl, maskKey, providerContext, respond } from "../lib/ai/handlers.js";
 
 /**
  * PATCH  /api/ai/providers/:id  { label?, model?, baseUrl?, apiKey?, enabled?, makeDefault? }

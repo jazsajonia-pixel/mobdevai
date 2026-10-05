@@ -1,7 +1,7 @@
-import { log } from "./log";
+import { log } from "./log.js";
 import { neon } from "@neondatabase/serverless";
-import { isSet } from "./env";
-import type { SessionUser } from "../../src/types/github";
+import { isSet } from "./env.js";
+import type { SessionUser } from "../../src/types/github.js";
 
 /**
  * Optional persistence (Neon / PostgreSQL). Sign-in works without a database; when DATABASE_URL

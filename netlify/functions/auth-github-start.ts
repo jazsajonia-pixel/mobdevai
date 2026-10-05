@@ -1,12 +1,12 @@
 import type { Config } from "@netlify/functions";
 import { z } from "zod";
-import { appOrigin, githubConfig } from "../lib/env";
-import { HttpError, handle, json } from "../lib/http";
-import { randomToken } from "../lib/crypto";
-import { stateCookie } from "../lib/session";
-import { scopesFor } from "../lib/github";
-import { assertSameOrigin, clientKey, rateLimit } from "../lib/security";
-import { parse } from "../lib/validate";
+import { appOrigin, githubConfig } from "../lib/env.js";
+import { HttpError, handle, json } from "../lib/http.js";
+import { randomToken } from "../lib/crypto.js";
+import { stateCookie } from "../lib/session.js";
+import { scopesFor } from "../lib/github.js";
+import { assertSameOrigin, clientKey, rateLimit } from "../lib/security.js";
+import { parse } from "../lib/validate.js";
 
 const bodySchema = z.object({ includePrivate: z.boolean().default(false) }).strict();
 

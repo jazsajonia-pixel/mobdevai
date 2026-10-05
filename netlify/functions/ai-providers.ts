@@ -1,10 +1,10 @@
 import type { Config } from "@netlify/functions";
-import { PROVIDERS } from "../../src/lib/ai-catalog";
-import { HttpError, handle } from "../lib/http";
-import { readJson } from "../lib/validate";
-import { createSchema } from "../lib/ai/schemas";
-import { addProvider } from "../lib/ai/state";
-import { cleanBaseUrl, maskKey, newProviderId, providerContext, respond, respondUnavailable } from "../lib/ai/handlers";
+import { PROVIDERS } from "../../src/lib/ai-catalog.js";
+import { HttpError, handle } from "../lib/http.js";
+import { readJson } from "../lib/validate.js";
+import { createSchema } from "../lib/ai/schemas.js";
+import { addProvider } from "../lib/ai/state.js";
+import { cleanBaseUrl, maskKey, newProviderId, providerContext, respond, respondUnavailable } from "../lib/ai/handlers.js";
 
 /**
  * GET  /api/ai/providers  → saved providers (masked) + storage mode + platform providers

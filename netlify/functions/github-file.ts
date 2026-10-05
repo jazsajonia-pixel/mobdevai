@@ -1,9 +1,9 @@
 import type { Config } from "@netlify/functions";
-import { HttpError, handle, json } from "../lib/http";
-import { githubForRequest } from "../lib/gh-request";
-import { looksBinary } from "../lib/github";
-import { parse, pathSchema, refSchema, repoParams } from "../lib/validate";
-import type { FileResponse } from "../../src/types/github";
+import { HttpError, handle, json } from "../lib/http.js";
+import { githubForRequest } from "../lib/gh-request.js";
+import { looksBinary } from "../lib/github.js";
+import { parse, pathSchema, refSchema, repoParams } from "../lib/validate.js";
+import type { FileResponse } from "../../src/types/github.js";
 
 export const MAX_FILE_BYTES = 1024 * 1024;
 

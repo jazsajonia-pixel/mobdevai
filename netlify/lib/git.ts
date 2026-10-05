@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { HttpError } from "./http";
-import { encodeRef, type GitHubClient } from "./github";
-import { pathSchema, refSchema } from "./validate";
-import type { CommitRequest, CommitResponse, CommitSummary, PullRequestSummary } from "../../src/types/github";
+import { HttpError } from "./http.js";
+import { encodeRef, type GitHubClient } from "./github.js";
+import { pathSchema, refSchema } from "./validate.js";
+import type { CommitRequest, CommitResponse, CommitSummary, PullRequestSummary } from "../../src/types/github.js";
 
 /**
  * Git Data API workflow for committing a set of full-file changes in ONE commit:

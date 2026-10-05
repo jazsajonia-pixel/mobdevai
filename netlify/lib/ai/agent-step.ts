@@ -1,7 +1,7 @@
-import type { AgentAttachment, AgentMessage, ToolCall } from "../../../src/types/agent";
-import type { ToolDef } from "../../../src/lib/agent-tools";
-import { HttpError } from "../http";
-import { AGENT_TIMEOUT_MS, ANTHROPIC, GEMINI, anthropicHeaders, call, openAiBase, type ResolvedProvider } from "./adapters";
+import type { AgentAttachment, AgentMessage, ToolCall } from "../../../src/types/agent.js";
+import type { ToolDef } from "../../../src/lib/agent-tools.js";
+import { HttpError } from "../http.js";
+import { AGENT_TIMEOUT_MS, ANTHROPIC, GEMINI, anthropicHeaders, call, openAiBase, type ResolvedProvider } from "./adapters.js";
 
 /**
  * One agent step = one model call with tool definitions. The browser runs the loop (executing

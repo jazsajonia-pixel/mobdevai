@@ -1,15 +1,15 @@
 import type { Config } from "@netlify/functions";
-import type { ProviderTestResult, TestProviderResponse } from "../../src/types/ai";
-import { HttpError, handle, json } from "../lib/http";
-import { requireSession } from "../lib/session";
-import { assertSameOrigin, rateLimit } from "../lib/security";
-import { readJson } from "../lib/validate";
-import { testSchema } from "../lib/ai/schemas";
-import { testProvider, type ResolvedProvider } from "../lib/ai/adapters";
-import { cleanBaseUrl } from "../lib/ai/handlers";
-import { resolveProvider } from "../lib/ai/resolve";
-import { openStore } from "../lib/ai/store";
-import { findProvider, recordTest } from "../lib/ai/state";
+import type { ProviderTestResult, TestProviderResponse } from "../../src/types/ai.js";
+import { HttpError, handle, json } from "../lib/http.js";
+import { requireSession } from "../lib/session.js";
+import { assertSameOrigin, rateLimit } from "../lib/security.js";
+import { readJson } from "../lib/validate.js";
+import { testSchema } from "../lib/ai/schemas.js";
+import { testProvider, type ResolvedProvider } from "../lib/ai/adapters.js";
+import { cleanBaseUrl } from "../lib/ai/handlers.js";
+import { resolveProvider } from "../lib/ai/resolve.js";
+import { openStore } from "../lib/ai/store.js";
+import { findProvider, recordTest } from "../lib/ai/state.js";
 
 /**
  * POST /api/ai/test-provider

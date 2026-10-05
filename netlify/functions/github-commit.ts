@@ -1,10 +1,10 @@
 import type { Config } from "@netlify/functions";
-import { handle, json } from "../lib/http";
-import { githubForRequest } from "../lib/gh-request";
-import { commitChanges, commitRequestSchema, MAX_COMMIT_BODY } from "../lib/git";
-import { assertSameOrigin, rateLimit } from "../lib/security";
-import { readJson, repoParams } from "../lib/validate";
-import type { CommitRequest } from "../../src/types/github";
+import { handle, json } from "../lib/http.js";
+import { githubForRequest } from "../lib/gh-request.js";
+import { commitChanges, commitRequestSchema, MAX_COMMIT_BODY } from "../lib/git.js";
+import { assertSameOrigin, rateLimit } from "../lib/security.js";
+import { readJson, repoParams } from "../lib/validate.js";
+import type { CommitRequest } from "../../src/types/github.js";
 
 /**
  * POST /api/github/repos/:owner/:repo/commit — commit workspace changes (one commit, fast-forward

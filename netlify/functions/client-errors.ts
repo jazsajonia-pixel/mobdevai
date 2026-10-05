@@ -1,9 +1,9 @@
 import type { Config } from "@netlify/functions";
 import { z } from "zod";
-import { handle } from "../lib/http";
-import { log } from "../lib/log";
-import { clientKey, rateLimit } from "../lib/security";
-import { readJson } from "../lib/validate";
+import { handle } from "../lib/http.js";
+import { log } from "../lib/log.js";
+import { clientKey, rateLimit } from "../lib/security.js";
+import { readJson } from "../lib/validate.js";
 
 const reportSchema = z
   .object({

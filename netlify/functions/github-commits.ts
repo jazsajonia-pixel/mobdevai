@@ -1,9 +1,9 @@
 import type { Config } from "@netlify/functions";
-import { handle, json } from "../lib/http";
-import { githubForRequest } from "../lib/gh-request";
-import { mapCommit, type GhCommitListItem } from "../lib/git";
-import { parse, refSchema, repoParams } from "../lib/validate";
-import type { CommitListResponse } from "../../src/types/github";
+import { handle, json } from "../lib/http.js";
+import { githubForRequest } from "../lib/gh-request.js";
+import { mapCommit, type GhCommitListItem } from "../lib/git.js";
+import { parse, refSchema, repoParams } from "../lib/validate.js";
+import type { CommitListResponse } from "../../src/types/github.js";
 
 /** GET /api/github/repos/:owner/:repo/commits?ref=BRANCH — the 10 most recent commits. */
 export default handle(["GET"], async (req, ctx) => {

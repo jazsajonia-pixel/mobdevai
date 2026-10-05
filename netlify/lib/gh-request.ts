@@ -1,7 +1,7 @@
-import { githubConfig } from "./env";
-import { HttpError } from "./http";
-import { requireSession, clearCookie, SESSION_COOKIE, type SessionData } from "./session";
-import { githubClient, type GitHubClient } from "./github";
+import { githubConfig } from "./env.js";
+import { HttpError } from "./http.js";
+import { requireSession, clearCookie, SESSION_COOKIE, type SessionData } from "./session.js";
+import { githubClient, type GitHubClient } from "./github.js";
 
 /** Session + authenticated GitHub client for /api/github/* handlers. */
 export async function githubForRequest(req: Request): Promise<{ gh: GitHubClient; session: SessionData }> {

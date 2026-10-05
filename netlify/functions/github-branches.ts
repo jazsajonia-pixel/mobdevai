@@ -1,9 +1,9 @@
 import type { Config } from "@netlify/functions";
-import { handle, json } from "../lib/http";
-import { githubForRequest } from "../lib/gh-request";
-import { hasNextPage, mapBranch, type GhBranch } from "../lib/github";
-import { repoParams } from "../lib/validate";
-import type { BranchListResponse, BranchSummary } from "../../src/types/github";
+import { handle, json } from "../lib/http.js";
+import { githubForRequest } from "../lib/gh-request.js";
+import { hasNextPage, mapBranch, type GhBranch } from "../lib/github.js";
+import { repoParams } from "../lib/validate.js";
+import type { BranchListResponse, BranchSummary } from "../../src/types/github.js";
 
 const MAX_PAGES = 3; // up to 300 branches — enough for a phone picker
 

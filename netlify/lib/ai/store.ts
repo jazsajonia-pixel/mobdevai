@@ -1,12 +1,12 @@
-import { PROVIDERS } from "../../../src/lib/ai-catalog";
-import type { ProviderKind, ProviderStorage } from "../../../src/types/ai";
-import { isSecureRequest, parseCookies, serializeCookie } from "../cookies";
-import { decryptField, encryptField, seal, unseal } from "../crypto";
-import { db } from "../db";
-import { capabilities, encryptionSecret, isSet, sessionSecret } from "../env";
-import { HttpError } from "../http";
-import { AI_COOKIE, SESSION_TTL, type SessionData } from "../session";
-import { emptyState, type PlatformProvider, type ProviderState, type StoredProvider } from "./state";
+import { PROVIDERS } from "../../../src/lib/ai-catalog.js";
+import type { ProviderKind, ProviderStorage } from "../../../src/types/ai.js";
+import { isSecureRequest, parseCookies, serializeCookie } from "../cookies.js";
+import { decryptField, encryptField, seal, unseal } from "../crypto.js";
+import { db } from "../db.js";
+import { capabilities, encryptionSecret, isSet, sessionSecret } from "../env.js";
+import { HttpError } from "../http.js";
+import { AI_COOKIE, SESSION_TTL, type SessionData } from "../session.js";
+import { emptyState, type PlatformProvider, type ProviderState, type StoredProvider } from "./state.js";
 
 /**
  * Where AI provider keys live:

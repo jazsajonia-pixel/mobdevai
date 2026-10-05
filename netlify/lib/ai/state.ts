@@ -1,5 +1,5 @@
-import type { ProviderEffort, ProviderKind, ProviderTestResult, PublicProvider} from "../../../src/types/ai";
-import { HttpError } from "../http";
+import type { ProviderEffort, ProviderKind, ProviderTestResult, PublicProvider} from "../../../src/types/ai.js";
+import { HttpError } from "../http.js";
 
 /** Pure state operations shared by the cookie and database backends. */
 

@@ -1,5 +1,5 @@
-import { HttpError } from "./http";
-import type { BranchSummary, RepoSummary, SessionUser, TreeEntry } from "../../src/types/github";
+import { HttpError } from "./http.js";
+import type { BranchSummary, RepoSummary, SessionUser, TreeEntry } from "../../src/types/github.js";
 
 /**
  * Minimal GitHub REST client used by functions. Translates GitHub failures into our error codes

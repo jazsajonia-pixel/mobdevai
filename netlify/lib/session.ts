@@ -1,8 +1,8 @@
-import { parseCookies, serializeCookie, isSecureRequest } from "./cookies";
-import { seal, unseal } from "./crypto";
-import { sessionSecret } from "./env";
-import { HttpError } from "./http";
-import type { SessionUser } from "../../src/types/github";
+import { parseCookies, serializeCookie, isSecureRequest } from "./cookies.js";
+import { seal, unseal } from "./crypto.js";
+import { sessionSecret } from "./env.js";
+import { HttpError } from "./http.js";
+import type { SessionUser } from "../../src/types/github.js";
 
 /**
  * Server session = AES-GCM sealed, HTTP-only cookie. It carries the GitHub access token,

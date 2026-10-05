@@ -1,7 +1,7 @@
-import { isProduction } from "../env";
+import { isProduction } from "../env.js";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import { HttpError } from "../http";
+import { HttpError } from "../http.js";
 
 /**
  * SSRF guard for user-supplied provider base URLs. The server calls these URLs with the user's

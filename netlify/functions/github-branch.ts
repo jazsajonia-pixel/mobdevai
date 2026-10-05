@@ -1,11 +1,11 @@
 import type { Config } from "@netlify/functions";
 import { z } from "zod";
-import { HttpError, handle, json } from "../lib/http";
-import { githubForRequest } from "../lib/gh-request";
-import { isMessage, shaSchema } from "../lib/git";
-import { assertSameOrigin, rateLimit } from "../lib/security";
-import { readJson, refSchema, repoParams } from "../lib/validate";
-import type { BranchSummary } from "../../src/types/github";
+import { HttpError, handle, json } from "../lib/http.js";
+import { githubForRequest } from "../lib/gh-request.js";
+import { isMessage, shaSchema } from "../lib/git.js";
+import { assertSameOrigin, rateLimit } from "../lib/security.js";
+import { readJson, refSchema, repoParams } from "../lib/validate.js";
+import type { BranchSummary } from "../../src/types/github.js";
 
 const schema = z.object({ name: refSchema, from: shaSchema });
 

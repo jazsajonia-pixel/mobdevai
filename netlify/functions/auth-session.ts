@@ -1,8 +1,8 @@
 import type { Config } from "@netlify/functions";
-import { handle, json } from "../lib/http";
-import { SESSION_COOKIE, clearCookie, readSession } from "../lib/session";
-import { parseCookies } from "../lib/cookies";
-import type { AuthSessionResponse } from "../../src/types/github";
+import { handle, json } from "../lib/http.js";
+import { SESSION_COOKIE, clearCookie, readSession } from "../lib/session.js";
+import { parseCookies } from "../lib/cookies.js";
+import type { AuthSessionResponse } from "../../src/types/github.js";
 
 /** GET /api/auth/session — who is signed in. Never returns the access token. */
 export default handle(["GET"], async (req) => {

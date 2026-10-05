@@ -1,5 +1,5 @@
-import type { AgentMode, AgentProjectContext } from "../../../src/types/agent";
-import { CUSTOM_SKILLS } from "../../../src/lib/skills";
+import type { AgentMode, AgentProjectContext } from "../../../src/types/agent.js";
+import { CUSTOM_SKILLS } from "../../../src/lib/skills.js";
 
 /**
  * System prompt for the coding agent. Built on the server only — the browser can't replace it.

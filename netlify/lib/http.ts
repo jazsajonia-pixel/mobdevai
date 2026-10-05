@@ -3,9 +3,9 @@
  * Error shape: { error: { code, message } } — codes match src/lib/error-codes.ts.
  * Never put secrets, tokens, or raw upstream error bodies into responses or logs.
  */
-import type { ErrorCode } from "../../src/lib/error-codes";
-import { appOrigin } from "./env";
-import { log, newRequestId } from "./log";
+import type { ErrorCode } from "../../src/lib/error-codes.js";
+import { appOrigin } from "./env.js";
+import { log, newRequestId } from "./log.js";
 
 export type ServerErrorCode = ErrorCode;
 

@@ -1,9 +1,9 @@
 import type { Config } from "@netlify/functions";
-import { githubConfig } from "../lib/env";
-import { handle, json } from "../lib/http";
-import { AI_COOKIE, SESSION_COOKIE, clearCookie, readSession } from "../lib/session";
-import { revokeToken } from "../lib/github";
-import { assertSameOrigin } from "../lib/security";
+import { githubConfig } from "../lib/env.js";
+import { handle, json } from "../lib/http.js";
+import { AI_COOKIE, SESSION_COOKIE, clearCookie, readSession } from "../lib/session.js";
+import { revokeToken } from "../lib/github.js";
+import { assertSameOrigin } from "../lib/security.js";
 
 /** POST /api/auth/logout — revokes the GitHub token (best effort) and clears the session + AI cookies. */
 export default handle(["POST"], async (req) => {

@@ -1,13 +1,13 @@
-import { PROVIDERS, maskKey } from "../../../src/lib/ai-catalog";
-import type { ProvidersResponse } from "../../../src/types/ai";
-import { randomToken } from "../crypto";
-import { HttpError, json } from "../http";
-import { requireSession, type SessionData } from "../session";
-import { assertSameOrigin, rateLimit } from "../security";
-import { normalizeBaseUrl } from "./url-guard";
-import type { ProviderState } from "./state";
-import { openStore, publicPlatform, storageInfo, type ProviderStore } from "./store";
-import { toPublic } from "./state";
+import { PROVIDERS, maskKey } from "../../../src/lib/ai-catalog.js";
+import type { ProvidersResponse } from "../../../src/types/ai.js";
+import { randomToken } from "../crypto.js";
+import { HttpError, json } from "../http.js";
+import { requireSession, type SessionData } from "../session.js";
+import { assertSameOrigin, rateLimit } from "../security.js";
+import { normalizeBaseUrl } from "./url-guard.js";
+import type { ProviderState } from "./state.js";
+import { openStore, publicPlatform, storageInfo, type ProviderStore } from "./store.js";
+import { toPublic } from "./state.js";
 
 /** Shared plumbing for the /api/ai/providers functions. */
 

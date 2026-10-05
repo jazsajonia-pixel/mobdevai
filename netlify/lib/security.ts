@@ -1,13 +1,13 @@
-import { HttpError } from "./http";
-import { db } from "./db";
-import { log } from "./log";
+import { HttpError } from "./http.js";
+import { db } from "./db.js";
+import { log } from "./log.js";
 
 /**
  * CSRF defence for state-changing requests: the browser-supplied Origin (or Sec-Fetch-Site)
  * must prove the request came from our own pages. Combined with SameSite=Lax cookies.
  */
 // Defined next to handle() (which applies it to every mutating request); re-exported for callers.
-export { assertSameOrigin } from "./http";
+export { assertSameOrigin } from "./http.js";
 
 /** A fixed-window counter: returns the hit count for the current window. */
 export interface RateStore {

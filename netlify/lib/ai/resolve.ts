@@ -1,8 +1,8 @@
-import type { SessionData } from "../session";
-import { HttpError } from "../http";
-import type { ResolvedProvider } from "./adapters";
-import { effectiveDefault, findProvider } from "./state";
-import { openStore, platformProviders } from "./store";
+import type { SessionData } from "../session.js";
+import { HttpError } from "../http.js";
+import type { ResolvedProvider } from "./adapters.js";
+import { effectiveDefault, findProvider } from "./state.js";
+import { openStore, platformProviders } from "./store.js";
 
 /**
  * Resolve a provider id (or the user's default) to model + decrypted key — server-side only.

@@ -1,7 +1,7 @@
-import { PROVIDERS } from "../../../src/lib/ai-catalog";
-import type { ProviderKind } from "../../../src/types/ai";
-import { HttpError } from "../http";
-import { assertPublicHost, normalizeBaseUrl } from "./url-guard";
+import { PROVIDERS } from "../../../src/lib/ai-catalog.js";
+import type { ProviderKind } from "../../../src/types/ai.js";
+import { HttpError } from "../http.js";
+import { assertPublicHost, normalizeBaseUrl } from "./url-guard.js";
 
 /**
  * Provider abstraction. Every provider implements the same small surface so the agent (Phase 4)

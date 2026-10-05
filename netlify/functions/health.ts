@@ -1,7 +1,7 @@
 import type { Config } from "@netlify/functions";
-import { capabilities, readiness } from "../lib/env";
+import { capabilities, readiness } from "../lib/env.js";
 import pkg from "../../package.json" with { type: "json" };
-import { handle, json } from "../lib/http";
+import { handle, json } from "../lib/http.js";
 
 export const PHASE = 8;
 

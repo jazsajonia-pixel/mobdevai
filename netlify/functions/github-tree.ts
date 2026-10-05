@@ -1,9 +1,9 @@
 import type { Config } from "@netlify/functions";
-import { handle, json } from "../lib/http";
-import { githubForRequest } from "../lib/gh-request";
-import { mapTree, type GhBranch, type GhTree } from "../lib/github";
-import { parse, refSchema, repoParams } from "../lib/validate";
-import type { TreeResponse } from "../../src/types/github";
+import { handle, json } from "../lib/http.js";
+import { githubForRequest } from "../lib/gh-request.js";
+import { mapTree, type GhBranch, type GhTree } from "../lib/github.js";
+import { parse, refSchema, repoParams } from "../lib/validate.js";
+import type { TreeResponse } from "../../src/types/github.js";
 
 /** GET /api/github/repos/:owner/:repo/tree?ref=BRANCH — full recursive file tree for a branch. */
 export default handle(["GET"], async (req, ctx) => {

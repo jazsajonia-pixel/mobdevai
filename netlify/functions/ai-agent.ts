@@ -1,16 +1,16 @@
 import type { Config } from "@netlify/functions";
 import { z } from "zod";
-import { MAX_TOOL_ARGS_CHARS, isToolName, toolsForMode } from "../../src/lib/agent-tools";
-import type { AgentMessage, AgentStepResponse } from "../../src/types/agent";
-import { HttpError, handle, json } from "../lib/http";
-import { requireSession } from "../lib/session";
-import { assertSameOrigin, rateLimit } from "../lib/security";
-import { readJson } from "../lib/validate";
-import { agentStep } from "../lib/ai/agent-step";
-import { systemPrompt } from "../lib/ai/agent-prompt";
-import { resolveProvider } from "../lib/ai/resolve";
-import { providerIdSchema } from "../lib/ai/schemas";
-import { CUSTOM_SKILLS } from "../../src/lib/skills";
+import { MAX_TOOL_ARGS_CHARS, isToolName, toolsForMode } from "../../src/lib/agent-tools.js";
+import type { AgentMessage, AgentStepResponse } from "../../src/types/agent.js";
+import { HttpError, handle, json } from "../lib/http.js";
+import { requireSession } from "../lib/session.js";
+import { assertSameOrigin, rateLimit } from "../lib/security.js";
+import { readJson } from "../lib/validate.js";
+import { agentStep } from "../lib/ai/agent-step.js";
+import { systemPrompt } from "../lib/ai/agent-prompt.js";
+import { resolveProvider } from "../lib/ai/resolve.js";
+import { providerIdSchema } from "../lib/ai/schemas.js";
+import { CUSTOM_SKILLS } from "../../src/lib/skills.js";
 
 /**
  * POST /api/ai/agent — run ONE agent step.

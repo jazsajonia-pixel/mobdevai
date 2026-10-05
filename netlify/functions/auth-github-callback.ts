@@ -1,13 +1,13 @@
-import { log } from "../lib/log";
+import { log } from "../lib/log.js";
 import type { Config } from "@netlify/functions";
-import { appOrigin, githubConfig } from "../lib/env";
-import { HttpError, handle, redirect } from "../lib/http";
-import { safeEqual } from "../lib/crypto";
-import { STATE_COOKIE, clearCookie, readState, sessionCookie } from "../lib/session";
-import { exchangeCode, githubClient, mapUser, type GhUser } from "../lib/github";
-import { recordLogin } from "../lib/db";
-import { clientKey, rateLimit } from "../lib/security";
-import type { ErrorCode } from "../../src/lib/error-codes";
+import { appOrigin, githubConfig } from "../lib/env.js";
+import { HttpError, handle, redirect } from "../lib/http.js";
+import { safeEqual } from "../lib/crypto.js";
+import { STATE_COOKIE, clearCookie, readState, sessionCookie } from "../lib/session.js";
+import { exchangeCode, githubClient, mapUser, type GhUser } from "../lib/github.js";
+import { recordLogin } from "../lib/db.js";
+import { clientKey, rateLimit } from "../lib/security.js";
+import type { ErrorCode } from "../../src/lib/error-codes.js";
 
 /**
  * GET /api/auth/github/callback?code=…&state=…
