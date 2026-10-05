@@ -168,7 +168,10 @@ export function platformProviders(env: Record<string, string | undefined> = proc
   add("openai", env.OPENAI_API_KEY, env.OPENAI_MODEL);
   add("anthropic", env.ANTHROPIC_API_KEY, env.ANTHROPIC_MODEL);
   add("gemini", env.GEMINI_API_KEY, env.GEMINI_MODEL);
-  return out;
+  const preferred = env.AI_DEFAULT_PROVIDER?.trim().toLowerCase();
+  if (!preferred) return out;
+  const index = out.findIndex((p) => p.kind === preferred);
+  return index > 0 ? [out[index]!, ...out.slice(0, index), ...out.slice(index + 1)] : out;
 }
 
 export const publicPlatform = (): PlatformProvider[] => platformProviders().map(({ apiKey: _k, ...p }) => p);

@@ -214,6 +214,16 @@ describe("POST /api/ai/test-provider", () => {
 });
 
 describe("platform providers + database mode notes", () => {
+  it("honors an explicit platform default when several server providers are available", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "sk-SERVERKEY_openai_abcdef");
+    vi.stubEnv("ANTHROPIC_API_KEY", "sk-ant-SERVERKEY_anthropic");
+    vi.stubEnv("GEMINI_API_KEY", "AIzaSySERVERKEY_gemini");
+    vi.stubEnv("AI_DEFAULT_PROVIDER", "gemini");
+    const data = (await (await providers(req("/api/ai/providers", session))).json()) as ProvidersResponse;
+    expect(data.defaultId).toBe("platform:gemini");
+    expect(data.providers.find((p) => p.id === "platform:gemini")?.isDefault).toBe(true);
+  });
+
   it("lists server-provided keys as read-only without revealing them", async () => {
     vi.stubEnv("OPENAI_API_KEY", "sk-SERVERKEY_platform_secret_abcdef");
     const res = await providers(req("/api/ai/providers", session));
