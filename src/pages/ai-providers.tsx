@@ -22,6 +22,7 @@ export default function AIProvidersPage() {
 
   const data = state.status === "ready" ? state.data : null;
   const userCount = data?.providers.filter((p) => p.source === "user").length ?? 0;
+  const visibleProviders = data?.providers.filter((p) => !(p.source === "platform" && p.kind === "gemini")) ?? [];
   const canAdd = !!data && data.storage !== "unavailable" && userCount < data.maxProviders;
 
   const openAdd = () => {
@@ -69,7 +70,7 @@ export default function AIProvidersPage() {
           <StorageNotice data={state.data} />
           {actionError ? <ErrorState error={actionError} onRetry={() => setActionError(null)} /> : null}
 
-          {state.data.providers.length === 0 ? (
+          {visibleProviders.length === 0 ? (
             <EmptyState
               icon={<KeyRound className="size-6" />}
               title="No AI providers yet"
@@ -85,7 +86,7 @@ export default function AIProvidersPage() {
             </EmptyState>
           ) : (
             <div className="space-y-3" data-testid="list-providers">
-              {state.data.providers.map((p) => (
+              {visibleProviders.map((p) => (
                 <ProviderCard
                   key={p.id}
                   provider={p}
