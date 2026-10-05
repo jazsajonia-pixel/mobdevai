@@ -113,7 +113,7 @@ const COPY: Record<ErrorCode, ErrorCopy> = {
   },
   UNSUPPORTED_PROJECT: {
     title: "Unsupported project type",
-    hint: "This project requires a runtime that Mobile Development AI cannot run in-browser yet.",
+    hint: "This project requires a runtime that Chrono cannot run in-browser yet.",
   },
   GIT_CONFLICT: {
     title: "The branch changed on GitHub",

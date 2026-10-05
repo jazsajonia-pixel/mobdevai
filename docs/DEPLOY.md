@@ -1,4 +1,4 @@
-# Deploying Mobile Development AI (Netlify)
+# Deploying Chrono (Netlify)
 
 This guide takes the repository to a production site on Netlify. It takes about 15 minutes. Nothing
 here requires putting a secret in the repository or in a `VITE_*` variable.

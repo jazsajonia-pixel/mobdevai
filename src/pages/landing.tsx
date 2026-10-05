@@ -99,7 +99,7 @@ export default function LandingPage() {
             Build, edit, preview, and ship — <span className="text-primary">from your phone.</span>
           </h1>
           <p className="mt-5 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Mobile Development AI brings an AI coding agent, GitHub workflows, and live previews into a mobile-first development environment.
+            Chrono brings an AI coding agent, GitHub workflows, and live previews into a mobile-first development environment.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg" className="sm:w-auto">
@@ -161,7 +161,7 @@ export default function LandingPage() {
 
       <footer className="border-t">
         <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <span>Mobile Development AI · Early access</span>
+          <span>Chrono · Early access</span>
           <span>Demo and GitHub sign-in available now. AI agent and live preview are in progress.</span>
         </div>
       </footer>

@@ -1,7 +1,7 @@
 {
-  "name": "mobile-development-ai",
+  "name": "chrono",
   "version": "0.9.0",
-  "description": "Mobile Development AI — the first AI development environment built for developers who code from their phone.",
+  "description": "Chrono — the first AI development environment built for developers who code from their phone.",
   "scripts": {
     "dev": "vite",
     "dev:netlify": "netlify dev",

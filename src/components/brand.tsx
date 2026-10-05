@@ -13,7 +13,7 @@ export function LogoMark({ className }: { className?: string }) {
 
 export function Wordmark({ className }: { className?: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-2", className)} aria-label="Mobile Development AI">
+    <span className={cn("inline-flex items-center gap-2", className)} aria-label="Chrono">
       <LogoMark />
       <span className="text-[15px] font-semibold tracking-tight">
         Mobile Development <span className="text-primary">AI</span>

@@ -91,7 +91,7 @@ export default function SettingsPage() {
         </Button>
       </Section>
 
-      <p className="mt-6 text-center font-mono text-[11px] text-muted-foreground">Mobile Development AI · v{APP_VERSION} · Phase 8</p>
+      <p className="mt-6 text-center font-mono text-[11px] text-muted-foreground">Chrono · v{APP_VERSION} · Phase 8</p>
 
       <BottomSheet
         open={confirmOpen}

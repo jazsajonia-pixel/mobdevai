@@ -35,7 +35,7 @@ export default function SignInPage() {
 
       <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center pb-16">
         <LogoMark className="size-10" />
-        <h1 className="mt-6 text-xl font-semibold tracking-tight">Sign in to Mobile Development AI</h1>
+        <h1 className="mt-6 text-xl font-semibold tracking-tight">Sign in to Chrono</h1>
         <p className="mt-2 text-sm text-muted-foreground">Connect GitHub to open your repositories. We never ask for your GitHub password.</p>
 
         {session.mode === "demo" ? (

@@ -1,4 +1,4 @@
-# Mobile Development AI
+# Chrono
 
 > The first AI development environment built for developers who code from their phone.
 

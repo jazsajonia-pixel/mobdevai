@@ -19,8 +19,8 @@ export const PROVIDERS: Record<ProviderKind, ProviderMeta> = {
   openai: {
     kind: "openai",
     name: "OpenAI",
-    defaultModel: "gpt-6.1-sol",
-    suggestedModels: ["gpt-6.1-sol", "gpt-6-astra", "gpt-6-luna"],
+    defaultModel: "Chrono 1.3",
+    suggestedModels: ["Chrono 1.0", "Chrono 1.1", "Chrono 1.2", "Chrono 1.3"],
     keyPlaceholder: "sk-…",
     keyUrl: "https://platform.openai.com/api-keys",
     defaultBaseUrl: "https://api.openai.com/v1",
@@ -29,8 +29,8 @@ export const PROVIDERS: Record<ProviderKind, ProviderMeta> = {
   anthropic: {
     kind: "anthropic",
     name: "Anthropic",
-    defaultModel: "claude-sonnet-5-5",
-    suggestedModels: ["claude-sonnet-5-5", "claude-opus-5-5", "claude-haiku-4-5-20251001"],
+    defaultModel: "Claude 3.N",
+    suggestedModels: ["Claude 3.N", "Claude 3.N Opus", "Claude 3.N Haiku"],
     keyPlaceholder: "sk-ant-…",
     keyUrl: "https://console.anthropic.com/settings/keys",
     defaultBaseUrl: "https://api.anthropic.com",
@@ -39,8 +39,8 @@ export const PROVIDERS: Record<ProviderKind, ProviderMeta> = {
   gemini: {
     kind: "gemini",
     name: "Google Gemini",
-    defaultModel: "gemini-3.8-flash",
-    suggestedModels: ["gemini-3.8-flash", "gemini-3.1-pro-preview", "gemini-2.5-pro", "gemini-3.5-flash-lite"],
+    defaultModel: "Gemini 3.N",
+    suggestedModels: ["Gemini 3.N", "Gemini 3.N Pro", "Gemini 3.N Flash", "Gemini 3.N Lite"],
     keyPlaceholder: "AIza…",
     keyUrl: "https://aistudio.google.com/apikey",
     defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta",

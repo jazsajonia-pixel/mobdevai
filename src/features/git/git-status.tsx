@@ -111,7 +111,7 @@ export function GitStatus({ target, version, compact = false }: { target: GitTar
     setPrErr(null);
     try {
       const last = commits.status === "success" ? commits.data.commits[0]?.message : undefined;
-      await githubApi.createPull(owner, repo, { head: branch, base: defaultBranch, title: last ?? branch, body: "Opened from Mobile Development AI. Review the diff before merging." });
+      await githubApi.createPull(owner, repo, { head: branch, base: defaultBranch, title: last ?? branch, body: "Opened from Chrono. Review the diff before merging." });
       pulls.retry();
     } catch (e) {
       setPrErr(e instanceof AppError ? e.message || describeError(e).title : "Couldn't open the pull request.");

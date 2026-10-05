@@ -27,7 +27,7 @@ export function AppShell({ title, actions, children }: { title: string; actions?
       <SkipLink />
       {/* Desktop rail */}
       <nav aria-label="Main" className="fixed inset-y-0 left-0 hidden w-20 flex-col items-center gap-1 border-r bg-surface py-4 md:flex">
-        <Link href="/" aria-label="Mobile Development AI home" className="mb-4 grid size-11 place-items-center rounded-md hover:bg-surface-2">
+        <Link href="/" aria-label="Chrono home" className="mb-4 grid size-11 place-items-center rounded-md hover:bg-surface-2">
           <LogoMark />
         </Link>
         {MAIN_NAV.map((item) => {

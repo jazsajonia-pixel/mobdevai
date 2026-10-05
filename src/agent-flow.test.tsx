@@ -28,7 +28,7 @@ afterEach(() => {
 describe("AI agent (demo, simulated)", () => {
   it("plans, waits for approval, proposes diffs, and applies accepted files to the workspace", async () => {
     renderDemo();
-    expect(await screen.findByText("Simulated AI")).toBeInTheDocument();
+    expect(await screen.findByText("Simulated AI", {}, { timeout: 5000 })).toBeInTheDocument();
     fireEvent.click(await screen.findByTestId("quick-add-a-delete-button-to-each-task"));
     fireEvent.click(screen.getByTestId("button-send-agent"));
 

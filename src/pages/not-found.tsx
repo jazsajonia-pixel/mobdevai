@@ -13,7 +13,7 @@ export default function NotFoundPage() {
           </Button>
         }
       >
-        That route doesn't exist in Mobile Development AI.
+        That route doesn't exist in Chrono.
       </EmptyState>
     </div>
   );

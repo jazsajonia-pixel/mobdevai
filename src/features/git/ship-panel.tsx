@@ -38,7 +38,7 @@ type Phase =
 
 export function prBody(message: string): string {
   const body = message.split("\n").slice(1).join("\n").trim();
-  return `${body}\n\n---\nOpened from Mobile Development AI. Review the diff before merging.`.trim();
+  return `${body}\n\n---\nOpened from Chrono. Review the diff before merging.`.trim();
 }
 
 /** Commit selected changes, push, and optionally open a PR. Working branch by default. */

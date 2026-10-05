@@ -180,7 +180,7 @@ export const GEMINI = PROVIDERS.gemini.defaultBaseUrl!;
 
 const gemini: ProviderAdapter = {
   async chat(p, req) {
-    if (!/^[\w.\-]+$/.test(p.model)) throw new HttpError(400, "AI_MODEL_NOT_FOUND", "Invalid Gemini model name.");
+    if (!/^[\w.\- ]+$/.test(p.model)) throw new HttpError(400, "AI_MODEL_NOT_FOUND", "Invalid Gemini model name.");
     const data = (await call("Gemini", `${GEMINI}/models/${encodeURIComponent(p.model)}:generateContent`, {
       method: "POST",
       // Key in a header, not the query string, so it never lands in URL logs.

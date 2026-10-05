@@ -70,8 +70,8 @@ async function body<T>(res: Response): Promise<T> {
 
 const openAiOk = () =>
   mockGitHub({
-    "GET /v1/models": () => gh({ data: [{ id: "gpt-6.1-sol" }, { id: "gpt-6-luna" }] }),
-    "POST /v1/chat/completions": () => gh({ model: "gpt-6.1-sol", choices: [{ message: { content: "ok" }, finish_reason: "stop" }], usage: { prompt_tokens: 3, completion_tokens: 1 } }),
+    "GET /v1/models": () => gh({ data: [{ id: "Chrono 1.3" }, { id: "Chrono 1.2" }] }),
+    "POST /v1/chat/completions": () => gh({ model: "Chrono 1.3", choices: [{ message: { content: "ok" }, finish_reason: "stop" }], usage: { prompt_tokens: 3, completion_tokens: 1 } }),
   });
 
 describe("AI providers — session-only storage", () => {
@@ -88,7 +88,7 @@ describe("AI providers — session-only storage", () => {
     expect(data.storageNote).toMatch(/Session-only/);
     expect(data.providers).toEqual([]);
 
-    res = c.take(await providers(req("/api/ai/providers", c.get(), "POST", { kind: "openai", model: "gpt-6.1-sol", apiKey: OPENAI_KEY })));
+    res = c.take(await providers(req("/api/ai/providers", c.get(), "POST", { kind: "openai", model: "Chrono 1.3", apiKey: OPENAI_KEY })));
     expect(res.status).toBe(201);
     const setCookie = res.headers.getSetCookie().join();
     expect(setCookie).toMatch(/mdai_ai=.*Path=\/api\/ai.*HttpOnly.*SameSite=Strict/);
@@ -126,7 +126,7 @@ describe("AI providers — session-only storage", () => {
 
   it("isolates session-only providers per GitHub user", async () => {
     const c = jar(session);
-    c.take(await providers(req("/api/ai/providers", c.get(), "POST", { kind: "openai", model: "gpt-6.1-sol", apiKey: OPENAI_KEY })));
+    c.take(await providers(req("/api/ai/providers", c.get(), "POST", { kind: "openai", model: "Chrono 1.3", apiKey: OPENAI_KEY })));
     const aiCookie = c.get().split("; ").find((x) => x.startsWith("mdai_ai="))!;
     const other = `${await sessionFor(2)}; ${aiCookie}`;
     const data = await body<ProvidersResponse>(await providers(req("/api/ai/providers", other)));
@@ -153,10 +153,10 @@ describe("AI providers — session-only storage", () => {
 describe("POST /api/ai/test-provider", () => {
   it("tests unsaved settings: sends the key only to the provider, returns models", async () => {
     const calls = openAiOk();
-    const res = await testFn(req("/api/ai/test-provider", session, "POST", { kind: "openai", model: "gpt-6.1-sol", apiKey: OPENAI_KEY }));
+    const res = await testFn(req("/api/ai/test-provider", session, "POST", { kind: "openai", model: "Chrono 1.3", apiKey: OPENAI_KEY }));
     expect(res.status).toBe(200);
     const data = await body<{ ok: boolean; models: string[]; modelListed: boolean }>(res);
-    expect(data).toMatchObject({ ok: true, modelListed: true, models: ["gpt-6-luna", "gpt-6.1-sol"] });
+    expect(data).toMatchObject({ ok: true, modelListed: true, models: ["Chrono 1.2", "Chrono 1.3"] });
     expect(calls.every((c) => c.url.origin === "https://api.openai.com")).toBe(true);
     const chat = calls.find((c) => c.url.pathname.endsWith("/chat/completions"))!;
     expect(new Headers(chat.init?.headers).get("authorization")).toBe(`Bearer ${OPENAI_KEY}`);
@@ -181,7 +181,7 @@ describe("POST /api/ai/test-provider", () => {
 
   it("maps a 401 to AI_INVALID_KEY and redacts echoed keys", async () => {
     mockGitHub({ "GET /v1/models": () => gh({ error: { message: `Incorrect API key provided: ${OPENAI_KEY}` } }, { status: 401 }) });
-    const res = await testFn(req("/api/ai/test-provider", session, "POST", { kind: "openai", model: "gpt-6.1-sol", apiKey: OPENAI_KEY }));
+    const res = await testFn(req("/api/ai/test-provider", session, "POST", { kind: "openai", model: "Chrono 1.3", apiKey: OPENAI_KEY }));
     expect(res.status).toBe(400);
     const data = await body<{ error: { code: string } }>(res);
     expect(data.error.code).toBe("AI_INVALID_KEY");
@@ -196,12 +196,12 @@ describe("POST /api/ai/test-provider", () => {
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe("AI_MODEL_NOT_FOUND");
 
     mockGitHub({ "GET /v1/models": () => gh({}, { status: 429 }) });
-    res = await testFn(req("/api/ai/test-provider", session, "POST", { kind: "openai", model: "gpt-6.1-sol", apiKey: OPENAI_KEY }));
+    res = await testFn(req("/api/ai/test-provider", session, "POST", { kind: "openai", model: "Chrono 1.3", apiKey: OPENAI_KEY }));
     expect(res.status).toBe(429);
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe("AI_QUOTA_EXCEEDED");
 
     vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("fetch failed"))));
-    res = await testFn(req("/api/ai/test-provider", session, "POST", { kind: "openai", model: "gpt-6.1-sol", apiKey: OPENAI_KEY }));
+    res = await testFn(req("/api/ai/test-provider", session, "POST", { kind: "openai", model: "Chrono 1.3", apiKey: OPENAI_KEY }));
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe("AI_PROVIDER_UNAVAILABLE");
   });
 

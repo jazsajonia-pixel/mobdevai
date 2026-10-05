@@ -49,7 +49,7 @@ export function generateCommitMessage(changes: FileChange[], opts: { taskTitles?
   if (changes.length > 25) lines.push(`- …and ${changes.length - 25} more`);
   const body = [lines.join("\n")];
   if (titles.length) body.push(`AI task${titles.length === 1 ? "" : "s"}: ${titles.map((t) => `“${clampSubject(t, 100)}”`).join(", ")}`);
-  body.push("Made with Mobile Development AI.");
+  body.push("Made with Chrono.");
   return `${subject}\n\n${body.join("\n\n")}`;
 }
 

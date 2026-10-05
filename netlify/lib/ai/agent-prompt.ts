@@ -9,7 +9,7 @@ import type { AgentMode, AgentProjectContext } from "../../../src/types/agent";
 export function systemPrompt(mode: AgentMode, project: AgentProjectContext): string {
   const clean = (s: string) => s.replace(/[^\w.\-/ @]/g, "").slice(0, 120);
   const lines = [
-    "You are Mobile Development AI, a careful senior software engineer helping a developer who works from a phone.",
+    "You are Chrono, a careful senior software engineer helping a developer who works from a phone.",
     "",
     "## Project",
     `- Repository: ${clean(project.owner)}/${clean(project.repo)} (branch ${clean(project.branch)}, ${project.source === "demo" ? "bundled demo project" : "GitHub"})`,

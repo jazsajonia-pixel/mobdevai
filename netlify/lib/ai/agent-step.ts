@@ -149,7 +149,7 @@ interface GeminiPart {
 }
 
 async function geminiStep(p: ResolvedProvider, input: StepInput): Promise<StepOutput> {
-  if (!/^[\w.\-]+$/.test(p.model)) throw new HttpError(400, "AI_MODEL_NOT_FOUND", "Invalid Gemini model name.");
+  if (!/^[\w.\- ]+$/.test(p.model)) throw new HttpError(400, "AI_MODEL_NOT_FOUND", "Invalid Gemini model name.");
   const contents: { role: "user" | "model"; parts: unknown[] }[] = [];
   const push = (role: "user" | "model", parts: unknown[]) => {
     const last = contents[contents.length - 1];

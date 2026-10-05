@@ -65,7 +65,7 @@ describe("POST /api/ai/agent", () => {
     const calls = mockGitHub({
       "POST /v1/chat/completions": () =>
         gh({
-          model: "gpt-6.1-sol",
+          model: "Chrono 1.3",
           choices: [
             {
               message: {
@@ -142,7 +142,7 @@ describe("POST /api/ai/agent", () => {
   it("Gemini: maps function calls and echoes provider state (thought signatures)", async () => {
     const parts = [{ functionCall: { name: "search_code", args: { query: "useState" } }, thoughtSignature: "sig-abc" }];
     const calls = mockGitHub({
-      [`POST /v1beta/models/gemini-3.8-flash:generateContent`]: () => gh({ candidates: [{ content: { role: "model", parts }, finishReason: "STOP" }], usageMetadata: { promptTokenCount: 3, candidatesTokenCount: 2 } }),
+      [`POST /v1beta/models/Gemini%203.N:generateContent`]: () => gh({ candidates: [{ content: { role: "model", parts }, finishReason: "STOP" }], usageMetadata: { promptTokenCount: 3, candidatesTokenCount: 2 } }),
     });
     const first = await read<AgentStepResponse>(await agent(req({ providerId: "platform:gemini", mode: "ask", project, messages: [user("find state")] })));
     expect(first.message.role === "assistant" && first.message.toolCalls?.[0]?.name).toBe("search_code");

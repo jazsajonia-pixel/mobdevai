@@ -12,7 +12,7 @@ export const DEMO_PROJECT: ProjectRef = {
   name: "pocket-tasks",
   defaultBranch: "main",
   visibility: "demo",
-  description: "A tiny Vite + React to-do app bundled for trying Mobile Development AI.",
+  description: "A tiny Vite + React to-do app bundled for trying Chrono.",
 };
 
 export const DEMO_FILES: WorkspaceFile[] = [
@@ -218,7 +218,7 @@ header p {
     path: "README.md",
     content: `# Pocket Tasks
 
-A tiny Vite + React to-do list used as the Mobile Development AI demo project.
+A tiny Vite + React to-do list used as the Chrono demo project.
 
 ## Run locally
 
