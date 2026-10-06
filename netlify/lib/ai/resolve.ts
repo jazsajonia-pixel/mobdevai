@@ -9,17 +9,19 @@ import { openStore, platformProviders } from "./store.js";
  * Phase 4's chat/agent functions call this; the key never leaves the function.
  */
 export async function resolveProvider(req: Request, session: SessionData | null, id?: string | null): Promise<ResolvedProvider & { id: string; label: string }> {
-  const platform = platformProviders();
+  let state = null;
+  if (session) {
+    try {
+      state = await openStore(req, session).load();
+    } catch (err) {
+      if (!(err instanceof HttpError && err.code === "AI_NOT_CONFIGURED")) throw err;
+    }
+  }
+  const platform = platformProviders(process.env, state?.geminiModel);
   const requested = id ?? null;
   const directPlatform = requested ? platform.find((p) => p.id === requested) : null;
   if (directPlatform) return { id: directPlatform.id, label: directPlatform.label, kind: directPlatform.kind, model: directPlatform.model, effort: "medium", baseUrl: null, apiKey: directPlatform.apiKey };
   if (!session) throw new HttpError(401, "UNAUTHENTICATED", "Sign in with GitHub first.");
-  let state = null;
-  try {
-    state = await openStore(req, session).load();
-  } catch (err) {
-    if (!(err instanceof HttpError && err.code === "AI_NOT_CONFIGURED") || platform.length === 0) throw err;
-  }
   const store = state ? openStore(req, session) : null;
   const pubPlatform = platform.map(({ apiKey: _k, ...p }) => p);
   const target = requested ?? (state ? effectiveDefault(state, pubPlatform) : (platform[0]?.id ?? null));

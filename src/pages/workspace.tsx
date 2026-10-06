@@ -65,6 +65,8 @@ const DEMO_SOURCE: WorkspaceSource = {
 function DemoWorkspace({ tab }: { tab: WorkspaceTab }) {
   const gitHref = projectPath(DEMO_PROJECT.owner, DEMO_PROJECT.name, "git");
   const [version, setVersion] = useState(0);
+  const [agentMounted, setAgentMounted] = useState(tab === "ai");
+  useEffect(() => { if (tab === "ai") setAgentMounted(true); }, [tab]);
   const target: GitTarget = {
     owner: DEMO_PROJECT.owner,
     repo: DEMO_PROJECT.name,
@@ -82,7 +84,7 @@ function DemoWorkspace({ tab }: { tab: WorkspaceTab }) {
         {tab === "files" ? (
           <FilesTab gitHref={gitHref} />
         ) : tab === "ai" ? (
-          <AiTab project={DEMO_PROJECT} branch={DEMO_PROJECT.defaultBranch} />
+          null
         ) : tab === "preview" ? (
           <PreviewTab owner={DEMO_PROJECT.owner} name={DEMO_PROJECT.name} />
         ) : tab === "overview" ? (
@@ -92,6 +94,9 @@ function DemoWorkspace({ tab }: { tab: WorkspaceTab }) {
             {(onEdit) => <ChangesPanel target={target} version={version} onEdit={onEdit} />}
           </EditFromGit>
         )}
+        {agentMounted ? <div className={tab === "ai" ? "flex min-h-0 flex-1" : "hidden"}>
+          <AiTab project={DEMO_PROJECT} branch={DEMO_PROJECT.defaultBranch} />
+        </div> : null}
       </WorkspaceShell>
     </WorkspaceProvider>
   );
@@ -129,6 +134,8 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
   // Branches created from this app this session (the branch list may not include them yet).
   const [created, setCreated] = useState<ReadonlySet<string>>(() => new Set());
   const [gitVersion, setGitVersion] = useState(0);
+  const [agentMounted, setAgentMounted] = useState(tab === "ai");
+  useEffect(() => { if (tab === "ai") setAgentMounted(true); }, [tab]);
 
   // Fall back to the default branch once metadata arrives (or if the remembered branch is gone).
   useEffect(() => {
@@ -220,7 +227,7 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
         </div>
       );
   } else if (tab === "ai") {
-    body = <AiTab project={project} branch={shownBranch} />;
+    body = null;
   } else if (tab === "preview") {
     // Public repos: binary assets (images, fonts) load from raw.githubusercontent.com at the pinned commit.
     const pub = repo.status === "success" && !repo.data.private;
@@ -272,6 +279,7 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
   const shell = (
     <WorkspaceShell project={project} branch={shownBranch} tab={tab} onBranchClick={repo.status === "success" ? () => setPickerOpen(true) : undefined}>
       {body}
+      {agentMounted && repo.status === "success" && source ? <div className={tab === "ai" ? "flex min-h-0 flex-1" : "hidden"}><AiTab project={project} branch={shownBranch} /></div> : null}
       {repo.status === "success" ? (
         <>
           {tab === "git" || !source ? (

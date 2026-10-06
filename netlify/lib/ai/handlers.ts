@@ -8,6 +8,7 @@ import { normalizeBaseUrl } from "./url-guard.js";
 import type { ProviderState } from "./state.js";
 import { openStore, publicPlatform, storageInfo, type ProviderStore } from "./store.js";
 import { toPublic } from "./state.js";
+import { GEMINI_SERVER_MODELS } from "../../../src/lib/gemini-models.js";
 
 /** Shared plumbing for the /api/ai/providers functions. */
 
@@ -25,7 +26,8 @@ export function respond(store: ProviderStore, state: ProviderState, cookies: str
     storage: store.mode,
     storageNote: store.note,
     maxProviders: store.max,
-    ...toPublic(state, publicPlatform()),
+    ...toPublic(state, publicPlatform(state.geminiModel)),
+    geminiModels: GEMINI_SERVER_MODELS.map((id) => ({ id, available: true })),
   };
   return json(body, { status, cookies });
 }
@@ -33,7 +35,7 @@ export function respond(store: ProviderStore, state: ProviderState, cookies: str
 /** For GET when storage isn't configured: still show platform providers (if any). */
 export function respondUnavailable(): Response {
   const info = storageInfo();
-  const body: ProvidersResponse = { storage: "unavailable", storageNote: info.note, maxProviders: 0, ...toPublic({ v: 1, providers: [], defaultId: null }, publicPlatform()) };
+  const body: ProvidersResponse = { storage: "unavailable", storageNote: info.note, maxProviders: 0, ...toPublic({ v: 1, providers: [], defaultId: null, geminiModel: "gemini-flash-latest" }, publicPlatform()), geminiModels: GEMINI_SERVER_MODELS.map((id) => ({ id, available: true })) };
   return json(body);
 }
 

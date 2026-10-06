@@ -39,6 +39,8 @@ export interface ProvidersResponse {
   maxProviders: number;
   providers: PublicProvider[];
   defaultId: string | null;
+  /** Curated text-generation models available to the server-managed Gemini selector. */
+  geminiModels?: { id: string; available: boolean }[];
 }
 
 export interface ProviderInput {

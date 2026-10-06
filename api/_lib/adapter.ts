@@ -1,5 +1,6 @@
 import { errorResponse } from "../../netlify/lib/http.js";
 import aiAgent from "../../netlify/functions/ai-agent.js";
+import aiGeminiModel from "../../netlify/functions/ai-gemini-model.js";
 import aiProvider from "../../netlify/functions/ai-provider.js";
 import aiProviders from "../../netlify/functions/ai-providers.js";
 import aiTestProvider from "../../netlify/functions/ai-test-provider.js";
@@ -89,6 +90,7 @@ function routeFor(pathname: string): Route | null {
   if (key === "auth/logout") return { handler: authLogout };
   if (key === "auth/session") return { handler: authSession };
   if (key === "ai/agent") return { handler: aiAgent };
+  if (key === "ai/platform/gemini") return { handler: aiGeminiModel };
   if (key === "ai/providers") return { handler: aiProviders };
   if (key === "ai/test-provider") return { handler: aiTestProvider };
   if (parts.length === 3 && parts[0] === "ai" && parts[1] === "providers") {

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { PROVIDERS } from "@/lib/ai-catalog";
 import type { ProvidersResponse, PublicProvider } from "@/types/ai";
-import { testProvider, updateProvider } from "./api";
+import { testProvider, updateGeminiModel, updateProvider } from "./api";
 import { TestResult, type TestState } from "./test-result";
 
 function when(iso: string): string {
@@ -18,12 +18,14 @@ export function ProviderCard({
   onEdit,
   onRemove,
   onError,
+  geminiModels,
 }: {
   provider: PublicProvider;
   onChanged: (data: ProvidersResponse) => void;
   onEdit: () => void;
   onRemove: () => void;
   onError: (err: unknown) => void;
+  geminiModels?: { id: string; available: boolean }[];
 }) {
   const [test, setTest] = useState<TestState>({ status: "idle" });
   const [busy, setBusy] = useState(false);
@@ -49,6 +51,17 @@ export function ProviderCard({
     }
   }
 
+  async function changeGeminiModel(model: string) {
+    setBusy(true);
+    try {
+      onChanged(await updateGeminiModel(model));
+    } catch (err) {
+      onError(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const last = test.status === "idle" ? p.lastTest : null;
 
   return (
@@ -68,7 +81,20 @@ export function ProviderCard({
           {p.label !== PROVIDERS[p.kind].name ? <p className="mt-1 text-xs text-muted-foreground">{PROVIDERS[p.kind].name}</p> : null}
           <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
             <dt className="text-muted-foreground">Model</dt>
-            <dd className="truncate font-mono">{p.model}</dd>
+            <dd className="truncate font-mono">
+              {platform && p.kind === "gemini" && geminiModels?.length ? (
+                <select
+                  value={p.model}
+                  disabled={busy}
+                  onChange={(event) => void changeGeminiModel(event.target.value)}
+                  className="h-8 max-w-full rounded-md border bg-background px-2 font-mono text-xs"
+                  aria-label="Server Gemini model"
+                  data-testid="select-server-gemini-model"
+                >
+                  {geminiModels.filter((m) => m.available || m.id === p.model).map((m) => <option key={m.id} value={m.id}>{m.id}{m.id === "gemini-flash-latest" ? " (default)" : ""}</option>)}
+                </select>
+              ) : p.model}
+            </dd>
             <dt className="text-muted-foreground">Effort</dt>
             <dd className="capitalize">{p.effort}</dd>
             {p.baseUrl ? (

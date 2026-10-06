@@ -14,6 +14,11 @@ export const updateProvider = (id: string, patch: ProviderPatch) =>
 
 export const deleteProvider = (id: string) => api<ProvidersResponse>(`/ai/providers/${encodeURIComponent(id)}`, { method: "DELETE" });
 
+export const updateGeminiModel = async (model: string) => {
+  await api<{ model: string }>("/ai/platform/gemini", { method: "PATCH", body: { model } });
+  return listProviders();
+};
+
 export type TestInput =
   | { id: string; model?: string; baseUrl?: string | null }
   | { kind: ProviderKind; model: string; baseUrl?: string | null; apiKey: string };

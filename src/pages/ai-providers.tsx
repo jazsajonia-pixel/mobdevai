@@ -95,6 +95,7 @@ export default function AIProvidersPage() {
                     apply(d);
                   }}
                   onError={setActionError}
+                  geminiModels={data?.geminiModels}
                   onEdit={() => {
                     setEditing(p);
                     setFormOpen(true);

@@ -1,5 +1,6 @@
 import type { ProviderEffort, ProviderKind, ProviderTestResult, PublicProvider} from "../../../src/types/ai.js";
 import { HttpError } from "../http.js";
+import { effectiveGeminiModel } from "../../../src/lib/gemini-models.js";
 
 /** Pure state operations shared by the cookie and database backends. */
 
@@ -23,15 +24,16 @@ export interface ProviderState {
   v: 1;
   providers: StoredProvider[];
   defaultId: string | null;
+  geminiModel?: string;
 }
 
-export const emptyState = (): ProviderState => ({ v: 1, providers: [], defaultId: null });
+export const emptyState = (): ProviderState => ({ v: 1, providers: [], defaultId: null, geminiModel: effectiveGeminiModel(null) });
 
 /** Removes provider records from versions that supported Groq before it was retired. */
 export function sanitizeProviderState(state: ProviderState): ProviderState {
   const providers = state.providers.filter((p) => (p.kind as string) !== "groq");
   const defaultId = state.defaultId === "platform:groq" || (state.defaultId && !providers.some((p) => p.id === state.defaultId)) ? null : state.defaultId;
-  return { ...state, providers, defaultId };
+  return { ...state, providers, defaultId, geminiModel: effectiveGeminiModel(state.geminiModel) };
 }
 
 export interface PlatformProvider {

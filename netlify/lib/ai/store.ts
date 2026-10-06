@@ -8,6 +8,7 @@ import { HttpError } from "../http.js";
 import { AI_COOKIE, SESSION_TTL, type SessionData } from "../session.js";
 import { emptyState, sanitizeProviderState, type PlatformProvider, type ProviderState, type StoredProvider } from "./state.js";
 import { geminiKeys } from "./gemini-pool.js";
+import { effectiveGeminiModel } from "../../../src/lib/gemini-models.js";
 
 /**
  * Where AI provider keys live:
@@ -95,9 +96,11 @@ function dbStore(sql: Sql, session: SessionData, secret: string): ProviderStore 
         SELECT id, kind, label, model, effort, base_url, enabled, key_ciphertext, key_hint, last_test, created_at, updated_at
         FROM ai_providers WHERE user_id = ${id} AND kind <> 'groq' ORDER BY created_at`) as Record<string, unknown>[];
       const user = (await sql`SELECT ai_default_provider FROM users WHERE id = ${id}`) as { ai_default_provider: string | null }[];
+      const preference = (await sql`SELECT ai_gemini_model FROM users WHERE id = ${id}`) as { ai_gemini_model: string | null }[];
       return sanitizeProviderState({
         v: 1,
         defaultId: user[0]?.ai_default_provider ?? null,
+        geminiModel: effectiveGeminiModel(preference[0]?.ai_gemini_model),
         providers: rows.map((r) => ({
           id: String(r.id),
           kind: r.kind as ProviderKind,
@@ -128,7 +131,7 @@ function dbStore(sql: Sql, session: SessionData, secret: string): ProviderStore 
             last_test = EXCLUDED.last_test, updated_at = EXCLUDED.updated_at
           WHERE ai_providers.user_id = ${id}`,
         ),
-        sql`UPDATE users SET ai_default_provider = ${next.defaultId} WHERE id = ${id}`,
+        sql`UPDATE users SET ai_default_provider = ${next.defaultId}, ai_gemini_model = ${effectiveGeminiModel(next.geminiModel)} WHERE id = ${id}`,
       ];
       await sql.transaction(queries);
       return [];
@@ -161,7 +164,7 @@ export function openStore(req: Request, session: SessionData): ProviderStore {
 }
 
 /** Operator-supplied keys (OPENAI_API_KEY, …) — usable by every signed-in user, never shown. */
-export function platformProviders(env: Record<string, string | undefined> = process.env): (PlatformProvider & { apiKey: string })[] {
+export function platformProviders(env: Record<string, string | undefined> = process.env, geminiModel?: string): (PlatformProvider & { apiKey: string })[] {
   const out: (PlatformProvider & { apiKey: string })[] = [];
   const add = (kind: ProviderKind, key: string | undefined, model: string | undefined) => {
     if (!isSet(key)) return;
@@ -169,11 +172,11 @@ export function platformProviders(env: Record<string, string | undefined> = proc
   };
   add("openai", env.OPENAI_API_KEY, env.OPENAI_MODEL);
   add("anthropic", env.ANTHROPIC_API_KEY, env.ANTHROPIC_MODEL);
-  add("gemini", geminiKeys(env)[0], isSet(env.GEMINI_MODEL) ? env.GEMINI_MODEL : "gemini-flash-latest");
+  add("gemini", geminiKeys(env)[0], effectiveGeminiModel(geminiModel ?? (isSet(env.GEMINI_MODEL) ? env.GEMINI_MODEL : null)));
   const preferred = geminiKeys(env).length ? "gemini" : env.AI_DEFAULT_PROVIDER?.trim().toLowerCase();
   if (!preferred) return out;
   const index = out.findIndex((p) => p.kind === preferred);
   return index > 0 ? [out[index]!, ...out.slice(0, index), ...out.slice(index + 1)] : out;
 }
 
-export const publicPlatform = (): PlatformProvider[] => platformProviders().map(({ apiKey: _k, ...p }) => p);
+export const publicPlatform = (geminiModel?: string): PlatformProvider[] => platformProviders(process.env, geminiModel).map(({ apiKey: _k, ...p }) => p);
