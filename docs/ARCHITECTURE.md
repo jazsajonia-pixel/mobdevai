@@ -172,7 +172,8 @@ provider test (`/api/ai/test-provider`) and model discovery (`models.list`).
 - **Failover**: a request starts on one key (lowest index, or the least-busy key during concurrent
   bursts) and moves on only after an error another key could fix: 429 / `RESOURCE_EXHAUSTED`,
   quota-flavoured 403 (decided from Google's `status`/`reason`, not every 403), invalid/disabled
-  key, 408/500/502/503/504 and timeouts. Each key is tried at most once per request, at most 8
+  key, 408/500/502/503/504 and timeouts (at most 2 transient failures — overload is usually
+  model-wide — then 503 + Retry-After). Each key is tried at most once per request, at most 8
   attempts, inside a 100 s budget (the Vercel function allows 120 s; the client waits 115 s).
 - **No failover** for bad requests, unknown models, oversized input (413), safety blocks, or a
   client disconnect (the Vercel adapter forwards `close` as an abort signal).

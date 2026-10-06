@@ -27,6 +27,11 @@ const cooldowns = new Map<string, number>();
 export const POOL_LIMITS = {
   /** Hard cap on key attempts per request (protects against request amplification). */
   maxAttempts: 8,
+  /**
+   * 5xx/timeouts are usually model-wide (e.g. "model is overloaded"), so every key fails the same
+   * way and slowly. Try one more key, then return 503 + Retry-After and let the client re-send.
+   */
+  maxTransientFailures: 2,
   /** Total wall-clock budget for all attempts in one request. */
   budgetMs: 100_000,
   /** Don't start a new attempt with less than this left — it can't finish in time. */
@@ -178,6 +183,10 @@ export async function withGeminiFailover<T>(opts: FailoverOptions, operation: (a
       const at = now();
       if (kind === "key") state.invalidUntil = at + POOL_LIMITS.invalidKeyCooldownMs;
       else cooldowns.set(cooldownKey(pick.slot, opts.model), at + cooldownFor(kind, err));
+      if (failures.filter((f) => f.kind === "transient").length >= POOL_LIMITS.maxTransientFailures) {
+        log("warn", "gemini_key_failed", { slot: pick.slot, kind, status: upstreamOf(err)?.httpStatus ?? err.status, model: opts.model, attempt: attempt + 1 });
+        break;
+      }
       log("warn", "gemini_key_failed", { slot: pick.slot, kind, status: upstreamOf(err)?.httpStatus ?? err.status, model: opts.model, attempt: attempt + 1 });
     } finally {
       state.inFlight = Math.max(0, state.inFlight - 1);

@@ -187,13 +187,37 @@ describe("withGeminiFailover", () => {
   });
 
   it("fails over on transient 5xx and timeouts", async () => {
+    for (const first of [unavailable(503), unavailable(500), new ProviderError(504, "AI_PROVIDER_UNAVAILABLE", "timed out", { httpStatus: null, providerStatus: null, reasons: [], quotaIds: [], retryAfterMs: null, timedOut: true })]) {
+      resetGeminiPool();
+      const seen: string[] = [];
+      await withGeminiFailover({ model: MODEL, env: env(K(1), K(2), K(3)) }, async ({ apiKey }) => {
+        seen.push(apiKey);
+        if (apiKey === K(1)) throw first;
+      });
+      expect(seen).toEqual([K(1), K(2)]);
+    }
+  });
+
+  it("stops after two transient failures (provider-wide overload) with a 503 + Retry-After", async () => {
+    let n = 0;
+    const err = (await withGeminiFailover({ model: MODEL, env: env(K(1), K(2), K(3), K(4)) }, async () => {
+      n++;
+      throw unavailable(503);
+    }).catch((e: unknown) => e)) as HttpError;
+    expect(n).toBe(POOL_LIMITS.maxTransientFailures);
+    expect(err.status).toBe(503);
+    expect(err.code).toBe("AI_PROVIDER_UNAVAILABLE");
+    expect(Number(err.headers["Retry-After"])).toBeGreaterThan(0);
+  });
+
+  it("quota errors don't count toward the transient cap", async () => {
     const seen: string[] = [];
-    await withGeminiFailover({ model: MODEL, env: env(K(1), K(2), K(3)) }, async ({ apiKey }) => {
+    await withGeminiFailover({ model: MODEL, env: env(K(1), K(2), K(3), K(4)) }, async ({ apiKey }) => {
       seen.push(apiKey);
       if (apiKey === K(1)) throw unavailable(503);
-      if (apiKey === K(2)) throw new ProviderError(504, "AI_PROVIDER_UNAVAILABLE", "timed out", { httpStatus: null, providerStatus: null, reasons: [], quotaIds: [], retryAfterMs: null, timedOut: true });
+      if (apiKey !== K(4)) throw quota();
     });
-    expect(seen).toEqual([K(1), K(2), K(3)]);
+    expect(seen).toEqual([K(1), K(2), K(3), K(4)]);
   });
 
   it("returns a safe 429 with the earliest Retry-After when every key is limited", async () => {
