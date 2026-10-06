@@ -214,13 +214,17 @@ function exhaustedError(keys: string[], model: string, failures: { kind: Failure
   const invalid = count("key");
   const retrySec = String(Math.max(1, Math.min(600, Math.ceil(earliestRetryMs(keys, model, at) / 1000))));
   const summary = `Tried ${tried} of ${keys.length} server Gemini key${keys.length === 1 ? "" : "s"}${cooling ? ` (${cooling} cooling down)` : ""}`;
+  const last = failures[failures.length - 1];
+  const lastUp = last ? upstreamOf(last.err) : null;
+  // Safe diagnostics only: HTTP status + Google's canonical status (e.g. "503 UNAVAILABLE").
+  const lastNote = last ? ` Last error: ${lastUp?.timedOut ? "timeout" : [lastUp?.httpStatus ?? last.err.status, lastUp?.providerStatus].filter(Boolean).join(" ")}.` : "";
   const allInvalid = keys.every((_, i) => slotState(slotName(i)).invalidUntil > at);
   if (allInvalid) return new HttpError(503, "AI_INVALID_KEY", `${summary}; none were accepted by Google. The server's Gemini keys need to be replaced.`);
   if (!quota && !cooling && transient) {
-    return new HttpError(503, "AI_PROVIDER_UNAVAILABLE", `${summary}; Gemini is temporarily unavailable. Try again shortly.`, [], { "Retry-After": retrySec });
+    return new HttpError(503, "AI_PROVIDER_UNAVAILABLE", `${summary}; Gemini is temporarily unavailable. Try again shortly.${lastNote}`, [], { "Retry-After": retrySec });
   }
   const parts = [quota && `${quota} rate-limited`, transient && `${transient} unavailable`, invalid && `${invalid} rejected`].filter(Boolean).join(", ");
-  return new HttpError(429, "AI_QUOTA_EXCEEDED", `${summary}${parts ? `: ${parts}` : ""}. Every eligible key is temporarily rate-limited for ${model}; retry in about ${retrySec}s.`, [], { "Retry-After": retrySec });
+  return new HttpError(429, "AI_QUOTA_EXCEEDED", `${summary}${parts ? `: ${parts}` : ""}. Every eligible key is temporarily rate-limited for ${model}; retry in about ${retrySec}s.${lastNote}`, [], { "Retry-After": retrySec });
 }
 
 /** Counts only — safe for health checks. */
