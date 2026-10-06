@@ -22,7 +22,7 @@ export default function AIProvidersPage() {
 
   const data = state.status === "ready" ? state.data : null;
   const userCount = data?.providers.filter((p) => p.source === "user").length ?? 0;
-  const visibleProviders = data?.providers.filter((p) => !(p.source === "platform" && p.kind === "gemini")) ?? [];
+  const visibleProviders = data?.providers ?? [];
   const canAdd = !!data && data.storage !== "unavailable" && userCount < data.maxProviders;
 
   const openAdd = () => {
@@ -82,7 +82,7 @@ export default function AIProvidersPage() {
                 ) : null
               }
             >
-              Add an OpenAI, Anthropic, Google Gemini, or OpenAI-compatible API key. The AI agent (each project's AI tab) uses your default provider.
+              Chrono uses the server-managed Google Gemini provider by default. Other account providers may be added, but they cannot replace Gemini as the platform default.
             </EmptyState>
           ) : (
             <div className="space-y-3" data-testid="list-providers">

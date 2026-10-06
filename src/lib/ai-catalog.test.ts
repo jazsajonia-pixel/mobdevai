@@ -14,6 +14,6 @@ describe("Chrono model catalog", () => {
   });
 
   it("preserves the provider kinds used by the server adapters", () => {
-    expect(PROVIDER_KINDS).toEqual(["openai", "anthropic", "gemini", "groq", "openai-compatible"]);
+    expect(PROVIDER_KINDS).toEqual(["openai", "anthropic", "gemini", "openai-compatible"]);
   });
 });

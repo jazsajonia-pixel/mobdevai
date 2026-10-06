@@ -6,7 +6,7 @@ import { db } from "../db.js";
 import { capabilities, encryptionSecret, isSet, sessionSecret } from "../env.js";
 import { HttpError } from "../http.js";
 import { AI_COOKIE, SESSION_TTL, type SessionData } from "../session.js";
-import { emptyState, type PlatformProvider, type ProviderState, type StoredProvider } from "./state.js";
+import { emptyState, sanitizeProviderState, type PlatformProvider, type ProviderState, type StoredProvider } from "./state.js";
 import { geminiKeys } from "./gemini-pool.js";
 
 /**
@@ -57,7 +57,7 @@ function cookieStore(req: Request, session: SessionData, secret: string, note: s
     async load() {
       const raw = parseCookies(req.headers.get("cookie"))[AI_COOKIE];
       const data = await unseal<ProviderState>(raw, secret, purpose);
-      return data?.v === 1 ? data : emptyState();
+      return data?.v === 1 ? sanitizeProviderState(data) : emptyState();
     },
     async save(next) {
       const ttl = Math.max(60, Math.min(SESSION_TTL, session.exp - Math.floor(Date.now() / 1000)));
@@ -93,9 +93,9 @@ function dbStore(sql: Sql, session: SessionData, secret: string): ProviderStore 
       const id = await userId();
       const rows = (await sql`
         SELECT id, kind, label, model, effort, base_url, enabled, key_ciphertext, key_hint, last_test, created_at, updated_at
-        FROM ai_providers WHERE user_id = ${id} ORDER BY created_at`) as Record<string, unknown>[];
+        FROM ai_providers WHERE user_id = ${id} AND kind <> 'groq' ORDER BY created_at`) as Record<string, unknown>[];
       const user = (await sql`SELECT ai_default_provider FROM users WHERE id = ${id}`) as { ai_default_provider: string | null }[];
-      return {
+      return sanitizeProviderState({
         v: 1,
         defaultId: user[0]?.ai_default_provider ?? null,
         providers: rows.map((r) => ({
@@ -112,7 +112,7 @@ function dbStore(sql: Sql, session: SessionData, secret: string): ProviderStore 
           createdAt: new Date(r.created_at as string).toISOString(),
           updatedAt: new Date(r.updated_at as string).toISOString(),
         })),
-      };
+      });
     },
     async save(next, prev) {
       const id = await userId();
@@ -170,7 +170,6 @@ export function platformProviders(env: Record<string, string | undefined> = proc
   add("openai", env.OPENAI_API_KEY, env.OPENAI_MODEL);
   add("anthropic", env.ANTHROPIC_API_KEY, env.ANTHROPIC_MODEL);
   add("gemini", geminiKeys(env)[0], isSet(env.GEMINI_MODEL) ? env.GEMINI_MODEL : "gemini-flash-latest");
-  add("groq", env.GROQ_API_KEY, env.GROQ_MODEL);
   const preferred = geminiKeys(env).length ? "gemini" : env.AI_DEFAULT_PROVIDER?.trim().toLowerCase();
   if (!preferred) return out;
   const index = out.findIndex((p) => p.kind === preferred);

@@ -100,7 +100,6 @@ export async function call(provider: string, url: string, init: RequestInit & { 
 
 export async function openAiBase(p: ResolvedProvider): Promise<string> {
   if (p.kind === "openai") return PROVIDERS.openai.defaultBaseUrl!;
-  if (p.kind === "groq") return PROVIDERS.groq.defaultBaseUrl!;
   if (!p.baseUrl) throw new HttpError(422, "AI_BAD_BASE_URL", "This provider needs a base URL.");
   const base = normalizeBaseUrl(p.baseUrl);
   await assertPublicHost(base);
@@ -109,7 +108,7 @@ export async function openAiBase(p: ResolvedProvider): Promise<string> {
 
 const openAi: ProviderAdapter = {
   async chat(p, req) {
-    const name = p.kind === "openai" ? "OpenAI" : p.kind === "groq" ? "Groq" : "The provider";
+    const name = p.kind === "openai" ? "OpenAI" : "The provider";
     const base = await openAiBase(p);
     const messages = [...(req.system ? [{ role: "system", content: req.system }] : []), ...req.messages];
     const tokens = req.maxTokens ?? 1024;
@@ -137,11 +136,11 @@ const openAi: ProviderAdapter = {
   async listModels(p) {
     const base = await openAiBase(p);
     try {
-      const data = (await call(p.kind === "openai" ? "OpenAI" : p.kind === "groq" ? "Groq" : "The provider", `${base}/models`, { headers: { Authorization: `Bearer ${p.apiKey}` } })) as { data?: { id?: string }[] };
+      const data = (await call(p.kind === "openai" ? "OpenAI" : "The provider", `${base}/models`, { headers: { Authorization: `Bearer ${p.apiKey}` } })) as { data?: { id?: string }[] };
       return (data?.data ?? []).map((m) => m.id).filter((x): x is string => !!x);
     } catch (err) {
       // Bad keys should fail loudly; a missing /models endpoint on a compatible server shouldn't.
-      if (p.kind === "openai" || p.kind === "groq" || (err instanceof HttpError && ["AI_INVALID_KEY", "AI_QUOTA_EXCEEDED", "AI_BAD_BASE_URL"].includes(err.code))) throw err;
+      if (p.kind === "openai" || (err instanceof HttpError && ["AI_INVALID_KEY", "AI_QUOTA_EXCEEDED", "AI_BAD_BASE_URL"].includes(err.code))) throw err;
       return null;
     }
   },
@@ -223,7 +222,6 @@ export const ADAPTERS: Record<ProviderKind, ProviderAdapter> = {
   "openai-compatible": openAi,
   anthropic,
   gemini,
-  groq: openAi,
 };
 
 export function adapterFor(kind: ProviderKind): ProviderAdapter {

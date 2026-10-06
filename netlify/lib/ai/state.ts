@@ -27,6 +27,13 @@ export interface ProviderState {
 
 export const emptyState = (): ProviderState => ({ v: 1, providers: [], defaultId: null });
 
+/** Removes provider records from versions that supported Groq before it was retired. */
+export function sanitizeProviderState(state: ProviderState): ProviderState {
+  const providers = state.providers.filter((p) => (p.kind as string) !== "groq");
+  const defaultId = state.defaultId === "platform:groq" || (state.defaultId && !providers.some((p) => p.id === state.defaultId)) ? null : state.defaultId;
+  return { ...state, providers, defaultId };
+}
+
 export interface PlatformProvider {
   id: string;
   kind: ProviderKind;
@@ -82,6 +89,8 @@ export function recordTest(state: ProviderState, id: string, result: ProviderTes
 
 /** The provider the agent uses when none is picked: explicit default → first enabled → first platform. */
 export function effectiveDefault(state: ProviderState, platform: PlatformProvider[]): string | null {
+  const gemini = platform.find((p) => p.id === "platform:gemini");
+  if (gemini) return gemini.id;
   const ids = new Set([...state.providers.filter((p) => p.enabled).map((p) => p.id), ...platform.map((p) => p.id)]);
   if (state.defaultId && ids.has(state.defaultId)) return state.defaultId;
   return firstEnabled(state) ?? platform[0]?.id ?? null;

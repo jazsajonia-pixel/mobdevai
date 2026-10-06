@@ -46,16 +46,6 @@ export const PROVIDERS: Record<ProviderKind, ProviderMeta> = {
     defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta",
     needsBaseUrl: false,
   },
-  groq: {
-    kind: "groq",
-    name: "Groq",
-    defaultModel: "llama-3.3-70b-versatile",
-    suggestedModels: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "openai/gpt-oss-120b", "meta-llama/llama-4-scout-17b-16e-instruct"],
-    keyPlaceholder: "gsk_…",
-    keyUrl: "https://console.groq.com/keys",
-    defaultBaseUrl: "https://api.groq.com/openai/v1",
-    needsBaseUrl: false,
-  },
   "openai-compatible": {
     kind: "openai-compatible",
     name: "OpenAI-compatible",
