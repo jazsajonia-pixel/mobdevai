@@ -56,7 +56,7 @@ export default function AIProvidersPage() {
             </Button>
           }
         >
-          API keys are stored per GitHub account and only used by server functions, so the demo workspace can't hold them. Nothing in demo mode calls an AI provider.
+          API keys are stored per GitHub account and only used by server functions. The sample workspace uses the configured server Gemini provider; sign in to add your own provider.
         </EmptyState>
       ) : state.status === "loading" ? (
         <div className="space-y-3" aria-label="Loading providers">

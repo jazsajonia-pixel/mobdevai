@@ -335,7 +335,7 @@ export default function WorkspacePage({ params }: { params: { owner: string; rep
             </Button>
           }
         >
-          You're in demo mode. Only the bundled demo project is available.
+          You're in the sample workspace. Sign in with GitHub to open your own repositories.
         </EmptyState>
       </AppShell>
     );

@@ -40,7 +40,7 @@ export default function SignInPage() {
 
         {session.mode === "demo" ? (
           <p className="mt-4 rounded-md border border-warning/30 bg-warning/10 p-3 text-xs text-warning">
-            You're in demo mode. Signing in with GitHub replaces the demo session.
+            You're in the sample workspace. Signing in with GitHub replaces it with your repositories.
           </p>
         ) : null}
 
@@ -82,12 +82,12 @@ export default function SignInPage() {
                   navigate(projectPath(DEMO_PROJECT.owner, DEMO_PROJECT.name));
                 }}
               >
-                <FlaskConical /> Explore the demo
+                <FlaskConical /> Explore the sample workspace
               </Button>
             </>
           ) : (
             <Button asChild size="lg" variant="ghost" className="w-full">
-              <Link href="/app">Back to demo</Link>
+              <Link href="/app">Back to sample workspace</Link>
             </Button>
           )}
         </div>

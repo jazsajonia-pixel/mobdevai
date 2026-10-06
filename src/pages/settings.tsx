@@ -84,7 +84,7 @@ export default function SettingsPage() {
             <p className="text-xs text-muted-foreground">Your token is held in an encrypted HTTP-only cookie and revoked on sign out.</p>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">You're in demo mode. Leaving clears the demo session for this tab.</p>
+          <p className="text-sm text-muted-foreground">You're in the sample workspace. Sign in with GitHub to save settings across devices.</p>
         )}
         <Button variant="secondary" className="mt-3 w-full" onClick={() => setConfirmOpen(true)} data-testid="button-signout">
           <LogOut /> {session.mode === "demo" ? "Leave demo" : "Sign out"}

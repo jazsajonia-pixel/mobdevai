@@ -9,6 +9,7 @@ import { readJson } from "../lib/validate.js";
 import { agentStep } from "../lib/ai/agent-step.js";
 import { systemPrompt } from "../lib/ai/agent-prompt.js";
 import { resolveProvider } from "../lib/ai/resolve.js";
+import { readSession } from "../lib/session.js";
 import { providerIdSchema } from "../lib/ai/schemas.js";
 import { CUSTOM_SKILLS } from "../../src/lib/skills.js";
 
@@ -74,13 +75,15 @@ function checkSequence(messages: AgentMessage[]): void {
 
 export default handle(["POST"], async (req) => {
   assertSameOrigin(req);
-  const session = await requireSession(req);
-  await rateLimit(`ai-agent:${session.user.id}`, 40, 60_000);
   const body = await readJson(req, bodySchema, MAX_BODY);
+  const sampleWorkspace = body.project.source === "demo";
+  const session = sampleWorkspace ? await readSession(req) : await requireSession(req);
+  const rateKey = session ? `ai-agent:${session.user.id}` : `ai-demo:${req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"}`;
+  await rateLimit(rateKey, sampleWorkspace ? 10 : 40, 60_000);
   const messages = body.messages as AgentMessage[];
   checkSequence(messages);
 
-  const provider = await resolveProvider(req, session, body.providerId ?? null);
+  const provider = await resolveProvider(req, session, sampleWorkspace ? "platform:gemini" : body.providerId ?? null);
   const knownSkills = new Set(CUSTOM_SKILLS.map((skill) => skill.id));
   if (body.skillIds.some((id) => !knownSkills.has(id))) throw new HttpError(422, "VALIDATION_FAILED", "Unknown skill selected.");
   const tools = toolsForMode(body.mode);

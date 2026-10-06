@@ -5,7 +5,6 @@ import { detectProjectKindFromPaths } from "@/lib/tree";
 import { loadEnabledSkills } from "@/lib/skills";
 import type { AgentAttachment, AgentMode, AgentProjectContext, AgentStepResponse } from "@/types/agent";
 import { advance, answerPlan, closeOpenCalls, withUserMessage, type StepFn } from "./runner";
-import { demoStep } from "./demo-agent";
 import { hasConflict, mergeDecisions, pendingFiles, setDecision, type ProposedFile } from "./proposal";
 import { loadTasks, saveTasks } from "./store";
 import { newTask, type AgentTask } from "./task";
@@ -94,11 +93,8 @@ export function useAgent(project: AgentProject) {
   );
 
   const step = useCallback<StepFn>(
-    (t, messages, signal) =>
-      project.source === "demo"
-        ? demoStep(t.mode, messages, signal)
-        : api<AgentStepResponse>("/ai/agent", { method: "POST", body: { mode: t.mode, project: context(), messages, skillIds: loadEnabledSkills() }, timeoutMs: 65_000, signal }),
-    [project.source, context],
+    (t, messages, signal) => api<AgentStepResponse>("/ai/agent", { method: "POST", body: { mode: t.mode, project: context(), messages, skillIds: loadEnabledSkills() }, timeoutMs: 65_000, signal }),
+    [context],
   );
 
   const run = useCallback(

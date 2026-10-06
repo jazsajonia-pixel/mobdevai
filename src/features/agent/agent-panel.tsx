@@ -14,13 +14,19 @@ import { projectPath } from "@/lib/nav";
 import { MAX_AGENT_STEPS } from "@/lib/agent-tools";
 import type { AgentMode } from "@/types/agent";
 import { Composer, type QuickAction } from "./composer";
-import { DEMO_SUGGESTIONS } from "./demo-agent";
 import { Markdown } from "./markdown";
 import { PlanCard } from "./plan-card";
 import { ProposalSummary, ReviewSheet } from "./proposal-review";
 import { resultsById, splitUserMessage, type AgentTask } from "./task";
 import { ToolRow } from "./tool-row";
 import { useAgent, type AgentProject } from "./use-agent";
+
+const SAMPLE_SUGGESTIONS = [
+  "Add a delete button to each task",
+  "Add a Clear completed button",
+  "Support dark mode",
+  "Explain how this app works",
+];
 
 function Timeline({ task, onApprove, onRevise }: { task: AgentTask; onApprove: () => void; onRevise: (f: string) => void }) {
   const results = useMemo(() => resultsById(task.messages), [task.messages]);
@@ -136,11 +142,11 @@ export function AgentPanel({ project }: { project: AgentProject }) {
   const def = ready?.providers.find((p) => p.id === ready.defaultId) ?? null;
   const online = useOnline();
   const needsProvider = !isDemo && providers.state.status === "ready" && !def;
-  const providerLabel = isDemo ? "Chrono AI" : def ? `${def.label} · ${def.model}` : providers.state.status === "loading" ? "Loading provider…" : "No provider";
+  const providerLabel = isDemo ? "Gemini · gemini-2.5-flash" : def ? `${def.label} · ${def.model}` : providers.state.status === "loading" ? "Loading provider…" : "No provider";
 
   const active = ws.data.active;
   const quick: QuickAction[] = isDemo
-    ? DEMO_SUGGESTIONS.map((s) => ({ label: s, mode: /explain/i.test(s) ? "ask" : "agent", text: s }))
+    ? SAMPLE_SUGGESTIONS.map((s) => ({ label: s, mode: /explain/i.test(s) ? ("ask" as const) : ("agent" as const), text: s }))
     : [
         ...(active
           ? [

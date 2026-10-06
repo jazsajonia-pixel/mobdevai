@@ -5,7 +5,6 @@ import { applyEdits, hasConflict, PatchError, propose, setDecision } from "./pro
 import { executeTool, overlayPaths, type WorkspaceView } from "./tools-exec";
 import { advance, answerPlan, withUserMessage, type StepFn } from "./runner";
 import { compactForStorage, newTask } from "./task";
-import { demoStep } from "./demo-agent";
 import { mentionedPaths } from "./composer";
 
 function ws(files: Record<string, string>): WorkspaceView {
@@ -160,29 +159,6 @@ describe("runner", () => {
   it("compacts large tool outputs for storage", () => {
     const t = { ...newTask("ask", "x"), messages: [{ role: "user", content: "x" }, { role: "assistant", content: "", toolCalls: [call("read_file", { path: "a" }, "c")] }, { role: "tool", toolCallId: "c", name: "read_file", content: "z".repeat(20000) }] as AgentMessage[] };
     expect((compactForStorage(t).messages[2] as { content: string }).content.length).toBeLessThan(8000);
-  });
-});
-
-describe("demo agent (simulated)", () => {
-  it("runs the delete-button script end to end on the demo files", async () => {
-    const files = Object.fromEntries(DEMO_FILES.map((f) => [f.path, f.content]));
-    const step: StepFn = (t, m, s) => demoStep(t.mode, m, s);
-    const deps = { step, workspace: ws(files), signal: new AbortController().signal, onUpdate: () => {} };
-    let t = await advance(withUserMessage(newTask("agent", "x"), "Add a delete button to each task"), deps);
-    expect(t.status).toBe("awaiting_plan");
-    t = await advance(answerPlan(t, true), deps);
-    expect(t.status).toBe("done");
-    expect(Object.keys(t.proposal).sort()).toEqual(["src/App.jsx", "src/components/TaskItem.jsx", "src/styles.css"]);
-    expect(t.proposal["src/App.jsx"]!.after).toContain("remove(task.id)");
-    expect(t.provider?.label).toMatch(/Simulated/);
-    const last = t.messages[t.messages.length - 1] as { content: string };
-    expect(last.content).toMatch(/simulated/i);
-  }, 15_000);
-
-  it("labels unknown requests as simulated and lists what it can do", async () => {
-    const r = await demoStep("agent", [{ role: "user", content: "deploy to prod" }]);
-    expect(r.message.content).toMatch(/simulated/i);
-    expect(r.message.role === "assistant" && r.message.toolCalls).toBeFalsy();
   });
 });
 
