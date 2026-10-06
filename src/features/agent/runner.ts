@@ -19,6 +19,43 @@ export interface RunDeps {
   signal: AbortSignal;
   /** Called after every state change (render + persist). */
   onUpdate: (task: AgentTask) => void;
+  /** Injected for tests; defaults to an abortable timer. */
+  sleep?: (ms: number, signal: AbortSignal) => Promise<void>;
+}
+
+/**
+ * The server already fails over across every eligible Gemini key inside one request. When it
+ * still answers 429/503 (all keys cooling), wait the server's Retry-After and re-send the SAME
+ * step a bounded number of times. Steps are stateless on the server and the task is only
+ * updated after a successful response, so a retry can't duplicate messages or tool calls.
+ */
+export const STEP_RETRY = { maxRetries: 2, maxWaitSec: 30, defaultWaitSec: 4 } as const;
+
+const sleepFor = (ms: number, signal: AbortSignal) =>
+  new Promise<void>((resolve) => {
+    if (signal.aborted) return resolve();
+    const t = setTimeout(done, ms);
+    function done() {
+      clearTimeout(t);
+      signal.removeEventListener("abort", done);
+      resolve();
+    }
+    signal.addEventListener("abort", done, { once: true });
+  });
+
+async function stepWithRetry(t: AgentTask, messages: AgentMessage[], deps: RunDeps): Promise<AgentStepResponse> {
+  for (let retry = 0; ; retry++) {
+    try {
+      return await deps.step(t, messages, deps.signal);
+    } catch (err) {
+      const retryable = err instanceof AppError && (err.code === "AI_QUOTA_EXCEEDED" || (err.code === "AI_PROVIDER_UNAVAILABLE" && [502, 503, 504].includes(err.status ?? 0)));
+      if (!retryable || retry >= STEP_RETRY.maxRetries || deps.signal.aborted) throw err;
+      const wait = err.retryAfterSec ?? STEP_RETRY.defaultWaitSec;
+      if (wait > STEP_RETRY.maxWaitSec) throw err;
+      await (deps.sleep ?? sleepFor)(wait * 1000, deps.signal);
+      if (deps.signal.aborted) throw err;
+    }
+  }
 }
 
 const touch = (t: AgentTask, patch: Partial<AgentTask>): AgentTask => ({ ...t, ...patch, updatedAt: new Date().toISOString() });
@@ -71,7 +108,7 @@ export async function advance(task: AgentTask, deps: RunDeps): Promise<AgentTask
         deps.onUpdate(t);
         return t;
       }
-      const res = await deps.step(t, compactForWire(t.messages), deps.signal);
+      const res = await stepWithRetry(t, compactForWire(t.messages), deps);
       if (deps.signal.aborted) break;
       const calls = res.message.toolCalls ?? [];
       let message = res.message;
@@ -84,7 +121,7 @@ export async function advance(task: AgentTask, deps: RunDeps): Promise<AgentTask
       t = touch(t, {
         messages: [...t.messages, message],
         pending: calls,
-        provider: { label: res.provider.label, model: res.provider.model },
+        provider: { label: res.provider.label, model: res.provider.fallbackFrom ? `${res.provider.model} (${res.provider.fallbackFrom} unavailable)` : res.provider.model },
         usage: { inputTokens: t.usage.inputTokens + (res.usage.inputTokens ?? 0), outputTokens: t.usage.outputTokens + (res.usage.outputTokens ?? 0) },
       });
       deps.onUpdate(t);

@@ -4,6 +4,8 @@ import { sessionCookie } from "../lib/session";
 import { systemPrompt } from "../lib/ai/agent-prompt";
 import type { AgentMessage, AgentStepResponse } from "../../src/types/agent";
 import { ORIGIN, SECRET_TOKEN, configureEnv, cookieHeader, gh, mockGitHub } from "./helpers";
+import { resetGeminiPool } from "../lib/ai/gemini-pool";
+import { resetGeminiModelCache } from "../lib/ai/gemini-availability";
 
 const KEY = "sk-proj-AGENTKEY_never_leak_0123456789";
 const ANT = "sk-ant-api03-AGENTKEY_never_leak_ant";
@@ -38,6 +40,8 @@ beforeEach(() => {
   vi.stubEnv("OPENAI_API_KEY", KEY);
   vi.stubEnv("ANTHROPIC_API_KEY", ANT);
   vi.stubEnv("GEMINI_API_KEY", GEM);
+  resetGeminiPool();
+  resetGeminiModelCache();
 });
 afterEach(() => vi.unstubAllGlobals());
 
@@ -151,10 +155,11 @@ describe("POST /api/ai/agent", () => {
 
     const msgs: AgentMessage[] = [user("find state"), first.message, { role: "tool", toolCallId: first.message.role === "assistant" ? first.message.toolCalls![0]!.id : "", name: "search_code", content: "src/App.tsx:3" }];
     await read(await agent(req({ providerId: "platform:gemini", mode: "ask", project, messages: msgs })));
-    const sent = JSON.parse(String(calls[1]!.init!.body)) as { contents: { role: string; parts: Record<string, unknown>[] }[] };
+    const gen = calls.filter((c) => c.method === "POST");
+    const sent = JSON.parse(String(gen[1]!.init!.body)) as { contents: { role: string; parts: Record<string, unknown>[] }[] };
     expect(JSON.stringify(sent.contents)).toContain("sig-abc");
     expect(sent.contents[sent.contents.length - 1]!.parts[0]).toHaveProperty("functionResponse");
-    expect(calls[0]!.url.searchParams.get("key") ?? new Headers(calls[0]!.init!.headers).get("x-goog-api-key")).toBe(GEM);
+    expect(gen[0]!.url.searchParams.get("key") ?? new Headers(gen[0]!.init!.headers).get("x-goog-api-key")).toBe(GEM);
   });
 
   it("Gemini platform requests fail over to the next configured key on quota errors", async () => {
@@ -171,9 +176,70 @@ describe("POST /api/ai/agent", () => {
     });
     const out = await read<AgentStepResponse>(await agent(req({ providerId: "platform:gemini", mode: "ask", project, messages: [user("large request")] })));
     expect(out.provider.model).toBe("gemini-flash-latest");
-    expect(calls).toHaveLength(2);
-    expect(new Headers(calls[0]!.init!.headers).get("x-goog-api-key")).toBe(GEM);
-    expect(new Headers(calls[1]!.init!.headers).get("x-goog-api-key")).toBe(second);
+    expect(out.provider.keyAttempts).toBe(2);
+    const gen = calls.filter((c) => c.method === "POST");
+    expect(gen).toHaveLength(2);
+    expect(new Headers(gen[0]!.init!.headers).get("x-goog-api-key")).toBe(GEM);
+    expect(new Headers(gen[1]!.init!.headers).get("x-goog-api-key")).toBe(second);
+    // Identical request body on both keys (model, messages, tools preserved).
+    expect(gen[1]!.init!.body).toBe(gen[0]!.init!.body);
+  });
+
+  it("Gemini platform keeps the selected model instead of forcing the default", async () => {
+    vi.stubEnv("GEMINI_MODEL", "gemini-2.5-flash");
+    const calls = mockGitHub({
+      "GET /v1beta/models": () => gh({ models: [{ name: "models/gemini-2.5-flash", supportedGenerationMethods: ["generateContent"] }, { name: "models/gemini-flash-latest", supportedGenerationMethods: ["generateContent"] }] }),
+      "POST /v1beta/models/gemini-2.5-flash:generateContent": () => gh({ candidates: [{ content: { role: "model", parts: [{ text: "ok" }] }, finishReason: "STOP" }], modelVersion: "gemini-2.5-flash" }),
+    });
+    const out = await read<AgentStepResponse>(await agent(req({ mode: "ask", project: { ...project, source: "demo" }, messages: [user("hi")] }, { cookie: "" })));
+    expect(out.provider.model).toBe("gemini-2.5-flash");
+    expect(out.provider.fallbackFrom).toBeUndefined();
+    expect(calls.filter((c) => c.method === "POST")).toHaveLength(1);
+  });
+
+  it("Gemini platform falls back to gemini-flash-latest when the selected model is not listed", async () => {
+    vi.stubEnv("GEMINI_MODEL", "gemini-3.8-flash");
+    mockGitHub({
+      "GET /v1beta/models": () => gh({ models: [{ name: "models/gemini-flash-latest", supportedGenerationMethods: ["generateContent"] }] }),
+      "POST /v1beta/models/gemini-flash-latest:generateContent": () => gh({ candidates: [{ content: { role: "model", parts: [{ text: "ok" }] }, finishReason: "STOP" }] }),
+    });
+    const out = await read<AgentStepResponse>(await agent(req({ mode: "ask", project: { ...project, source: "demo" }, messages: [user("hi")] }, { cookie: "" })));
+    expect(out.provider.model).toBe("gemini-flash-latest");
+    expect(out.provider.fallbackFrom).toBe("gemini-3.8-flash");
+  });
+
+  it("Gemini platform retries once on the default model after a model-not-found, without rotating keys", async () => {
+    vi.stubEnv("GEMINI_MODEL", "gemini-2.5-flash");
+    vi.stubEnv("GEMINI_API_KEYS", JSON.stringify([GEM, "AIza-AGENTKEY-second-gemini"]));
+    let listed = ["gemini-2.5-flash", "gemini-flash-latest"];
+    const calls = mockGitHub({
+      "GET /v1beta/models": () => gh({ models: listed.map((id) => ({ name: `models/${id}`, supportedGenerationMethods: ["generateContent"] })) }),
+      "POST /v1beta/models/gemini-2.5-flash:generateContent": () => {
+        listed = ["gemini-flash-latest"]; // Google retired it between list and call
+        return gh({ error: { code: 404, status: "NOT_FOUND", message: "models/gemini-2.5-flash is not found" } }, { status: 404 });
+      },
+      "POST /v1beta/models/gemini-flash-latest:generateContent": () => gh({ candidates: [{ content: { role: "model", parts: [{ text: "ok" }] }, finishReason: "STOP" }] }),
+    });
+    const out = await read<AgentStepResponse>(await agent(req({ mode: "ask", project: { ...project, source: "demo" }, messages: [user("hi")] }, { cookie: "" })));
+    expect(out.provider.model).toBe("gemini-flash-latest");
+    expect(out.provider.fallbackFrom).toBe("gemini-2.5-flash");
+    const gen = calls.filter((c) => c.method === "POST");
+    expect(gen).toHaveLength(2);
+    expect(new Headers(gen[0]!.init!.headers).get("x-goog-api-key")).toBe(new Headers(gen[1]!.init!.headers).get("x-goog-api-key"));
+    expect(JSON.parse(String(gen[0]!.init!.body)).contents).toEqual(JSON.parse(String(gen[1]!.init!.body)).contents);
+  });
+
+  it("Gemini platform returns a safe 429 with Retry-After when every key is rate-limited", async () => {
+    vi.stubEnv("GEMINI_API_KEYS", JSON.stringify([GEM, "AIza-AGENTKEY-second-gemini"]));
+    mockGitHub({
+      "POST /v1beta/models/gemini-flash-latest:generateContent": () => gh({ error: { code: 429, status: "RESOURCE_EXHAUSTED", message: `quota for ${GEM}`, details: [{ retryDelay: "9s" }] } }, { status: 429 }),
+    });
+    const res = await agent(req({ providerId: "platform:gemini", mode: "ask", project, messages: [user("hi")] }));
+    expect(res.status).toBe(429);
+    expect(res.headers.get("retry-after")).toBe("9");
+    const out = await read<{ error: { code: string; message: string } }>(res);
+    expect(out.error.code).toBe("AI_QUOTA_EXCEEDED");
+    expect(out.error.message).toMatch(/Tried 2 of 2/);
   });
 
   it("redacts keys from provider errors", async () => {

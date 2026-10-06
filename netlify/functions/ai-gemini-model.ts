@@ -1,12 +1,13 @@
 import type { Config } from "@netlify/functions";
 import { z } from "zod";
-import { DEFAULT_GEMINI_MODEL, GEMINI_SERVER_MODELS, effectiveGeminiModel, isGeminiServerModel } from "../../src/lib/gemini-models.js";
+import { DEFAULT_GEMINI_MODEL, effectiveGeminiModel, isGeminiServerModel } from "../../src/lib/gemini-models.js";
 import { HttpError, handle, json } from "../lib/http.js";
 import { db } from "../lib/db.js";
 import { requireSession } from "../lib/session.js";
 import { assertSameOrigin, rateLimit } from "../lib/security.js";
 import { readJson } from "../lib/validate.js";
 import { geminiKeys } from "../lib/ai/gemini-pool.js";
+import { discoverGeminiModels, fallbackModel, geminiModelOptions } from "../lib/ai/gemini-availability.js";
 
 const modelBody = z.object({ model: z.string().trim().min(1).max(120) }).strict();
 
@@ -45,7 +46,18 @@ export default handle(["GET", "PATCH"], async (req) => {
     await sql`UPDATE users SET ai_gemini_model = ${body.model} WHERE id = ${id}`;
   }
   const selected = await currentModel(session);
-  return json({ model: selected, defaultModel: DEFAULT_GEMINI_MODEL, models: GEMINI_SERVER_MODELS.map((model) => ({ id: model, available: true })) });
+  // Availability comes from Google's models.list for the configured keys (cached 10 min).
+  // null = couldn't check right now; every model is shown as selectable in that case.
+  const listed = await discoverGeminiModels();
+  const available = (model: string) => (listed ? listed.has(model) : true);
+  const effective = available(selected) ? selected : fallbackModel(listed);
+  return json({
+    model: selected,
+    effectiveModel: effective,
+    defaultModel: DEFAULT_GEMINI_MODEL,
+    availabilityChecked: !!listed,
+    models: geminiModelOptions(),
+  });
 });
 
 export const config: Config = { path: "/api/ai/platform/gemini" };

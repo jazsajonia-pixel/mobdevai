@@ -74,7 +74,8 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
       window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT, { detail: code }));
     }
     const requestId = (response.headers.get("x-request-id") ?? "").slice(0, 40) || undefined;
-    throw new AppError(code, message, response.status, requestId);
+    const retryAfter = Number(response.headers.get("retry-after") ?? "");
+    throw new AppError(code, message, response.status, requestId, Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter, 3600) : undefined);
   }
 
   return payload as T;

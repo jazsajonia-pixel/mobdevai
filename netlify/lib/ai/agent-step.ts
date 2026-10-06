@@ -1,7 +1,7 @@
 import type { AgentAttachment, AgentMessage, ToolCall } from "../../../src/types/agent.js";
 import type { ToolDef } from "../../../src/lib/agent-tools.js";
 import { HttpError } from "../http.js";
-import { AGENT_TIMEOUT_MS, ANTHROPIC, GEMINI, anthropicHeaders, call, openAiBase, type ResolvedProvider } from "./adapters.js";
+import { AGENT_TIMEOUT_MS, ANTHROPIC, GEMINI, ProviderError, anthropicHeaders, call, openAiBase, type ResolvedProvider } from "./adapters.js";
 
 /**
  * One agent step = one model call with tool definitions. The browser runs the loop (executing
@@ -16,6 +16,8 @@ export interface StepInput {
   tools: ToolDef[];
   maxTokens: number;
   signal?: AbortSignal;
+  /** Per-call deadline (the Gemini failover loop shrinks it to fit the request budget). */
+  timeoutMs?: number;
 }
 
 export interface StepOutput {
@@ -195,11 +197,15 @@ async function geminiStep(p: ResolvedProvider, input: StepInput): Promise<StepOu
       generationConfig: { maxOutputTokens: input.maxTokens * 2, thinkingConfig: /gemini-3/i.test(model) ? { thinkingLevel: p.effort.toUpperCase() } : { thinkingBudget: p.effort === "low" ? 1024 : p.effort === "high" ? 8192 : 4096 } },
     }),
     signal: input.signal,
-    timeoutMs: AGENT_TIMEOUT_MS,
-  })) as { candidates?: { content?: { role?: string; parts?: GeminiPart[] }; finishReason?: string }[]; usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number }; modelVersion?: string };
+    timeoutMs: input.timeoutMs ?? AGENT_TIMEOUT_MS,
+  })) as { promptFeedback?: { blockReason?: string }; candidates?: { content?: { role?: string; parts?: GeminiPart[] }; finishReason?: string }[]; usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number }; modelVersion?: string };
   const cand = data?.candidates?.[0];
   const parts = cand?.content?.parts ?? [];
-  if (!cand) throw new HttpError(502, "AI_PROVIDER_UNAVAILABLE", "Gemini returned no candidates (the request may have been blocked).");
+  if (!cand) {
+    // A blocked prompt is a property of the request, not the key: never fail over on it.
+    const reason = String(data?.promptFeedback?.blockReason ?? "").replace(/[^A-Z_]/g, "").slice(0, 40);
+    throw new ProviderError(422, "VALIDATION_FAILED", `Gemini declined this request${reason ? ` (${reason})` : ""}. Rephrase it or remove the attachment that triggered the block.`, { httpStatus: 200, providerStatus: reason || null, reasons: [], quotaIds: [], retryAfterMs: null, blocked: true });
+  }
   return {
     text: parts.filter((x) => x.text && !x.thought).map((x) => x.text).join(""),
     toolCalls: parts.filter((x) => x.functionCall).map((x, i) => ({ id: x.functionCall?.id ?? `gem_${i}_${Date.now().toString(36)}`, name: x.functionCall?.name ?? "", ...parseArgs(x.functionCall?.args ?? {}) })),

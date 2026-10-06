@@ -49,8 +49,8 @@ them to **Functions** (they're never needed at build time).
 | `ENCRYPTION_KEY` | recommended | `openssl rand -base64 32`, different from `SESSION_SECRET` — needed to save AI provider keys |
 | `DATABASE_URL` | recommended | shared rate limits + saved providers |
 | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` | optional | platform keys billed to you, offered to every signed-in user |
-| `GEMINI_API_KEYS` | optional | sensitive JSON array (or newline/comma-separated list) of Gemini keys; platform Agent requests fail over across keys on quota/rate-limit errors |
-| `GEMINI_MODEL` | optional | defaults to `gemini-flash-latest`; the platform Gemini pool keeps one model across all keys |
+| `GEMINI_API_KEYS` | optional | sensitive JSON array (or newline/comma/semicolon-separated list) of Gemini keys, ideally from different Google projects; every server Gemini call fails over across keys on quota/rate-limit/transient/invalid-key errors (see ARCHITECTURE.md → Gemini key pool). Redeploy after changing it. Check with `/api/health?gemini=1` (counts only). |
+| `GEMINI_MODEL` | optional | defaults to `gemini-flash-latest`; used when no account-synced selection exists. A request keeps the same model across all keys; an unlisted model falls back to `gemini-flash-latest` |
 | `LOG_LEVEL` | optional | `info` (default), `warn`, `error`, `debug`, `silent` |
 
 Never set in production: `AI_ALLOW_PRIVATE_BASE_URLS` (it's ignored there anyway), `RATE_LIMIT_STORE=memory`,

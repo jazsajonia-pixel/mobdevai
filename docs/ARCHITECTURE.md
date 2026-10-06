@@ -159,3 +159,38 @@ Git tab ─ selected FileChange[] + message + target ─▶ POST /api/github/rep
   from `package.json` at build time.
 - `e2e/` + `playwright.config.ts` — starts mock GitHub, mock AI, the functions runner and Vite on
   dedicated ports (5273/8887/8890/8891) and drives mobile device profiles.
+
+## Gemini key pool
+
+Server-managed Gemini (`platform:gemini`) runs every real Gemini call through
+`netlify/lib/ai/gemini-pool.ts › withGeminiFailover()`: agent steps (`/api/ai/agent`), the
+provider test (`/api/ai/test-provider`) and model discovery (`models.list`).
+
+- **Keys**: `GEMINI_API_KEYS` (JSON array, or newline / comma / semicolon / whitespace list) plus
+  the legacy `GEMINI_API_KEY`, merged and deduplicated; blank and malformed entries are dropped.
+  Keys stay in function memory only. Logs and metadata refer to slots by position (`gemini-2`).
+- **Failover**: a request starts on one key (lowest index, or the least-busy key during concurrent
+  bursts) and moves on only after an error another key could fix: 429 / `RESOURCE_EXHAUSTED`,
+  quota-flavoured 403 (decided from Google's `status`/`reason`, not every 403), invalid/disabled
+  key, 408/500/502/503/504 and timeouts. Each key is tried at most once per request, at most 8
+  attempts, inside a 100 s budget (the Vercel function allows 120 s; the client waits 115 s).
+- **No failover** for bad requests, unknown models, oversized input (413), safety blocks, or a
+  client disconnect (the Vercel adapter forwards `close` as an abort signal).
+- **Cooldowns**: per key **and model** (Google quotas are per project per model), from
+  `google.rpc.RetryInfo.retryDelay` or `Retry-After`, default 15 s, daily quotas 10 min, capped at
+  10 min; invalid keys 15 min. Cooldowns are never awaited — they only reorder/skip keys. They are
+  per instance, so a cold instance may re-try a limited key once and immediately move on;
+  correctness never depends on shared state.
+- **All keys exhausted** → `429 AI_QUOTA_EXCEEDED` with the earliest `Retry-After` and counts only
+  ("Tried 3 of 3 … 2 rate-limited, 1 unavailable"). All keys rejected → `503 AI_INVALID_KEY`.
+  The client agent loop (`runner.ts › stepWithRetry`) waits that `Retry-After` (≤ 30 s, 2 times)
+  and re-sends the identical step; tasks are only updated after a successful step.
+- **Models**: `gemini-availability.ts` caches `models.list` for 10 minutes (1 minute after a failed
+  lookup). The user's selected model is kept when listed; otherwise the request uses
+  `gemini-flash-latest` (or the first listed Flash model if the alias itself disappears) and the
+  response carries `provider.fallbackFrom`. A `404`/model-not-found from `generateContent`
+  invalidates the cache and retries once on the fallback model with the same messages.
+- **Health**: `/api/health` reports key counts; `/api/health?gemini=1` (3/min per IP) lists models
+  per key with the free `models.list` endpoint and returns counts only.
+- **Limitation**: keys from the same Google Cloud project share one quota, so only keys from
+  different projects/accounts add capacity.

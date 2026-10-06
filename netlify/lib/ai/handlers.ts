@@ -8,7 +8,7 @@ import { normalizeBaseUrl } from "./url-guard.js";
 import type { ProviderState } from "./state.js";
 import { openStore, publicPlatform, storageInfo, type ProviderStore } from "./store.js";
 import { toPublic } from "./state.js";
-import { GEMINI_SERVER_MODELS } from "../../../src/lib/gemini-models.js";
+import { discoverGeminiModels, geminiModelOptions } from "./gemini-availability.js";
 
 /** Shared plumbing for the /api/ai/providers functions. */
 
@@ -18,6 +18,8 @@ export async function providerContext(req: Request, mutating: boolean) {
   await rateLimit(`ai-providers:${session.user.id}`, mutating ? 30 : 120, 60_000);
   const store = openStore(req, session);
   const state = await store.load();
+  // Warm the 10-minute model-availability cache so the selector reflects what Google lists.
+  await discoverGeminiModels().catch(() => null);
   return { session, store, state };
 }
 
@@ -27,7 +29,7 @@ export function respond(store: ProviderStore, state: ProviderState, cookies: str
     storageNote: store.note,
     maxProviders: store.max,
     ...toPublic(state, publicPlatform(state.geminiModel)),
-    geminiModels: GEMINI_SERVER_MODELS.map((id) => ({ id, available: true })),
+    geminiModels: geminiModelOptions(),
   };
   return json(body, { status, cookies });
 }
@@ -35,7 +37,7 @@ export function respond(store: ProviderStore, state: ProviderState, cookies: str
 /** For GET when storage isn't configured: still show platform providers (if any). */
 export function respondUnavailable(): Response {
   const info = storageInfo();
-  const body: ProvidersResponse = { storage: "unavailable", storageNote: info.note, maxProviders: 0, ...toPublic({ v: 1, providers: [], defaultId: null, geminiModel: "gemini-flash-latest" }, publicPlatform()), geminiModels: GEMINI_SERVER_MODELS.map((id) => ({ id, available: true })) };
+  const body: ProvidersResponse = { storage: "unavailable", storageNote: info.note, maxProviders: 0, ...toPublic({ v: 1, providers: [], defaultId: null, geminiModel: "gemini-flash-latest" }, publicPlatform()), geminiModels: geminiModelOptions() };
   return json(body);
 }
 

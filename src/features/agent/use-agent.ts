@@ -93,7 +93,7 @@ export function useAgent(project: AgentProject) {
   );
 
   const step = useCallback<StepFn>(
-    (t, messages, signal) => api<AgentStepResponse>("/ai/agent", { method: "POST", body: { mode: t.mode, project: context(), messages, skillIds: loadEnabledSkills() }, timeoutMs: 65_000, signal }),
+    (t, messages, signal) => api<AgentStepResponse>("/ai/agent", { method: "POST", body: { mode: t.mode, project: context(), messages, skillIds: loadEnabledSkills() }, timeoutMs: 115_000, signal }),
     [context],
   );
 

@@ -10,6 +10,7 @@ import { cleanBaseUrl } from "../lib/ai/handlers.js";
 import { resolveProvider } from "../lib/ai/resolve.js";
 import { openStore } from "../lib/ai/store.js";
 import { findProvider, recordTest } from "../lib/ai/state.js";
+import { withGeminiFailover } from "../lib/ai/gemini-pool.js";
 
 /**
  * POST /api/ai/test-provider
@@ -26,6 +27,7 @@ export default handle(["POST"], async (req) => {
 
   let target: ResolvedProvider;
   let savedId: string | null = null;
+  let pooled = false;
   if ("apiKey" in body) {
     target = { kind: body.kind, model: body.model, effort: "medium", baseUrl: cleanBaseUrl(body.kind, body.baseUrl), apiKey: body.apiKey };
   } else {
@@ -38,6 +40,8 @@ export default handle(["POST"], async (req) => {
     };
     // Only remember the result when testing exactly what's saved.
     if (!body.id.startsWith("platform:") && (!editing || target.model === r.model)) savedId = body.id;
+    // The server Gemini provider is a key pool: test it the way the agent uses it.
+    pooled = r.id === "platform:gemini" && r.kind === "gemini";
   }
 
   const record = async (result: ProviderTestResult): Promise<string[]> => {
@@ -53,7 +57,9 @@ export default handle(["POST"], async (req) => {
   };
 
   try {
-    const r = await testProvider(target);
+    const r = pooled
+      ? (await withGeminiFailover({ model: target.model, signal: req.signal, perAttemptMs: 30_000, budgetMs: 45_000 }, ({ apiKey }) => testProvider({ ...target, apiKey }))).value
+      : await testProvider(target);
     const cookies = await record({ ok: true, at: new Date().toISOString(), latencyMs: r.latencyMs });
     const out: TestProviderResponse = { ok: true, ...r };
     return json(out, { cookies });

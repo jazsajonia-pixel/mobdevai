@@ -31,6 +31,8 @@ type VercelRequest = {
 
 type VercelResponse = {
   statusCode: number;
+  writableEnded?: boolean;
+  on?: (event: "close", listener: () => void) => void;
   setHeader(name: string, value: string | string[]): void;
   end(body?: string | Uint8Array): void;
 };
@@ -136,10 +138,17 @@ export async function handleVercelRequest(req: VercelRequest, res: VercelRespons
   }
 
   const body = req.method === "GET" || req.method === "HEAD" ? undefined : await readIncomingBody(req);
+  // Propagate client disconnects (Stop, navigation, project exit) so the Gemini failover loop
+  // stops instead of spending more keys on a response nobody will read.
+  const abort = new AbortController();
+  res.on?.("close", () => {
+    if (!res.writableEnded) abort.abort();
+  });
   const request = new Request(url, {
     method: req.method ?? "GET",
     headers: headerEntries(req.headers),
     body,
+    signal: abort.signal,
   });
   const response = await route.handler(request, { params: route.params, ip: req.socket?.remoteAddress });
   res.statusCode = response.status;

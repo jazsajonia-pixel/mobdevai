@@ -20,6 +20,7 @@ export interface ChatRequest {
   temperature?: number;
   effort?: "low" | "medium" | "high";
   signal?: AbortSignal;
+  timeoutMs?: number;
 }
 
 export interface ChatResult {
@@ -54,34 +55,128 @@ export function redact(text: string): string {
     .slice(0, 240);
 }
 
-function upstreamError(status: number, detail: string, provider: string, retryAfter?: string | null): HttpError {
-  const d = detail ? ` (${redact(detail)})` : "";
-  const headers: Record<string, string> = retryAfter ? { "Retry-After": retryAfter.slice(0, 16) } : {};
-  if (status === 401 || status === 403) return new HttpError(400, "AI_INVALID_KEY", `${provider} rejected the API key${d}.`);
-  if (status === 404) return new HttpError(400, "AI_MODEL_NOT_FOUND", `${provider} couldn't find that model${d}.`);
-  if (status === 429) return new HttpError(429, "AI_QUOTA_EXCEEDED", `${provider} rate limit or quota reached${d}.`, [], headers);
-  if (status === 400 && /model/i.test(detail) && /(not|invalid|unknown|exist|support)/i.test(detail)) {
-    return new HttpError(400, "AI_MODEL_NOT_FOUND", `${provider} doesn't accept that model${d}.`);
-  }
-  if (status === 400 && /api.?key/i.test(detail)) return new HttpError(400, "AI_INVALID_KEY", `${provider} rejected the API key${d}.`);
-  if (status >= 400 && status < 500) return new HttpError(400, "VALIDATION_FAILED", `${provider} rejected the request${d}.`);
-  return new HttpError(502, "AI_PROVIDER_UNAVAILABLE", `${provider} returned an error (${status}).`, [], headers);
+/**
+ * Safe, structured facts about an upstream failure. Never contains key material or raw bodies —
+ * only the HTTP status, Google's canonical status (e.g. RESOURCE_EXHAUSTED), error reasons
+ * (e.g. API_KEY_INVALID), quota ids, and a retry delay. Used to decide whether another key may help.
+ */
+export interface UpstreamInfo {
+  httpStatus: number | null;
+  providerStatus: string | null;
+  reasons: string[];
+  quotaIds: string[];
+  retryAfterMs: number | null;
+  /** The caller (client) cancelled — never fail over after this. */
+  aborted?: boolean;
+  /** Our own per-attempt deadline elapsed. */
+  timedOut?: boolean;
+  /** The provider answered 200 but returned no usable candidate (safety block / recitation). */
+  blocked?: boolean;
 }
+
+export class ProviderError extends HttpError {
+  constructor(status: number, code: HttpError["code"], message: string, readonly upstream: UpstreamInfo, headers: Record<string, string> = {}) {
+    super(status, code, message, [], headers);
+    this.name = "ProviderError";
+  }
+}
+
+export function upstreamOf(err: unknown): UpstreamInfo | null {
+  return err instanceof ProviderError ? err.upstream : null;
+}
+
+/** "3.6s" / "30s" (google.rpc.RetryInfo) or Retry-After seconds → ms, bounded. */
+export function parseRetryDelay(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) return Math.min(value * 1000, 3_600_000);
+  if (typeof value !== "string") return null;
+  const m = /^\s*(\d+(?:\.\d+)?)\s*s?\s*$/.exec(value);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isFinite(n) ? Math.min(Math.round(n * 1000), 3_600_000) : null;
+}
+
+type GoogleDetail = { "@type"?: string; reason?: string; retryDelay?: string; violations?: { quotaId?: string; quotaMetric?: string }[] };
+type ErrorBody = { error?: { message?: string; status?: string; code?: number; details?: GoogleDetail[]; errors?: { reason?: string }[] } | string; message?: string } | null;
+
+export function upstreamInfo(status: number, body: ErrorBody, retryAfterHeader: string | null): UpstreamInfo {
+  const e = body && typeof body.error === "object" ? body.error : null;
+  const details = Array.isArray(e?.details) ? e!.details : [];
+  const reasons = [
+    ...details.map((d) => d?.reason).filter((r): r is string => typeof r === "string"),
+    ...(Array.isArray(e?.errors) ? e!.errors.map((x) => x?.reason).filter((r): r is string => typeof r === "string") : []),
+  ].map((r) => r.slice(0, 64));
+  const quotaIds = details.flatMap((d) => (Array.isArray(d?.violations) ? d.violations.map((v) => v?.quotaId ?? v?.quotaMetric) : [])).filter((q): q is string => typeof q === "string").map((q) => q.slice(0, 120));
+  const retryInfo = details.find((d) => typeof d?.retryDelay === "string");
+  return {
+    httpStatus: status,
+    providerStatus: typeof e?.status === "string" ? e.status.slice(0, 40) : null,
+    reasons: [...new Set(reasons)].slice(0, 8),
+    quotaIds: [...new Set(quotaIds)].slice(0, 8),
+    retryAfterMs: parseRetryDelay(retryInfo?.retryDelay) ?? parseRetryDelay(retryAfterHeader),
+  };
+}
+
+const QUOTA_REASONS = /^(RATE_LIMIT_EXCEEDED|RESOURCE_EXHAUSTED|rateLimitExceeded|userRateLimitExceeded|quotaExceeded|dailyLimitExceeded)$/i;
+const KEY_REASONS = /^(API_KEY_INVALID|API_KEY_EXPIRED|API_KEY_SERVICE_BLOCKED|API_KEY_HTTP_REFERRER_BLOCKED|API_KEY_IP_ADDRESS_BLOCKED|SERVICE_DISABLED|CONSUMER_INVALID|CONSUMER_SUSPENDED|BILLING_DISABLED|ACCESS_TOKEN_SCOPE_INSUFFICIENT|keyInvalid|accessNotConfigured)$/i;
+
+/** A 403 is a quota problem only when the body says so; most 403s are permission/key problems. */
+export function isQuotaForbidden(info: UpstreamInfo, detail: string): boolean {
+  if (info.httpStatus !== 403) return false;
+  if (info.providerStatus === "RESOURCE_EXHAUSTED") return true;
+  if (info.reasons.some((r) => QUOTA_REASONS.test(r))) return true;
+  if (info.reasons.some((r) => KEY_REASONS.test(r))) return false;
+  return /\b(quota|rate[- ]?limit(ed)?|too many requests)\b/i.test(detail) && !/\b(permission|api key|leaked|disabled|suspended)\b/i.test(detail);
+}
+
+function upstreamError(status: number, detail: string, provider: string, info: UpstreamInfo): ProviderError {
+  const d = detail ? ` (${redact(detail)})` : "";
+  const retrySec = info.retryAfterMs !== null ? Math.max(1, Math.ceil(info.retryAfterMs / 1000)) : null;
+  const headers: Record<string, string> = retrySec !== null ? { "Retry-After": String(retrySec) } : {};
+  const keyReason = info.reasons.some((r) => KEY_REASONS.test(r));
+  if (status === 429 || info.providerStatus === "RESOURCE_EXHAUSTED" || isQuotaForbidden(info, detail)) {
+    return new ProviderError(429, "AI_QUOTA_EXCEEDED", `${provider} rate limit or quota reached${d}.`, info, headers);
+  }
+  if (status === 401 || status === 403) return new ProviderError(400, "AI_INVALID_KEY", `${provider} rejected the API key${d}.`, info);
+  if (status === 404) return new ProviderError(400, "AI_MODEL_NOT_FOUND", `${provider} couldn't find that model${d}.`, info);
+  if (status === 408) return new ProviderError(504, "AI_PROVIDER_UNAVAILABLE", `${provider} timed out (408).`, info, headers);
+  if (status === 400 && (keyReason || /api.?key (not valid|invalid|expired)|invalid api.?key|api_key_invalid/i.test(detail))) {
+    return new ProviderError(400, "AI_INVALID_KEY", `${provider} rejected the API key${d}.`, info);
+  }
+  if (status === 400 && /model/i.test(detail) && /(not found|invalid|unknown|exist|not supported|unsupported)/i.test(detail) && !/token/i.test(detail)) {
+    return new ProviderError(400, "AI_MODEL_NOT_FOUND", `${provider} doesn't accept that model${d}.`, info);
+  }
+  if (status === 400 && /(token count|too (long|large)|exceeds the maximum|context (length|window))/i.test(detail)) {
+    return new ProviderError(413, "VALIDATION_FAILED", `${provider} says the request is too large for this model${d}. Start a new task or attach fewer files.`, info);
+  }
+  if (status >= 400 && status < 500) return new ProviderError(400, "VALIDATION_FAILED", `${provider} rejected the request${d}.`, info);
+  return new ProviderError(502, "AI_PROVIDER_UNAVAILABLE", `${provider} returned an error (${status}).`, info, headers);
+}
+
+const EMPTY_INFO = (): UpstreamInfo => ({ httpStatus: null, providerStatus: null, reasons: [], quotaIds: [], retryAfterMs: null });
 
 export async function call(provider: string, url: string, init: RequestInit & { signal?: AbortSignal; timeoutMs?: number }): Promise<unknown> {
   const { timeoutMs = TIMEOUT_MS, ...rest } = init;
   init = rest;
-  const signal = init.signal ? AbortSignal.any([init.signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs);
+  const outer = init.signal ?? null;
+  const timer = AbortSignal.timeout(timeoutMs);
+  const signal = outer ? AbortSignal.any([outer, timer]) : timer;
   let res: Response;
   try {
     // redirect: "manual" — a redirect could bounce the key to another host.
     res = await fetch(url, { ...init, signal, redirect: "manual" });
   } catch (err) {
-    const timeout = err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError");
-    throw new HttpError(504, "AI_PROVIDER_UNAVAILABLE", timeout ? `${provider} timed out.` : `Couldn't reach ${provider}.`);
+    if (outer?.aborted) throw new ProviderError(499, "AI_PROVIDER_UNAVAILABLE", "The request was cancelled.", { ...EMPTY_INFO(), aborted: true });
+    const timeout = timer.aborted || (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError"));
+    throw new ProviderError(504, "AI_PROVIDER_UNAVAILABLE", timeout ? `${provider} timed out.` : `Couldn't reach ${provider}.`, { ...EMPTY_INFO(), timedOut: timeout });
   }
   if (res.status >= 300 && res.status < 400) throw new HttpError(502, "AI_BAD_BASE_URL", `${provider} answered with a redirect; use the final API URL.`);
-  const text = await res.text();
+  let text: string;
+  try {
+    text = await res.text();
+  } catch {
+    if (outer?.aborted) throw new ProviderError(499, "AI_PROVIDER_UNAVAILABLE", "The request was cancelled.", { ...EMPTY_INFO(), aborted: true });
+    throw new ProviderError(504, "AI_PROVIDER_UNAVAILABLE", `${provider} timed out.`, { ...EMPTY_INFO(), timedOut: true });
+  }
   let body: unknown = null;
   try {
     body = text ? JSON.parse(text) : null;
@@ -89,9 +184,9 @@ export async function call(provider: string, url: string, init: RequestInit & { 
     if (res.ok) throw new HttpError(502, "AI_PROVIDER_UNAVAILABLE", `${provider} returned something that isn't JSON. Check the base URL.`);
   }
   if (!res.ok) {
-    const b = body as { error?: { message?: string } | string; message?: string } | null;
+    const b = body as ErrorBody;
     const detail = typeof b?.error === "string" ? b.error : (b?.error?.message ?? b?.message ?? "");
-    throw upstreamError(res.status, detail, provider, res.headers.get("retry-after"));
+    throw upstreamError(res.status, detail, provider, upstreamInfo(res.status, b, res.headers.get("retry-after")));
   }
   return body;
 }
@@ -197,6 +292,7 @@ const gemini: ProviderAdapter = {
         generationConfig: { maxOutputTokens: req.maxTokens ?? 1024, ...(req.temperature !== undefined ? { temperature: req.temperature } : {}) },
       }),
       signal: req.signal,
+      timeoutMs: req.timeoutMs,
     })) as { candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[]; usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number }; modelVersion?: string };
     const c = data?.candidates?.[0];
     return {

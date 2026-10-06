@@ -133,13 +133,16 @@ export class AppError extends Error {
   readonly status?: number;
   /** Server request id (X-Request-Id) — quote it when reporting a problem. */
   readonly requestId?: string;
+  /** Server-suggested wait before retrying (from Retry-After), in seconds. */
+  readonly retryAfterSec?: number;
 
-  constructor(code: ErrorCode, message?: string, status?: number, requestId?: string) {
+  constructor(code: ErrorCode, message?: string, status?: number, requestId?: string, retryAfterSec?: number) {
     super(message ?? COPY[code].title);
     this.name = "AppError";
     this.code = code;
     this.status = status;
     this.requestId = requestId;
+    this.retryAfterSec = retryAfterSec;
   }
 }
 

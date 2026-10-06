@@ -13,6 +13,7 @@ import { readSession } from "../lib/session.js";
 import { providerIdSchema } from "../lib/ai/schemas.js";
 import { CUSTOM_SKILLS } from "../../src/lib/skills.js";
 import { withGeminiFailover } from "../lib/ai/gemini-pool.js";
+import { chooseGeminiModel, fallbackModel, discoverGeminiModels, invalidateGeminiModels } from "../lib/ai/gemini-availability.js";
 
 /**
  * POST /api/ai/agent — run ONE agent step.
@@ -95,9 +96,35 @@ export default handle(["POST"], async (req) => {
     maxTokens: 8192,
     signal: req.signal,
   };
-  const out = provider.kind === "gemini" && provider.id === "platform:gemini"
-    ? await withGeminiFailover(provider, (apiKey) => agentStep({ ...provider, apiKey, model: "gemini-flash-latest" }, input))
-    : await agentStep(provider, input);
+  let model = provider.model;
+  let fallbackFrom: string | null = null;
+  let attempts = 1;
+  let out;
+  if (provider.kind === "gemini" && provider.id === "platform:gemini") {
+    // Keep the user's selected model; fall back only when Google says it isn't callable.
+    ({ model, fallbackFrom } = await chooseGeminiModel(provider.model));
+    const runOn = async (m: string) =>
+      withGeminiFailover({ model: m, signal: req.signal }, ({ apiKey, timeoutMs }) => agentStep({ ...provider, apiKey, model: m }, { ...input, timeoutMs }));
+    try {
+      const r = await runOn(model);
+      out = r.value;
+      attempts = r.meta.attempts;
+    } catch (err) {
+      // Selected model disappeared (deprecated / not enabled for these keys): refresh the list
+      // and retry once on the fallback model. Same messages, tools and attachments.
+      if (!(err instanceof HttpError && err.code === "AI_MODEL_NOT_FOUND")) throw err;
+      invalidateGeminiModels();
+      const next = fallbackModel(await discoverGeminiModels({ force: true }));
+      if (next === model) throw err;
+      fallbackFrom = fallbackFrom ?? model;
+      model = next;
+      const r = await runOn(model);
+      out = r.value;
+      attempts = r.meta.attempts;
+    }
+  } else {
+    out = await agentStep(provider, input);
+  }
 
   // Drop calls to tools this mode doesn't allow (the client would refuse them anyway).
   const allowed = new Set(tools.map((t) => t.name));
@@ -107,7 +134,13 @@ export default handle(["POST"], async (req) => {
     message: { role: "assistant", content: out.text, ...(toolCalls.length ? { toolCalls } : {}), ...(out.providerState ? { providerState: out.providerState } : {}) },
     stopReason: out.stopReason,
     usage: out.usage,
-    provider: { id: provider.id, label: provider.label, kind: provider.kind, model: out.model },
+    provider: {
+      id: provider.id,
+      label: provider.label,
+      kind: provider.kind,
+      model: out.model,
+      ...(provider.kind === "gemini" && provider.id === "platform:gemini" ? { requestedModel: model, keyAttempts: attempts, ...(fallbackFrom ? { fallbackFrom } : {}) } : {}),
+    },
   };
   return json(res);
 });

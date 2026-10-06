@@ -52,5 +52,16 @@ export interface AgentStepResponse {
   message: Extract<AgentMessage, { role: "assistant" }>;
   stopReason: string | null;
   usage: { inputTokens: number | null; outputTokens: number | null };
-  provider: { id: string; label: string; kind: string; model: string };
+  provider: {
+    id: string;
+    label: string;
+    kind: string;
+    model: string;
+    /** Server Gemini only: the model id the request was sent with (may differ from the user's pick). */
+    requestedModel?: string;
+    /** Server Gemini only: the user's selection, when it was unavailable and we fell back. */
+    fallbackFrom?: string;
+    /** Server Gemini only: how many pool keys were tried (1 = no failover). */
+    keyAttempts?: number;
+  };
 }
