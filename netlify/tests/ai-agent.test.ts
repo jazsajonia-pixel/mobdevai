@@ -142,7 +142,7 @@ describe("POST /api/ai/agent", () => {
   it("Gemini: maps function calls and echoes provider state (thought signatures)", async () => {
     const parts = [{ functionCall: { name: "search_code", args: { query: "useState" } }, thoughtSignature: "sig-abc" }];
     const calls = mockGitHub({
-      [`POST /v1beta/models/gemini-2.5-flash:generateContent`]: () => gh({ candidates: [{ content: { role: "model", parts }, finishReason: "STOP" }], usageMetadata: { promptTokenCount: 3, candidatesTokenCount: 2 } }),
+      [`POST /v1beta/models/gemini-3.6-flash:generateContent`]: () => gh({ candidates: [{ content: { role: "model", parts }, finishReason: "STOP" }], usageMetadata: { promptTokenCount: 3, candidatesTokenCount: 2 } }),
     });
     const first = await read<AgentStepResponse>(await agent(req({ providerId: "platform:gemini", mode: "ask", project, messages: [user("find state")] })));
     expect(first.message.role === "assistant" && first.message.toolCalls?.[0]?.name).toBe("search_code");

@@ -9,8 +9,8 @@ describe("Chrono model catalog", () => {
 
   it("uses restored real-looking Gemini model names", () => {
     expect(PROVIDERS.anthropic.defaultModel).toBe("claude-3-5-sonnet-latest");
-    expect(PROVIDERS.gemini.defaultModel).toBe("gemini-2.5-flash");
-    expect(PROVIDERS.gemini.suggestedModels).toContain("gemini-2.5-pro");
+    expect(PROVIDERS.gemini.defaultModel).toBe("gemini-3.6-flash");
+    expect(PROVIDERS.gemini.suggestedModels).toContain("gemini-3.6-flash");
   });
 
   it("preserves the provider kinds used by the server adapters", () => {

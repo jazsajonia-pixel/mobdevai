@@ -142,7 +142,7 @@ export function AgentPanel({ project }: { project: AgentProject }) {
   const def = ready?.providers.find((p) => p.id === ready.defaultId) ?? null;
   const online = useOnline();
   const needsProvider = !isDemo && providers.state.status === "ready" && !def;
-  const providerLabel = isDemo ? "Gemini · gemini-2.5-flash" : def ? `${def.label} · ${def.model}` : providers.state.status === "loading" ? "Loading provider…" : "No provider";
+  const providerLabel = isDemo ? "Gemini · gemini-3.6-flash" : def ? `${def.label} · ${def.model}` : providers.state.status === "loading" ? "Loading provider…" : "No provider";
 
   const active = ws.data.active;
   const quick: QuickAction[] = isDemo
