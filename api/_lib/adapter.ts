@@ -119,7 +119,12 @@ export async function handleVercelRequest(req: VercelRequest, res: VercelRespons
   const protocol = Array.isArray(req.headers["x-forwarded-proto"]) ? req.headers["x-forwarded-proto"][0] : req.headers["x-forwarded-proto"] ?? "https";
   const host = Array.isArray(req.headers.host) ? req.headers.host[0] : req.headers.host ?? "localhost";
   const url = new URL(req.url ?? "/", `${protocol}://${host}`);
-  const route = routeFor(url.pathname);
+  // Vercel's Vite routing can collapse nested `/api/*` paths into the explicit
+  // `/api/index` function. The rewrite records the original path in this query
+  // parameter so the shared adapter still sees the public API URL.
+  const rewrittenPath = url.pathname === "/api/index" ? url.searchParams.get("__chrono_path") : null;
+  const routePath = rewrittenPath ? `/api/${rewrittenPath.replace(/^\/+/, "")}` : url.pathname;
+  const route = routeFor(routePath);
   if (!route) {
     const missing = errorResponse(404, "VALIDATION_FAILED", "API route not found.");
     res.statusCode = missing.status;
