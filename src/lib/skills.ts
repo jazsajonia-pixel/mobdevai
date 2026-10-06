@@ -1,4 +1,4 @@
-import { safeStorage } from "./storage";
+import { safeStorage } from "./storage.js";
 export interface CustomSkill { id: string; name: string; description: string; instructions: string }
 export const CUSTOM_SKILLS: CustomSkill[] = [
   { id: "code-review", name: "Code review", description: "Look for bugs, regressions, and maintainability risks.", instructions: "Review changes like a senior engineer: prioritize correctness, security, regressions, and actionable fixes." },
