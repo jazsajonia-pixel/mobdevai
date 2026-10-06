@@ -41,8 +41,8 @@ export function useAgent(project: AgentProject) {
     const t = setTimeout(() => setStorageOk(saveTasks(key, tasks)), 300);
     return () => clearTimeout(t);
   }, [key, tasks]);
-  // Stop a run when leaving the workspace.
-  useEffect(() => () => abortRef.current?.abort(), []);
+  // Agent runs are allowed to finish when the user navigates away from the workspace.
+  // Explicit Stop, starting a new task, and replacing a run still abort through abortRef.
 
   const task = useMemo(() => tasks.find((t) => t.id === activeId) ?? null, [tasks, activeId]);
   const running = task?.status === "running";
@@ -59,14 +59,15 @@ export function useAgent(project: AgentProject) {
 
   /** Run updates keep review decisions the user made meanwhile. */
   const upsertFromRun = useCallback((t: AgentTask) => {
-    setTasks((list) => {
-      const i = list.findIndex((x) => x.id === t.id);
-      if (i < 0) return [t, ...list];
-      const next = [...list];
-      next[i] = { ...t, proposal: mergeDecisions(list[i]!.proposal, t.proposal) };
-      return next;
-    });
-  }, []);
+    const list = tasksRef.current;
+    const i = list.findIndex((x) => x.id === t.id);
+    const next = i < 0 ? [t, ...list] : list.map((x, index) => (index === i ? { ...t, proposal: mergeDecisions(x.proposal, t.proposal) } : x));
+    // This callback may run after the hook has unmounted, so persist before scheduling the
+    // render update rather than relying on a React state updater to execute.
+    tasksRef.current = next;
+    saveTasks(key, next);
+    setTasks(next);
+  }, [key]);
 
   const view = useMemo<WorkspaceView>(
     () => ({
