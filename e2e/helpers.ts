@@ -30,12 +30,16 @@ export function uniqueBranch(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
-/** Dismiss the on-screen keyboard (blur the editor) and switch workspace tab. */
+/** Dismiss the on-screen keyboard (blur the editor) and switch workspace tab (via the drawer on phones). */
 export async function gotoTab(page: Page, tab: "Files" | "AI" | "Preview" | "Git"): Promise<void> {
   const nav = page.getByRole("navigation", { name: "Workspace" });
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  const toggle = page.getByTestId("button-toggle-workspace-sidebar");
   await expect(async () => {
-    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-    await expect(nav).toBeVisible({ timeout: 500 });
+    const drawer = page.locator('aside[data-state="closed"]');
+    if ((await drawer.count()) && (await toggle.isVisible())) await toggle.click();
+    await expect(nav).toBeInViewport({ timeout: 800 });
   }).toPass({ timeout: 5_000 });
   await nav.getByTestId(`tab-${tab.toLowerCase()}`).click();
+  if (tab !== "Files") await expect(page).toHaveURL(new RegExp(`/${tab.toLowerCase()}$`));
 }

@@ -75,7 +75,9 @@ export async function readState(req: Request): Promise<OAuthState | null> {
 
 /** Cookie paths: the OAuth state is scoped to /api/auth, AI provider config to /api/ai. */
 export const AI_COOKIE = "mdai_ai";
-const COOKIE_PATHS: Record<string, string> = { [STATE_COOKIE]: "/api/auth", [AI_COOKIE]: "/api/ai" };
+/** Custom skills when there's no database (scoped to /api: read by /api/skills and /api/ai/agent). */
+export const SKILLS_COOKIE = "mdai_skills";
+const COOKIE_PATHS: Record<string, string> = { [STATE_COOKIE]: "/api/auth", [AI_COOKIE]: "/api/ai", [SKILLS_COOKIE]: "/api" };
 
 export function clearCookie(req: Request, name: string): string {
   return serializeCookie(name, "", { maxAge: 0, secure: isSecureRequest(req), path: COOKIE_PATHS[name] ?? "/" });

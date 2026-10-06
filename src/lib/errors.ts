@@ -27,7 +27,7 @@ const COPY: Record<ErrorCode, ErrorCopy> = {
   },
   UNAUTHENTICATED: {
     title: "Sign in required",
-    hint: "Sign in with GitHub, or explore the demo workspace.",
+    hint: "Sign in with GitHub to continue.",
   },
   SESSION_EXPIRED: {
     title: "Your session expired",
@@ -119,6 +119,8 @@ const COPY: Record<ErrorCode, ErrorCopy> = {
     title: "The branch changed on GitHub",
     hint: "Someone pushed changes to the same files. Commit to a new branch instead and open a pull request — nothing was lost.",
   },
+  REPO_EXISTS: { title: "That repository already exists", hint: "Pick a different name, or open the existing repository from your list." },
+  SKILLS_LIMIT: { title: "Too many skills", hint: "Delete a custom skill before adding another." },
   BRANCH_EXISTS: { title: "That branch already exists", hint: "Pick another branch name, or commit to the existing branch." },
   BRANCH_PROTECTED: {
     title: "Branch is protected",

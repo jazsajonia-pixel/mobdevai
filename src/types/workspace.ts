@@ -1,8 +1,7 @@
 /**
  * Core workspace domain types shared by the file tree, editor, AI agent, diff and preview.
- * Phase 0 uses these for the bundled demo project; Phase 1 fills them from GitHub.
  */
-export type ProjectSource = "demo" | "github";
+export type ProjectSource = "github";
 
 export interface ProjectRef {
   id: string;
@@ -10,7 +9,7 @@ export interface ProjectRef {
   owner: string;
   name: string;
   defaultBranch: string;
-  visibility: "public" | "private" | "demo";
+  visibility: "public" | "private";
   description?: string;
 }
 

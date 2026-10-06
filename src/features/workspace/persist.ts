@@ -9,7 +9,7 @@ import type { WorkspaceData } from "./model";
 
 const PREFIX = "ws:";
 
-export function workspaceKey(source: "demo" | "github", owner: string, repo: string, branch: string): string {
+export function workspaceKey(source: "github", owner: string, repo: string, branch: string): string {
   return `${PREFIX}${source}:${owner}/${repo}@${branch}`;
 }
 

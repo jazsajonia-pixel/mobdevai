@@ -1,7 +1,7 @@
 /**
  * Storage that never throws. Some embedded/private browsing contexts block Web Storage;
  * in that case we fall back to memory so the app keeps working for the current tab.
- * Never store secrets here — only non-sensitive UI preferences and demo state.
+ * Never store secrets here — only non-sensitive UI preferences and drafts.
  */
 type Area = "local" | "session";
 

@@ -1,10 +1,10 @@
 /**
  * Workspace model — pure functions, no React. A workspace is a set of local changes layered on
- * top of a base snapshot (a GitHub commit or the bundled demo). Nothing here talks to GitHub;
+ * top of a base snapshot (a GitHub commit). Nothing here talks to GitHub;
  * changes stay on the device until they're committed (Phase 6).
  *
  * Three layers per file:
- *   base       content at the branch's commit (GitHub / demo)
+ *   base       content at the branch's commit (GitHub)
  *   change     saved workspace content — what will be committed
  *   draft      unsaved editor buffer — protected locally, shown with an "unsaved" dot
  * Renames are modelled like git: delete old path + add new path.

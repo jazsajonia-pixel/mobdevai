@@ -1,25 +1,20 @@
-import { describe, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { Router } from "wouter";
-import { memoryLocation } from "wouter/memory-location";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { EditorView } from "@codemirror/view";
-import { AppRoutes } from "./App";
-import { SessionProvider } from "./stores/session";
-import { ThemeProvider } from "./stores/theme";
+import { SAMPLE_PATH, mockGitHub, renderApp } from "./test/github-fixture";
 
-function renderDemo(path = "/app/projects/demo/pocket-tasks") {
-  const loc = memoryLocation({ path, record: true });
-  render(
-    <ThemeProvider>
-      <SessionProvider initial={{ mode: "demo", startedAt: new Date().toISOString() }}>
-        <Router hook={loc.hook}>
-          <AppRoutes />
-        </Router>
-      </SessionProvider>
-    </ThemeProvider>,
-  );
-  return loc;
+function renderDemo(path = SAMPLE_PATH) {
+  return renderApp(path).loc;
 }
+
+beforeEach(() => {
+  mockGitHub();
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+  localStorage.clear();
+});
 
 async function editorView(): Promise<EditorView> {
   const el = await waitFor(() => {
@@ -34,7 +29,7 @@ function type(view: EditorView, text: string, at = 0) {
   act(() => view.dispatch({ changes: { from: at, insert: text }, userEvent: "input.type" }));
 }
 
-describe("mobile editor (demo workspace)", () => {
+describe("mobile editor", () => {
   it("edits, marks unsaved, saves, shows the diff, and discards", async () => {
     const loc = renderDemo();
     fireEvent.click(await screen.findByText("README.md", {}, { timeout: 5000 }));
@@ -51,7 +46,7 @@ describe("mobile editor (demo workspace)", () => {
     expect(screen.getByTestId("badge-changes")).toHaveTextContent("1");
 
     fireEvent.click(screen.getByTestId("tab-git"));
-    expect(loc.history?.at(-1)).toBe("/app/projects/demo/pocket-tasks/git");
+    expect(loc.history?.at(-1)).toBe(`${SAMPLE_PATH}/git`);
     const row = await screen.findByTestId("change-README.md");
     expect(row).toHaveTextContent("+1");
     fireEvent.click(within(row).getByRole("button", { expanded: false }));
@@ -132,7 +127,7 @@ describe("mobile editor (demo workspace)", () => {
     renderDemo();
     fireEvent.click(await screen.findByTestId("button-search-files"));
     fireEvent.change(screen.getByTestId("input-project-search"), { target: { value: "TaskItem" } });
-    // Demo files are local, but only loaded on demand — load them, then search.
+    // Files are only loaded on demand — load them, then search.
     fireEvent.click(await screen.findByTestId("button-load-all"));
     const results = await screen.findByTestId("list-search-results");
     expect(results).toHaveTextContent("src/App.jsx");

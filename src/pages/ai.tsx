@@ -9,12 +9,9 @@ import { ActiveProviderLink } from "@/features/ai/active-provider";
 import { recentAgentTasks } from "@/features/agent/store";
 import { proposalFiles } from "@/features/agent/proposal";
 import { projectPath } from "@/lib/nav";
-import { useSession } from "@/stores/session";
 
 export default function AIPage() {
-  const { session } = useSession();
   const recent = useMemo(() => recentAgentTasks(), []);
-  const demo = session.mode !== "github";
   return (
     <AppShell title="AI">
       <div className="mb-7"><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">Intelligence layer</p><h2 className="mt-1 text-2xl font-semibold tracking-tight">AI workspace</h2><p className="mt-1 max-w-xl text-sm text-muted-foreground">Choose how Chrono thinks, then review the work it has helped you ship.</p></div>
@@ -39,7 +36,7 @@ export default function AIPage() {
               title="No tasks yet"
               action={
                 <Button asChild>
-                  <Link href={demo ? projectPath("demo", "pocket-tasks", "ai") : "/app/projects"}>{demo ? "Try the simulated agent" : "Open a project"}</Link>
+                  <Link href="/app/projects">Open a project</Link>
                 </Button>
               }
             >

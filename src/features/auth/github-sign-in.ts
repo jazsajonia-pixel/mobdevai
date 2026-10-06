@@ -1,7 +1,6 @@
 import { useCallback, useState } from "react";
 import { api } from "@/lib/api";
 import { AppError } from "@/lib/errors";
-import { clearDemoFlag } from "@/stores/session";
 
 /** Origins we're willing to send the browser to for OAuth (github.com, or a configured GHE/mock). */
 export function allowedOAuthOrigins(): string[] {
@@ -28,7 +27,6 @@ export function useGitHubSignIn() {
       });
       const url = new URL(authorizeUrl);
       if (!allowedOAuthOrigins().includes(url.origin)) throw new AppError("OAUTH_EXCHANGE_FAILED", "Unexpected OAuth origin");
-      clearDemoFlag(); // the returning tab should hydrate the GitHub session, not the demo
       window.location.assign(url.toString());
     } catch (err) {
       setError(err);

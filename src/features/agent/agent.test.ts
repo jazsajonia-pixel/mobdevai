@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AgentMessage, AgentStepResponse, ToolCall } from "@/types/agent";
-import { DEMO_FILES } from "@/features/demo/sample-project";
+import { SAMPLE_FILES as DEMO_FILES } from "@/test/sample-project";
 import { applyEdits, hasConflict, PatchError, propose, setDecision } from "./proposal";
 import { executeTool, overlayPaths, type WorkspaceView } from "./tools-exec";
 import { advance, answerPlan, withUserMessage, type StepFn } from "./runner";
@@ -169,7 +169,7 @@ describe("mentions", () => {
 });
 
 describe("request_preview tool", () => {
-  it("builds the demo with proposed edits and reports build errors with a location", async () => {
+  it("builds the sample app with proposed edits and reports build errors with a location", async () => {
     const files = Object.fromEntries(DEMO_FILES.map((f) => [f.path, f.content])) as Record<string, string>;
     const w = ws(files);
     const ok = await executeTool(call("request_preview", {}), w, {}, "ask");

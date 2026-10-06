@@ -16,11 +16,7 @@ export function ShippedNote({
         className="shrink-0 text-xs font-medium text-success"
         data-testid="text-task-shipped"
       >
-        {info.simulated
-          ? "Simulated commit"
-          : info.pr
-            ? `PR #${info.pr.number}`
-            : `Committed ${short}`}
+        {info.pr ? `PR #${info.pr.number}` : `Committed ${short}`}
       </span>
     );
   }
@@ -31,14 +27,12 @@ export function ShippedNote({
     >
       <p className="flex items-center gap-2 font-medium">
         <GitCommitHorizontal className="size-4 text-success" aria-hidden />
-        {info.simulated
-          ? "Simulated commit — nothing was sent to GitHub"
-          : "Committed and pushed"}
+        Committed and pushed
       </p>
       <p className="mt-1 break-all font-mono text-[11px] text-muted-foreground">
         {short} on {info.branch}
       </p>
-      {!info.simulated ? (
+      {info.url || info.pr ? (
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
           {info.url ? (
             <a

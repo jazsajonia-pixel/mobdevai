@@ -33,8 +33,7 @@ export interface AgentProjectContext {
   owner: string;
   repo: string;
   branch: string;
-  /** "demo" | "github" */
-  source: string;
+  source: "github";
   projectKind?: string;
   fileCount: number;
   /** Path of the file open in the editor, if any. */

@@ -1,27 +1,19 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { Router } from "wouter";
-import { memoryLocation } from "wouter/memory-location";
-import { AppRoutes } from "./App";
-import { SessionProvider } from "./stores/session";
-import { ThemeProvider } from "./stores/theme";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { saveTasks } from "./features/agent/store";
 import { newTask } from "./features/agent/task";
+import { SAMPLE_PATH, mockGitHub, renderApp } from "./test/github-fixture";
 
 function renderAt(path: string) {
-  render(
-    <ThemeProvider>
-      <SessionProvider initial={{ mode: "demo", startedAt: new Date().toISOString() }}>
-        <Router hook={memoryLocation({ path }).hook}>
-          <AppRoutes />
-        </Router>
-      </SessionProvider>
-    </ThemeProvider>,
-  );
+  renderApp(path);
 }
 
+beforeEach(() => {
+  mockGitHub();
+});
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
   localStorage.clear();
 });
 
@@ -35,7 +27,7 @@ describe("Task history page", () => {
       shipped: { sha: "abc1234def", url: "https://github.com/x/y/commit/abc", branch: "ai/mobile-development-ai/delete", at: new Date().toISOString(), pr: { number: 9, url: "https://github.com/x/y/pull/9" } },
     };
     const failed = { ...newTask("ask", "Why is it slow"), status: "error" as const, error: { code: "AI_PROVIDER_ERROR", message: "Provider timed out" } };
-    saveTasks("ws:demo:demo/pocket-tasks@main", [shipped, failed]);
+    saveTasks("ws:github:octo/pocket-tasks@main", [shipped, failed]);
     renderAt("/app/ai/history");
 
     const list = await screen.findByTestId("list-history");
@@ -51,7 +43,7 @@ describe("Task history page", () => {
     expect(within(detail).getByTestId("list-task-files")).toHaveTextContent("src/App.jsx");
     expect(within(detail).getByTestId("text-task-result")).toHaveTextContent("Added it.");
     expect(within(detail).getByTestId("task-shipped")).toHaveTextContent("PR #9");
-    expect(detail).toHaveTextContent("demo/pocket-tasks");
+    expect(detail).toHaveTextContent("octo/pocket-tasks");
 
     fireEvent.click(within(detail).getByTestId("button-delete-task"));
     fireEvent.click(await screen.findByRole("button", { name: "Delete task" }));
@@ -61,12 +53,12 @@ describe("Task history page", () => {
 
 describe("Project dashboard", () => {
   it("opens from the header and shows repo, branch, Git, AI and preview status", async () => {
-    renderAt("/app/projects/demo/pocket-tasks");
+    renderAt(SAMPLE_PATH);
     fireEvent.click(await screen.findByTestId("link-overview"));
     const dash = await screen.findByTestId("project-dashboard");
-    expect(within(dash).getByTestId("card-repository")).toHaveTextContent("demo/pocket-tasks");
+    expect(within(dash).getByTestId("card-repository")).toHaveTextContent("octo/pocket-tasks");
     expect(within(dash).getByTestId("card-branch")).toHaveTextContent("main");
-    expect(within(dash).getByTestId("text-last-sync")).toHaveTextContent(/Bundled sample/);
+    await waitFor(() => expect(within(dash).getByTestId("text-last-sync")).toHaveTextContent(/just now|ago/i));
     expect(within(dash).getByTestId("text-git-summary")).toHaveTextContent(/Working tree clean/);
     expect(within(dash).getByTestId("card-ai")).toBeInTheDocument();
     expect(within(dash).getByTestId("card-preview")).toHaveTextContent(/Not run yet/);

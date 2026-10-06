@@ -8,7 +8,7 @@ import { executeTool, type WorkspaceView } from "./tools-exec";
 /**
  * Client-side agent loop: model step → run its tool calls locally → send results → repeat.
  * Pauses on propose_plan (agent mode) until the user approves or asks for changes.
- * Pure orchestration: the step function (server or simulated demo) and workspace are injected.
+ * Pure orchestration: the step function (server) and workspace are injected.
  */
 
 export type StepFn = (task: AgentTask, messages: AgentMessage[], signal: AbortSignal) => Promise<AgentStepResponse>;

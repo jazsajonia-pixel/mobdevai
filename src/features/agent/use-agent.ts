@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { useWorkspace } from "@/features/workspace/context";
 import { detectProjectKindFromPaths } from "@/lib/tree";
-import { loadEnabledSkills } from "@/lib/skills";
+import { enabledSkillIds } from "@/features/skills/use-skills";
 import type { AgentAttachment, AgentMode, AgentProjectContext, AgentStepResponse } from "@/types/agent";
 import { advance, answerPlan, closeOpenCalls, withUserMessage, type StepFn } from "./runner";
 import { hasConflict, mergeDecisions, pendingFiles, setDecision, type ProposedFile } from "./proposal";
@@ -14,7 +14,7 @@ export interface AgentProject {
   owner: string;
   repo: string;
   branch: string;
-  source: "demo" | "github";
+  source: "github";
 }
 
 /** Max characters of one attached / @mentioned file. */
@@ -93,7 +93,7 @@ export function useAgent(project: AgentProject) {
   );
 
   const step = useCallback<StepFn>(
-    (t, messages, signal) => api<AgentStepResponse>("/ai/agent", { method: "POST", body: { mode: t.mode, project: context(), messages, skillIds: loadEnabledSkills() }, timeoutMs: 115_000, signal }),
+    (t, messages, signal) => api<AgentStepResponse>("/ai/agent", { method: "POST", body: { mode: t.mode, project: context(), messages, skillIds: enabledSkillIds() }, timeoutMs: 115_000, signal }),
     [context],
   );
 

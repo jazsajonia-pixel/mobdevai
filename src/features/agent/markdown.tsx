@@ -39,7 +39,7 @@ const components: Components = {
 
 export const Markdown = memo(function Markdown({ text }: { text: string }) {
   return (
-    <div className="break-words text-sm leading-relaxed">
+    <div className="min-w-0 max-w-full break-words text-sm leading-relaxed [overflow-wrap:anywhere]">
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
         {text}
       </ReactMarkdown>

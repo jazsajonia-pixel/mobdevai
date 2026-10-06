@@ -21,26 +21,19 @@ import { resultsById, splitUserMessage, type AgentTask } from "./task";
 import { ToolRow } from "./tool-row";
 import { useAgent, type AgentProject } from "./use-agent";
 
-const SAMPLE_SUGGESTIONS = [
-  "Add a delete button to each task",
-  "Add a Clear completed button",
-  "Support dark mode",
-  "Explain how this app works",
-];
-
 function Timeline({ task, onApprove, onRevise }: { task: AgentTask; onApprove: () => void; onRevise: (f: string) => void }) {
   const results = useMemo(() => resultsById(task.messages), [task.messages]);
   const running = task.status === "running";
   const planId = task.status === "awaiting_plan" ? task.pending[0]?.id : null;
   return (
-    <ol className="space-y-3">
+    <ol className="min-w-0 space-y-4">
       {task.messages.map((m, i) => {
         if (m.role === "tool") return null;
         if (m.role === "user") {
           const { text, files } = splitUserMessage(m.content);
           return (
-            <li key={i} className="flex justify-end" data-testid="msg-user">
-              <div className="max-w-[85%] rounded-lg rounded-br-sm bg-primary/15 px-3 py-2">
+            <li key={i} className="animate-enter flex min-w-0 justify-end" data-testid="msg-user">
+              <div className="min-w-0 max-w-[85%] rounded-xl rounded-br-sm bg-primary/15 px-3.5 py-2.5">
                 <p className="whitespace-pre-wrap break-words text-sm">{text}</p>
                 {files.length ? <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground"><Paperclip className="mr-1 inline size-3" aria-hidden />{files.join(", ")}</p> : null}{m.attachments?.length ? <div className="mt-2 flex flex-wrap gap-1.5">{m.attachments.map((a) => <span key={a.name} className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/5 px-2 py-1 text-[11px] text-primary">{a.mimeType.startsWith("image/") ? <ImageIcon className="size-3" aria-hidden /> : <Paperclip className="size-3" aria-hidden />}{a.name}</span>)}</div> : null}
               </div>
@@ -49,7 +42,7 @@ function Timeline({ task, onApprove, onRevise }: { task: AgentTask; onApprove: (
         }
         const calls = m.toolCalls ?? [];
         return (
-          <li key={i} className="space-y-2" data-testid="msg-assistant">
+          <li key={i} className="animate-enter min-w-0 space-y-2" data-testid="msg-assistant">
             {m.content ? <Markdown text={m.content} /> : null}
             {calls.length ? (
               <ul className="space-y-1.5" aria-label="Tool calls">
@@ -99,7 +92,6 @@ function StatusLine({ task, onResume }: { task: AgentTask; onResume: () => void 
 
 export function AgentPanel({ project }: { project: AgentProject }) {
   const ws = useWorkspace();
-  const isDemo = project.source === "demo";
   const providers = useProviders();
   const agent = useAgent(project);
   // One-shot hand-off from other tabs (e.g. Preview → "Fix with AI").
@@ -141,26 +133,42 @@ export function AgentPanel({ project }: { project: AgentProject }) {
   const ready = providers.state.status === "ready" ? providers.state.data : null;
   const def = ready?.providers.find((p) => p.id === ready.defaultId) ?? null;
   const online = useOnline();
-  const needsProvider = !isDemo && providers.state.status === "ready" && !def;
-  const providerLabel = isDemo ? "Gemini · gemini-flash-latest" : def ? `${def.label} · ${def.model}` : providers.state.status === "loading" ? "Loading provider…" : "No provider";
+  const needsProvider = providers.state.status === "ready" && !def;
+  const providerLabel = def ? `${def.label} · ${def.model}` : providers.state.status === "loading" ? "Loading provider…" : "No provider";
 
   const active = ws.data.active;
-  const quick: QuickAction[] = isDemo
-    ? SAMPLE_SUGGESTIONS.map((s) => ({ label: s, mode: /explain/i.test(s) ? ("ask" as const) : ("agent" as const), text: s }))
-    : [
-        ...(active
-          ? [
-              { label: "Explain this", mode: "ask" as const, text: `Explain how @${active} works.` },
-              { label: "Fix this", mode: "agent" as const, text: `Fix the bug in @${active}: ` },
-              { label: "Find bugs", mode: "ask" as const, text: `Find bugs or risky code in @${active}.` },
-            ]
-          : []),
-        { label: "Implement…", mode: "agent", text: "Implement: " },
-        { label: "Review changes", mode: "ask", text: "Review my uncommitted changes (use get_git_status with include_diff) and point out bugs or improvements." },
-      ];
+  const quick: QuickAction[] = [
+    ...(active
+      ? [
+          { label: "Explain this", mode: "ask" as const, text: `Explain how @${active} works.` },
+          { label: "Fix this", mode: "agent" as const, text: `Fix the bug in @${active}: ` },
+          { label: "Find bugs", mode: "ask" as const, text: `Find bugs or risky code in @${active}.` },
+        ]
+      : []),
+    { label: "Explain the project", mode: "ask", text: "Explain how this project is structured and how it works." },
+    { label: "Implement…", mode: "agent", text: "Implement: " },
+    { label: "Review changes", mode: "ask", text: "Review my uncommitted changes (use get_git_status with include_diff) and point out bugs or improvements." },
+  ];
+
+  const composer = (
+    <Composer
+      mode={mode}
+      onModeChange={setMode}
+      running={agent.running}
+      disabled={needsProvider || !online}
+      placeholder={!online ? "You're offline — the agent needs a connection" : task?.status === "awaiting_plan" ? "Suggest plan changes…" : mode === "ask" ? "Ask about the code…" : "Describe a change…"}
+      paths={ws.paths}
+      activeFile={active}
+      quickActions={task ? [] : quick}
+      onSend={(text, attach, uploads) => void agent.send(text, { mode, attach, uploads })}
+      onStop={agent.stop}
+      initialText={prefill?.text}
+    />
+  );
+  const welcome = !task && !needsProvider && providers.state.status !== "error";
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col">
       <div className="flex h-12 shrink-0 items-center gap-1 border-b px-2">
         <Link href="/app/settings/ai" className="flex min-w-0 flex-1 items-center gap-1.5 rounded px-2 py-1.5 hover:bg-surface-2" data-testid="link-agent-provider">
           <Sparkles className="size-4 shrink-0 text-primary" aria-hidden />
@@ -174,72 +182,77 @@ export function AgentPanel({ project }: { project: AgentProject }) {
         </Button>
       </div>
 
-      <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto px-4 py-4" data-testid="agent-scroll">
-        {needsProvider ? (
-          <EmptyState
-            icon={<KeyRound className="size-6" />}
-            title="Add an AI provider"
-            action={
-              <Button asChild>
-                <Link href="/app/settings/ai">Open AI providers</Link>
-              </Button>
-            }
-          >
-            The agent uses your default provider (OpenAI, Anthropic, Gemini or compatible). Keys stay on the server.
-          </EmptyState>
-        ) : providers.state.status === "error" && !isDemo ? (
-          <ErrorState error={providers.state.error} onRetry={providers.reload} />
-        ) : !task ? (
-          <div className="space-y-3 py-6 text-center">
-            <Sparkles className="mx-auto size-8 text-primary" aria-hidden />
-            <h2 className="text-base font-semibold">{isDemo ? "Ask Chrono" : `Ask about ${project.repo}`}</h2>
-            <p className="mx-auto max-w-sm text-sm text-muted-foreground">
-              "Ask mode answers questions. Agent mode inspects the repo, shows a plan, and proposes edits you review as diffs. Nothing is saved until you accept, and nothing reaches GitHub until you commit."
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <Timeline task={task} onApprove={() => agent.approvePlan()} onRevise={agent.revisePlan} />
-            <StatusLine task={task} onResume={agent.resume} />
-            {task.shipped ? <ShippedNote info={task.shipped} /> : null}
-            <ProposalSummary proposal={task.proposal} onReview={() => setReviewOpen(true)} previewHref={projectPath(project.owner, project.repo, "preview")} />
-            {task.provider && task.status === "done" ? (
-              <p className="text-center font-mono text-[10px] text-muted-foreground">
-                {task.provider.label} · {task.provider.model}
-                {task.usage.inputTokens ? ` · ${task.usage.inputTokens + task.usage.outputTokens} tokens` : ""}
+      {welcome ? (
+        // No conversation yet: the greeting and the composer sit together in the middle.
+        <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col justify-center px-3 py-6 sm:px-6" data-testid="agent-scroll">
+          <div className="mx-auto w-full min-w-0 max-w-2xl">
+            <div className="animate-enter mb-6 text-center">
+              <span className="mx-auto grid size-11 place-items-center rounded-xl bg-primary/10 text-primary">
+                <Sparkles className="size-5" aria-hidden />
+              </span>
+              <h2 className="mt-3 text-lg font-semibold tracking-tight">Ask about {project.repo}</h2>
+              <p className="mx-auto mt-1.5 max-w-md text-sm text-muted-foreground">
+                Ask answers questions. Agent inspects the repo, shows a plan, and proposes edits you review as diffs — nothing reaches GitHub until you commit.
               </p>
-            ) : null}
+            </div>
+            <div className="animate-enter [animation-delay:80ms]">{composer}</div>
+            {!agent.storageOk ? <p className="mt-3 text-center text-xs text-warning">This browser's storage is full — task history won't survive a reload.</p> : null}
           </div>
-        )}
-        {!agent.storageOk ? <p className="mt-3 text-center text-xs text-warning">This browser's storage is full — task history won't survive a reload.</p> : null}
-      </div>
+        </div>
+      ) : (
+        <>
+          <div ref={scroller} className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 sm:px-6" data-testid="agent-scroll">
+            <div className="mx-auto w-full min-w-0 max-w-3xl">
+              {needsProvider ? (
+                <EmptyState
+                  icon={<KeyRound className="size-6" />}
+                  title="Add an AI provider"
+                  action={
+                    <Button asChild>
+                      <Link href="/app/settings/ai">Open AI providers</Link>
+                    </Button>
+                  }
+                >
+                  The agent uses your default provider (OpenAI, Anthropic, Gemini or compatible). Keys stay on the server.
+                </EmptyState>
+              ) : providers.state.status === "error" ? (
+                <ErrorState error={providers.state.error} onRetry={providers.reload} />
+              ) : task ? (
+                <div className="min-w-0 space-y-4">
+                  <Timeline task={task} onApprove={() => agent.approvePlan()} onRevise={agent.revisePlan} />
+                  <StatusLine task={task} onResume={agent.resume} />
+                  {task.shipped ? <ShippedNote info={task.shipped} /> : null}
+                  <ProposalSummary proposal={task.proposal} onReview={() => setReviewOpen(true)} previewHref={projectPath(project.owner, project.repo, "preview")} />
+                  {task.provider && task.status === "done" ? (
+                    <p className="text-center font-mono text-[10px] text-muted-foreground">
+                      {task.provider.label} · {task.provider.model}
+                      {task.usage.inputTokens ? ` · ${task.usage.inputTokens + task.usage.outputTokens} tokens` : ""}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+              {!agent.storageOk ? <p className="mt-3 text-center text-xs text-warning">This browser's storage is full — task history won't survive a reload.</p> : null}
+            </div>
+          </div>
 
-      {agent.pending.length && !reviewOpen ? (
-        <button type="button" onClick={() => setReviewOpen(true)} className="flex h-10 shrink-0 items-center justify-center gap-2 border-t bg-primary/10 text-sm font-medium text-primary" data-testid="bar-review">
-          Review {agent.pending.length} proposed change{agent.pending.length === 1 ? "" : "s"}
-        </button>
-      ) : null}
-
-      <Composer
-        mode={mode}
-        onModeChange={setMode}
-        running={agent.running}
-        disabled={needsProvider || (!isDemo && !online)}
-        placeholder={!isDemo && !online ? "You're offline — the agent needs a connection" : task?.status === "awaiting_plan" ? "Suggest plan changes…" : mode === "ask" ? "Ask about the code…" : "Describe a change…"}
-        paths={ws.paths}
-        activeFile={active}
-        quickActions={task ? [] : quick}
-        onSend={(text, attach, uploads) => void agent.send(text, { mode, attach, uploads })}
-        onStop={agent.stop}
-        initialText={prefill?.text}
-      />
+          <div className="shrink-0 px-3 pb-3 pt-1 sm:px-6 sm:pb-4">
+            <div className="mx-auto w-full min-w-0 max-w-3xl">
+              {agent.pending.length && !reviewOpen ? (
+                <button type="button" onClick={() => setReviewOpen(true)} className="animate-pop mb-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary/10 text-sm font-medium text-primary" data-testid="bar-review">
+                  Review {agent.pending.length} proposed change{agent.pending.length === 1 ? "" : "s"}
+                </button>
+              ) : null}
+              {composer}
+            </div>
+          </div>
+        </>
+      )}
 
       {task ? (
         <ReviewSheet
           open={reviewOpen}
           onOpenChange={setReviewOpen}
           proposal={task.proposal}
-          isDemo={isDemo}
           onAccept={agent.accept}
           onReject={agent.reject}
           conflictsFor={agent.conflictsFor}

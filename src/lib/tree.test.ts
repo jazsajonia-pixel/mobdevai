@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildTree, detectProjectKind } from "./tree";
-import { DEMO_FILES } from "@/features/demo/sample-project";
+import { SAMPLE_FILES as DEMO_FILES } from "@/test/sample-project";
 
 describe("buildTree", () => {
   it("nests paths and sorts folders before files", () => {
@@ -13,7 +13,7 @@ describe("buildTree", () => {
 });
 
 describe("detectProjectKind", () => {
-  it("detects the demo as Vite + React", () => {
+  it("detects the sample app as Vite + React", () => {
     expect(detectProjectKind(DEMO_FILES)).toBe("vite-react");
   });
   it("detects plain static sites", () => {

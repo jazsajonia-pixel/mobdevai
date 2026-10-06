@@ -1,33 +1,18 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
-import { Router } from "wouter";
-import { memoryLocation } from "wouter/memory-location";
-import { AppRoutes } from "./App";
-import { SessionProvider } from "./stores/session";
-import { ThemeProvider } from "./stores/theme";
-
-function renderDemo(path = "/app/projects/demo/pocket-tasks/ai") {
-  const loc = memoryLocation({ path, record: true });
-  render(
-    <ThemeProvider>
-      <SessionProvider initial={{ mode: "demo", startedAt: new Date().toISOString() }}>
-        <Router hook={loc.hook}>
-          <AppRoutes />
-        </Router>
-      </SessionProvider>
-    </ThemeProvider>,
-  );
-  return loc;
-}
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, screen } from "@testing-library/react";
+import { rememberRepo } from "./features/github/recent";
+import { SAMPLE_PATH, mockGitHub, renderApp } from "./test/github-fixture";
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
   localStorage.clear();
 });
 
-describe("Live preview (demo)", () => {
+describe("Live preview", () => {
   it("builds the real app — including workspace changes — into a sandboxed, opaque-origin frame", async () => {
-    renderDemo("/app/projects/demo/pocket-tasks/preview");
+    mockGitHub();
+    renderApp(`${SAMPLE_PATH}/preview`);
     const frame = (await screen.findByTestId("preview-frame", {}, { timeout: 8000 })) as HTMLIFrameElement;
     // Never same-origin: project code can't reach this app's cookies, storage or API.
     expect(frame.getAttribute("sandbox")).toContain("allow-scripts");
@@ -40,9 +25,17 @@ describe("Live preview (demo)", () => {
     expect(screen.queryByTestId("button-header-preview")).toBeNull();
   }, 15_000);
 
-  it("lists projects to preview and what isn't supported yet", async () => {
-    renderDemo("/app/preview");
-    expect(await screen.findByTestId("link-preview-demo-pocket-tasks")).toHaveAttribute("href", expect.stringContaining("/app/projects/demo/pocket-tasks/preview"));
+  it("lists recently opened projects to preview and what isn't supported yet", async () => {
+    mockGitHub();
+    rememberRepo("octo", "pocket-tasks", "main");
+    renderApp("/app/preview");
+    expect(await screen.findByTestId("link-preview-octo-pocket-tasks")).toHaveAttribute("href", expect.stringContaining(`${SAMPLE_PATH}/preview`));
     expect(screen.getByText(/Not in the browser preview yet/)).toBeInTheDocument();
+  });
+
+  it("explains how to get a project into the list when none were opened", async () => {
+    mockGitHub();
+    renderApp("/app/preview");
+    expect(await screen.findByTestId("text-preview-empty")).toBeInTheDocument();
   });
 });

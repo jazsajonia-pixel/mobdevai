@@ -9,9 +9,9 @@ import { readJson } from "../lib/validate.js";
 import { agentStep } from "../lib/ai/agent-step.js";
 import { systemPrompt } from "../lib/ai/agent-prompt.js";
 import { resolveProvider } from "../lib/ai/resolve.js";
-import { readSession } from "../lib/session.js";
 import { providerIdSchema } from "../lib/ai/schemas.js";
-import { CUSTOM_SKILLS } from "../../src/lib/skills.js";
+import { resolveSkills } from "../../src/lib/skills.js";
+import { loadSkillsSafe } from "../lib/skills-store.js";
 import { withGeminiFailover } from "../lib/ai/gemini-pool.js";
 import { chooseGeminiModel, fallbackModel, discoverGeminiModels, invalidateGeminiModels } from "../lib/ai/gemini-availability.js";
 
@@ -46,13 +46,13 @@ const bodySchema = z
       owner: z.string().max(100),
       repo: z.string().max(100),
       branch: z.string().max(255),
-      source: z.enum(["demo", "github"]),
+      source: z.literal("github"),
       projectKind: z.string().max(40).optional(),
       fileCount: z.number().int().min(0).max(1_000_000),
       activeFile: z.string().max(1024).nullish(),
     }),
     messages: z.array(message).min(1).max(MAX_MESSAGES),
-    skillIds: z.array(z.string().max(60)).max(12).default([]),
+    skillIds: z.array(z.string().max(60)).max(40).default([]),
   })
   .strict();
 
@@ -78,19 +78,18 @@ function checkSequence(messages: AgentMessage[]): void {
 export default handle(["POST"], async (req) => {
   assertSameOrigin(req);
   const body = await readJson(req, bodySchema, MAX_BODY);
-  const sampleWorkspace = body.project.source === "demo";
-  const session = sampleWorkspace ? await readSession(req) : await requireSession(req);
-  const rateKey = session ? `ai-agent:${session.user.id}` : `ai-demo:${req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"}`;
-  await rateLimit(rateKey, sampleWorkspace ? 10 : 40, 60_000);
+  const session = await requireSession(req);
+  await rateLimit(`ai-agent:${session.user.id}`, 40, 60_000);
   const messages = body.messages as AgentMessage[];
   checkSequence(messages);
 
-  const provider = await resolveProvider(req, session, sampleWorkspace ? "platform:gemini" : body.providerId ?? null);
-  const knownSkills = new Set(CUSTOM_SKILLS.map((skill) => skill.id));
-  if (body.skillIds.some((id) => !knownSkills.has(id))) throw new HttpError(422, "VALIDATION_FAILED", "Unknown skill selected.");
+  const provider = await resolveProvider(req, session, body.providerId ?? null);
+  // Only skills that exist (built-in or this user's own) reach the prompt; stale ids are ignored.
+  const userSkills = body.skillIds.some((id) => id.startsWith("u_")) ? (await loadSkillsSafe(req, session)).custom : [];
+  const skills = resolveSkills(body.skillIds, userSkills);
   const tools = toolsForMode(body.mode);
   const input = {
-    system: systemPrompt(body.mode, body.project, body.skillIds),
+    system: systemPrompt(body.mode, body.project, skills),
     messages,
     tools,
     maxTokens: 8192,

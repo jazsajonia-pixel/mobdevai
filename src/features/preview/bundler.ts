@@ -193,7 +193,7 @@ export async function buildPreview(input: BuildInput): Promise<BuildResult> {
     const url = exists(repoPath) ? (input.assetUrl?.(repoPath) ?? null) : null;
     if (url) return url;
     if (!exists(repoPath)) warnOnce(`${from}: asset not found: ${repoPath}`);
-    else warnOnce("Images and fonts from this repository can't be shown in the preview (private repo or demo) — SVGs still work.");
+    else warnOnce("Images and fonts from this repository can't be shown in the preview (private repo) — SVGs still work.");
     return "";
   };
   /** Resolve a URL used in HTML/CSS to a repo path (Vite: "/x" → public/x or root/x). */

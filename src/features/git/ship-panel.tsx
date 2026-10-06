@@ -11,7 +11,7 @@ import type { FileChange } from "@/features/workspace/model";
 import { githubApi } from "@/features/github/api";
 import { markTasksShipped, tasksForPaths } from "@/features/agent/store";
 import { branchNameError, generateCommitMessage, suggestBranchName } from "./message";
-import { addDemoCommit, fakeSha, saveLastShip, type ShipRecord } from "./ship-store";
+import { saveLastShip, type ShipRecord } from "./ship-store";
 
 /** Everything the Git tab needs to know about where changes can go. */
 export interface GitTarget {
@@ -23,7 +23,6 @@ export interface GitTarget {
   /** Known branch names (for unique working-branch names). */
   branchNames: readonly string[];
   canPush: boolean;
-  isDemo: boolean;
   /** Workspace storage key for another branch of this repo. */
   workspaceKeyFor: (branch: string) => string;
   /** Called after a successful commit; the parent switches to / reloads `branch`. */
@@ -44,7 +43,7 @@ export function prBody(message: string): string {
 /** Commit selected changes, push, and optionally open a PR. Working branch by default. */
 export function ShipPanel({ target, selected }: { target: GitTarget; selected: FileChange[] }) {
   const ws = useWorkspace();
-  const { owner, repo, branch, defaultBranch, isDemo } = target;
+  const { owner, repo, branch, defaultBranch } = target;
   const onDefault = branch === defaultBranch;
   const paths = useMemo(() => selected.map((c) => c.path), [selected]);
   const tasks = useMemo(() => tasksForPaths(ws.source.storageKey, paths), [ws.source.storageKey, paths]);
@@ -80,8 +79,8 @@ export function ShipPanel({ target, selected }: { target: GitTarget; selected: F
   const blocked =
     !selected.length ? "Select at least one file to commit." :
     draftsInSelection.length ? `Save or discard unsaved edits in ${draftsInSelection.join(", ")} first.` :
-    !isDemo && !target.canPush ? "You don't have push access to this repository." :
-    !isDemo && !online ? "You're offline. Your changes are saved on this device — commit when you're back online." :
+    !target.canPush ? "You don't have push access to this repository." :
+    !online ? "You're offline. Your changes are saved on this device — commit when you're back online." :
     nameErr ?? (!subject ? "Write a commit message." : null);
   const working = phase.kind === "working";
 
@@ -90,18 +89,6 @@ export function ShipPanel({ target, selected }: { target: GitTarget; selected: F
     setPhase({ kind: "working", step: "commit" });
     const taskIds = tasks.map((t) => t.id);
     try {
-      if (isDemo) {
-        // Clearly simulated: nothing leaves the device.
-        await new Promise((r) => setTimeout(r, 700));
-        const sha = fakeSha();
-        const rec: ShipRecord = { owner, repo, branch: targetBranch, from: branch, sha, url: null, message, files: selected.length, created: mode === "new", pr: willOpenPr ? { number: 0, url: "", existing: false } : null, prError: null, at: new Date().toISOString(), simulated: true };
-        addDemoCommit(rec);
-        saveLastShip(rec);
-        markTasksShipped(ws.source.storageKey, taskIds, { sha, url: null, branch: targetBranch, at: rec.at, simulated: true });
-        setPhase({ kind: "idle" });
-        target.onShipped(branch);
-        return;
-      }
       const baseSha = ws.data.baseSha;
       const res = await githubApi.commit(owner, repo, {
         branch: targetBranch,
@@ -123,7 +110,7 @@ export function ShipPanel({ target, selected }: { target: GitTarget; selected: F
           prError = e instanceof AppError ? e.message || describeError(e).title : "Couldn't open the pull request.";
         }
       }
-      const rec: ShipRecord = { owner, repo, branch: targetBranch, from: branch, sha: res.commit.sha, url: res.commit.url, message, files: res.files, created: res.created, pr, prError, at: new Date().toISOString(), simulated: false };
+      const rec: ShipRecord = { owner, repo, branch: targetBranch, from: branch, sha: res.commit.sha, url: res.commit.url, message, files: res.files, created: res.created, pr, prError, at: new Date().toISOString() };
       saveLastShip(rec);
       markTasksShipped(ws.source.storageKey, taskIds, { sha: rec.sha, url: rec.url, branch: targetBranch, at: rec.at, pr: pr ? { number: pr.number, url: pr.url } : null });
       // The commit is on GitHub now: drop those local changes; carry the rest along when safe.
@@ -144,7 +131,7 @@ export function ShipPanel({ target, selected }: { target: GitTarget; selected: F
       <div className="flex items-center gap-2 border-b px-3 py-2.5">
         <GitCommitHorizontal className="size-4 text-primary" aria-hidden />
         <h2 id="ship-title" className="flex-1 text-sm font-semibold">
-          {isDemo ? "Commit & push (simulated)" : "Commit & push"}
+          Commit & push
         </h2>
         <span className="text-xs text-muted-foreground tabular" data-testid="text-selected-count">
           {selected.length} file{selected.length === 1 ? "" : "s"}
@@ -152,12 +139,6 @@ export function ShipPanel({ target, selected }: { target: GitTarget; selected: F
       </div>
 
       <div className="space-y-4 p-3">
-        {isDemo ? (
-          <p className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-muted-foreground" role="note">
-            <span className="font-semibold text-warning">Demo:</span> this walks through the real flow, but nothing is sent to GitHub. Sign in to push to your repositories.
-          </p>
-        ) : null}
-
         <fieldset className="space-y-2" disabled={working}>
           <legend className="mb-1.5 text-xs font-medium text-muted-foreground">Where should the commit go?</legend>
           <label className={cn("block rounded-md border p-3", mode === "new" && "border-primary bg-primary/5")}>
@@ -287,10 +268,8 @@ export function ShipPanel({ target, selected }: { target: GitTarget; selected: F
         <Button className="w-full" disabled={!!blocked || working} onClick={() => setConfirm(true)} data-testid="button-commit">
           {working ? (
             <>
-              <Loader2 className="size-4 animate-spin" aria-hidden /> {phase.step === "pr" ? "Opening pull request…" : isDemo ? "Simulating…" : "Committing & pushing…"}
+              <Loader2 className="size-4 animate-spin" aria-hidden /> {phase.step === "pr" ? "Opening pull request…" : "Committing & pushing…"}
             </>
-          ) : isDemo ? (
-            `Simulate commit (${selected.length})`
           ) : (
             `Commit & push ${selected.length} file${selected.length === 1 ? "" : "s"}`
           )}
@@ -301,16 +280,14 @@ export function ShipPanel({ target, selected }: { target: GitTarget; selected: F
       <ConfirmSheet
         open={confirm}
         onOpenChange={setConfirm}
-        title={isDemo ? "Simulate this commit?" : mode === "current" && onDefault ? `Commit directly to ${branch}?` : "Commit and push?"}
+        title={mode === "current" && onDefault ? `Commit directly to ${branch}?` : "Commit and push?"}
         description={
-          isDemo
-            ? "Demo mode — nothing is sent to GitHub. You'll see what a real commit would look like."
-            : mode === "current" && onDefault
-              ? `This updates ${branch}, the default branch, without a pull request. A new branch is safer.`
-              : undefined
+          mode === "current" && onDefault
+            ? `This updates ${branch}, the default branch, without a pull request. A new branch is safer.`
+            : undefined
         }
-        confirmLabel={isDemo ? "Simulate" : mode === "current" && onDefault ? `Commit to ${branch}` : "Commit & push"}
-        danger={!isDemo && mode === "current" && onDefault}
+        confirmLabel={mode === "current" && onDefault ? `Commit to ${branch}` : "Commit & push"}
+        danger={mode === "current" && onDefault}
         onConfirm={ship}
       >
         <dl className="mb-3 space-y-2 rounded-md border bg-background p-3 text-sm" data-testid="ship-summary">

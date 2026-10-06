@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { ExternalLink, FolderGit2 } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
@@ -16,11 +16,11 @@ import { projectPath } from "@/lib/nav";
 import { BranchPicker } from "@/features/github/branch-picker";
 import { githubApi } from "@/features/github/api";
 import { lastBranch, rememberRepo } from "@/features/github/recent";
-import { DEMO_FILES, DEMO_PROJECT } from "@/features/demo/sample-project";
 import { useAsync } from "@/hooks/use-async";
 import { useSession } from "@/stores/session";
 import { isWorkspaceTab, type WorkspaceTab } from "@/lib/nav";
 import { describeError } from "@/lib/errors";
+import { registerPaletteFiles } from "@/features/command/palette-store";
 import type { ProjectRef } from "@/types/workspace";
 import type { RepoSummary } from "@/types/github";
 
@@ -32,7 +32,7 @@ const AgentPanel = lazy(() => import("@/features/agent/agent-panel").then((m) =>
 function AiTab({ project, branch }: { project: ProjectRef; branch: string }) {
   return (
     <Suspense fallback={<div className="space-y-2 p-4"><Skeleton className="h-10" /><Skeleton className="h-24" /></div>}>
-      <AgentPanel project={{ owner: project.owner, repo: project.name, branch, source: project.source === "demo" ? "demo" : "github" }} />
+      <AgentPanel project={{ owner: project.owner, repo: project.name, branch, source: "github" }} />
     </Suspense>
   );
 }
@@ -48,60 +48,6 @@ function PreviewTab({ owner, name, assetUrl }: { owner: string; name: string; as
   );
 }
 
-/* ── Demo workspace ───────────────────────────────────────────────── */
-
-const DEMO_SOURCE: WorkspaceSource = {
-  storageKey: workspaceKey("demo", DEMO_PROJECT.owner, DEMO_PROJECT.name, DEMO_PROJECT.defaultBranch),
-  commitSha: "demo-v1",
-  basePaths: DEMO_FILES.map((f) => f.path),
-  baseSizes: new Map(DEMO_FILES.map((f) => [f.path, f.content.length])),
-  loadBase: async (path) => {
-    const f = DEMO_FILES.find((x) => x.path === path);
-    if (!f) throw new Error("missing demo file");
-    return f.content;
-  },
-};
-
-function DemoWorkspace({ tab }: { tab: WorkspaceTab }) {
-  const gitHref = projectPath(DEMO_PROJECT.owner, DEMO_PROJECT.name, "git");
-  const [version, setVersion] = useState(0);
-  const [agentMounted, setAgentMounted] = useState(tab === "ai");
-  useEffect(() => { if (tab === "ai") setAgentMounted(true); }, [tab]);
-  const target: GitTarget = {
-    owner: DEMO_PROJECT.owner,
-    repo: DEMO_PROJECT.name,
-    branch: DEMO_PROJECT.defaultBranch,
-    defaultBranch: DEMO_PROJECT.defaultBranch,
-    branchNames: [DEMO_PROJECT.defaultBranch],
-    canPush: true,
-    isDemo: true,
-    workspaceKeyFor: (b) => workspaceKey("demo", DEMO_PROJECT.owner, DEMO_PROJECT.name, b),
-    onShipped: () => setVersion((v) => v + 1),
-  };
-  return (
-    <WorkspaceProvider source={DEMO_SOURCE}>
-      <WorkspaceShell project={DEMO_PROJECT} branch={DEMO_PROJECT.defaultBranch} tab={tab}>
-        {tab === "files" ? (
-          <FilesTab gitHref={gitHref} />
-        ) : tab === "ai" ? (
-          null
-        ) : tab === "preview" ? (
-          <PreviewTab owner={DEMO_PROJECT.owner} name={DEMO_PROJECT.name} />
-        ) : tab === "overview" ? (
-          <ProjectDashboard project={DEMO_PROJECT} target={target} syncedAt={null} />
-        ) : (
-          <EditFromGit owner={DEMO_PROJECT.owner} name={DEMO_PROJECT.name}>
-            {(onEdit) => <ChangesPanel target={target} version={version} onEdit={onEdit} />}
-          </EditFromGit>
-        )}
-        {agentMounted ? <div className={tab === "ai" ? "flex min-h-0 flex-1" : "hidden"}>
-          <AiTab project={DEMO_PROJECT} branch={DEMO_PROJECT.defaultBranch} />
-        </div> : null}
-      </WorkspaceShell>
-    </WorkspaceProvider>
-  );
-}
-
 /** Git → "edit this file" jumps to the Files tab with the file open. */
 function EditFromGit({ owner, name, children }: { owner: string; name: string; children: (onEdit: (path: string) => void) => React.ReactNode }) {
   const [, navigate] = useLocation();
@@ -110,6 +56,27 @@ function EditFromGit({ owner, name, children }: { owner: string; name: string; c
     ws.openFile(path);
     navigate(projectPath(owner, name, "files"));
   })}</>;
+}
+
+/** Publishes this workspace's files to the ⌘K palette while it's open. */
+function PaletteFiles({ owner, name, branch }: { owner: string; name: string; branch: string }) {
+  const [, navigate] = useLocation();
+  const ws = useWorkspace();
+  const openRef = useRef(ws.openFile);
+  openRef.current = ws.openFile;
+  useEffect(
+    () =>
+      registerPaletteFiles({
+        label: `${name}@${branch}`,
+        paths: ws.paths,
+        open: (path) => {
+          openRef.current(path);
+          navigate(projectPath(owner, name, "files"));
+        },
+      }),
+    [owner, name, branch, ws.paths, navigate],
+  );
+  return null;
 }
 
 /* ── GitHub workspace ─────────────────────────────────────────────── */
@@ -192,7 +159,6 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
     defaultBranch: repo.status === "success" ? repo.data.defaultBranch : shownBranch,
     branchNames: [...(branches.status === "success" ? branches.data.branches.map((b) => b.name) : []), ...created],
     canPush: repo.status === "success" ? repo.data.permissions.push && !repo.data.archived : false,
-    isDemo: false,
     workspaceKeyFor: (b) => workspaceKey("github", owner, name, b),
     onShipped: (b) => {
       setGitVersion((v) => v + 1);
@@ -278,8 +244,17 @@ function GitHubWorkspace({ owner, name, tab }: { owner: string; name: string; ta
 
   const shell = (
     <WorkspaceShell project={project} branch={shownBranch} tab={tab} onBranchClick={repo.status === "success" ? () => setPickerOpen(true) : undefined}>
-      {body}
-      {agentMounted && repo.status === "success" && source ? <div className={tab === "ai" ? "flex min-h-0 flex-1" : "hidden"}><AiTab project={project} branch={shownBranch} /></div> : null}
+      {body ? (
+        <div key={tab} className="animate-view flex min-h-0 w-full min-w-0 flex-1 flex-col">
+          {body}
+        </div>
+      ) : null}
+      {agentMounted && repo.status === "success" && source ? (
+        <div className={tab === "ai" ? "animate-view flex min-h-0 w-full min-w-0 flex-1" : "hidden"}>
+          <AiTab project={project} branch={shownBranch} />
+        </div>
+      ) : null}
+      {source ? <PaletteFiles owner={owner} name={name} branch={shownBranch} /> : null}
       {repo.status === "success" ? (
         <>
           {tab === "git" || !source ? (
@@ -329,8 +304,6 @@ export default function WorkspacePage({ params }: { params: { owner: string; rep
   const repo = decodeURIComponent(params.repo);
   const tab: WorkspaceTab = isWorkspaceTab(params.tab) ? params.tab : "files";
 
-  if (owner === DEMO_PROJECT.owner && repo === DEMO_PROJECT.name) return <DemoWorkspace tab={tab} />;
-
   if (session.mode !== "github") {
     return (
       <AppShell title={`${owner}/${repo}`}>
@@ -342,9 +315,7 @@ export default function WorkspacePage({ params }: { params: { owner: string; rep
               <Link href="/signin">Sign in</Link>
             </Button>
           }
-        >
-          You're in the sample workspace. Sign in with GitHub to open your own repositories.
-        </EmptyState>
+        />
       </AppShell>
     );
   }

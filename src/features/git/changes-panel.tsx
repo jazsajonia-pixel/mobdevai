@@ -52,7 +52,7 @@ function ChangeRow({ change, onDiscard, onOpen, selected, onToggle }: { change: 
 
 /** Git tab: review local changes as diffs, pick files, commit/push/PR, branch status. */
 export function ChangesPanel({ target, onEdit, version = 0 }: { target: GitTarget; onEdit: (path: string) => void; version?: number }) {
-  const { branch, isDemo, canPush } = target;
+  const { branch, canPush } = target;
   const ws = useWorkspace();
   const [discard, setDiscard] = useState<string | "all" | null>(null);
   // Track exclusions so newly changed files are included by default.
@@ -96,7 +96,7 @@ export function ChangesPanel({ target, onEdit, version = 0 }: { target: GitTarge
       {ws.changes.length === 0 ? (
         <div className="rounded-lg border bg-surface">
           <EmptyState title="Working tree clean" className="py-8">
-            {isDemo ? "Edit a demo file and its diff appears here. Nothing is ever sent to GitHub." : `On ${branch}. Edit a file and save it to see the diff here.`}
+            {`On ${branch}. Edit a file and save it to see the diff here.`}
           </EmptyState>
         </div>
       ) : (
@@ -149,7 +149,7 @@ export function ChangesPanel({ target, onEdit, version = 0 }: { target: GitTarge
         </p>
       ) : null}
 
-      {!isDemo && !canPush ? (
+      {!canPush ? (
         <div role="note" className="flex gap-3 rounded-lg border border-warning/30 bg-warning/10 p-4 text-sm">
           <ShieldAlert className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
           <p>

@@ -185,48 +185,53 @@ describe("POST /api/ai/agent", () => {
     expect(gen[1]!.init!.body).toBe(gen[0]!.init!.body);
   });
 
-  it("Gemini platform keeps the selected model instead of forcing the default", async () => {
-    vi.stubEnv("GEMINI_MODEL", "gemini-2.5-flash");
+  it("Gemini platform uses the signed-in user's selected model when it is listed", async () => {
     const calls = mockGitHub({
       "GET /v1beta/models": () => gh({ models: [{ name: "models/gemini-2.5-flash", supportedGenerationMethods: ["generateContent"] }, { name: "models/gemini-flash-latest", supportedGenerationMethods: ["generateContent"] }] }),
-      "POST /v1beta/models/gemini-2.5-flash:generateContent": () => gh({ candidates: [{ content: { role: "model", parts: [{ text: "ok" }] }, finishReason: "STOP" }], modelVersion: "gemini-2.5-flash" }),
+      "POST /v1beta/models/gemini-flash-latest:generateContent": () => gh({ candidates: [{ content: { role: "model", parts: [{ text: "ok" }] }, finishReason: "STOP" }], modelVersion: "gemini-flash-latest" }),
     });
-    const out = await read<AgentStepResponse>(await agent(req({ mode: "ask", project: { ...project, source: "demo" }, messages: [user("hi")] }, { cookie: "" })));
-    expect(out.provider.model).toBe("gemini-2.5-flash");
+    const out = await read<AgentStepResponse>(await agent(req({ providerId: "platform:gemini", mode: "ask", project, messages: [user("hi")] })));
+    expect(out.provider.model).toBe("gemini-flash-latest");
     expect(out.provider.fallbackFrom).toBeUndefined();
     expect(calls.filter((c) => c.method === "POST")).toHaveLength(1);
   });
 
-  it("Gemini platform falls back to gemini-flash-latest when the selected model is not listed", async () => {
-    vi.stubEnv("GEMINI_MODEL", "gemini-3.8-flash");
+  it("Gemini platform falls back to another flash model when the selected model is not listed", async () => {
     mockGitHub({
-      "GET /v1beta/models": () => gh({ models: [{ name: "models/gemini-flash-latest", supportedGenerationMethods: ["generateContent"] }] }),
-      "POST /v1beta/models/gemini-flash-latest:generateContent": () => gh({ candidates: [{ content: { role: "model", parts: [{ text: "ok" }] }, finishReason: "STOP" }] }),
+      "GET /v1beta/models": () => gh({ models: [{ name: "models/gemini-2.5-flash", supportedGenerationMethods: ["generateContent"] }] }),
+      "POST /v1beta/models/gemini-2.5-flash:generateContent": () => gh({ candidates: [{ content: { role: "model", parts: [{ text: "ok" }] }, finishReason: "STOP" }] }),
     });
-    const out = await read<AgentStepResponse>(await agent(req({ mode: "ask", project: { ...project, source: "demo" }, messages: [user("hi")] }, { cookie: "" })));
-    expect(out.provider.model).toBe("gemini-flash-latest");
-    expect(out.provider.fallbackFrom).toBe("gemini-3.8-flash");
+    const out = await read<AgentStepResponse>(await agent(req({ providerId: "platform:gemini", mode: "ask", project, messages: [user("hi")] })));
+    expect(out.provider.model).toBe("gemini-2.5-flash");
+    expect(out.provider.fallbackFrom).toBe("gemini-flash-latest");
   });
 
-  it("Gemini platform retries once on the default model after a model-not-found, without rotating keys", async () => {
-    vi.stubEnv("GEMINI_MODEL", "gemini-2.5-flash");
+  it("Gemini platform retries once on a listed model after a model-not-found, without rotating keys", async () => {
     vi.stubEnv("GEMINI_API_KEYS", JSON.stringify([GEM, "AIza-AGENTKEY-second-gemini"]));
-    let listed = ["gemini-2.5-flash", "gemini-flash-latest"];
+    let listed = ["gemini-flash-latest", "gemini-2.5-flash"];
     const calls = mockGitHub({
       "GET /v1beta/models": () => gh({ models: listed.map((id) => ({ name: `models/${id}`, supportedGenerationMethods: ["generateContent"] })) }),
-      "POST /v1beta/models/gemini-2.5-flash:generateContent": () => {
-        listed = ["gemini-flash-latest"]; // Google retired it between list and call
-        return gh({ error: { code: 404, status: "NOT_FOUND", message: "models/gemini-2.5-flash is not found" } }, { status: 404 });
+      "POST /v1beta/models/gemini-flash-latest:generateContent": () => {
+        listed = ["gemini-2.5-flash"]; // Google retired it between list and call
+        return gh({ error: { code: 404, status: "NOT_FOUND", message: "models/gemini-flash-latest is not found" } }, { status: 404 });
       },
-      "POST /v1beta/models/gemini-flash-latest:generateContent": () => gh({ candidates: [{ content: { role: "model", parts: [{ text: "ok" }] }, finishReason: "STOP" }] }),
+      "POST /v1beta/models/gemini-2.5-flash:generateContent": () => gh({ candidates: [{ content: { role: "model", parts: [{ text: "ok" }] }, finishReason: "STOP" }] }),
     });
-    const out = await read<AgentStepResponse>(await agent(req({ mode: "ask", project: { ...project, source: "demo" }, messages: [user("hi")] }, { cookie: "" })));
-    expect(out.provider.model).toBe("gemini-flash-latest");
-    expect(out.provider.fallbackFrom).toBe("gemini-2.5-flash");
+    const out = await read<AgentStepResponse>(await agent(req({ providerId: "platform:gemini", mode: "ask", project, messages: [user("hi")] })));
+    expect(out.provider.model).toBe("gemini-2.5-flash");
+    expect(out.provider.fallbackFrom).toBe("gemini-flash-latest");
     const gen = calls.filter((c) => c.method === "POST");
     expect(gen).toHaveLength(2);
     expect(new Headers(gen[0]!.init!.headers).get("x-goog-api-key")).toBe(new Headers(gen[1]!.init!.headers).get("x-goog-api-key"));
     expect(JSON.parse(String(gen[0]!.init!.body)).contents).toEqual(JSON.parse(String(gen[1]!.init!.body)).contents);
+  });
+
+  it("ignores unknown skill ids instead of failing the request", async () => {
+    mockGitHub({
+      "POST /v1beta/models/gemini-flash-latest:generateContent": () => gh({ candidates: [{ content: { role: "model", parts: [{ text: "ok" }] }, finishReason: "STOP" }] }),
+    });
+    const res = await agent(req({ providerId: "platform:gemini", mode: "ask", project, messages: [user("hi")], skillIds: ["not-a-skill", "u_zzzzzzzz", "code-review"] }));
+    expect(res.status).toBe(200);
   });
 
   it("Gemini platform returns a safe 429 with Retry-After when every key is rate-limited", async () => {

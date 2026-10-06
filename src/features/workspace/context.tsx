@@ -34,7 +34,7 @@ export interface WorkspaceSource {
   loadBase: (path: string) => Promise<string>;
   /** GitHub returned a partial tree. */
   truncated?: boolean;
-  /** Link to the file on GitHub (not for demo). */
+  /** Link to the file on GitHub. */
   githubUrl?: (path: string) => string;
 }
 

@@ -39,7 +39,6 @@ export function TaskDetailSheet({ entry, onOpenChange, onDelete }: { entry: Hist
                 {HISTORY_STATUS_LABEL[e.status]}
               </Badge>
               <Badge>{e.ref.task.mode}</Badge>
-              {e.ref.source === "demo" ? <Badge tone="warning">Demo</Badge> : null}
             </div>
 
             <dl className="grid grid-cols-[6.5rem_1fr] gap-x-3 gap-y-2 rounded-lg border bg-background p-3">

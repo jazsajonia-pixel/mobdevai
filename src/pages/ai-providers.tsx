@@ -46,19 +46,7 @@ export default function AIProvidersPage() {
         <ArrowLeft className="size-4" aria-hidden /> Settings
       </Link>
 
-      {state.status === "demo" ? (
-        <EmptyState
-          icon={<KeyRound className="size-6" />}
-          title="Sign in to add AI providers"
-          action={
-            <Button asChild>
-              <Link href="/signin">Sign in with GitHub</Link>
-            </Button>
-          }
-        >
-          API keys are stored per GitHub account and only used by server functions. The sample workspace uses the configured server Gemini provider; sign in to add your own provider.
-        </EmptyState>
-      ) : state.status === "loading" ? (
+      {state.status === "loading" ? (
         <div className="space-y-3" aria-label="Loading providers">
           <Skeleton className="h-24" />
           <Skeleton className="h-36" />

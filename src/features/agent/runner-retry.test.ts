@@ -67,7 +67,7 @@ describe("agent step retry after all server keys are cooling", () => {
 
 describe("pause on project exit and Continue", () => {
   it("leaving the project mid-step stops safely; reload shows it stopped; Continue resumes the same task", async () => {
-    const KEY = "ws:demo:demo/pocket-tasks@main";
+    const KEY = "ws:github:octo/pocket-tasks@main";
     const ctrl = new AbortController();
     let latest: AgentTask | null = null;
     let calls = 0;

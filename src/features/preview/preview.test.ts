@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEMO_FILES } from "@/features/demo/sample-project";
+import { SAMPLE_FILES as DEMO_FILES } from "@/test/sample-project";
 import { analyzeProject, type PreviewPlanOk } from "./detect";
 import { BuildError, buildPreview, codeFrame } from "./bundler";
 
@@ -25,7 +25,7 @@ function bootConfig(html: string) {
 const demo = Object.fromEntries(DEMO_FILES.map((f) => [f.path, f.content]));
 
 describe("analyzeProject", () => {
-  it("detects the demo as Vite + React", async () => {
+  it("detects the sample app as Vite + React", async () => {
     const { plan: p } = await plan(demo);
     expect(p).toMatchObject({ supported: true, runtime: "vite", framework: "react", html: "index.html", root: "" });
   });
@@ -47,7 +47,7 @@ describe("analyzeProject", () => {
 });
 
 describe("buildPreview", () => {
-  it("bundles the demo: entries, local modules, CSS, one shared React from esm.sh", async () => {
+  it("bundles the sample app: entries, local modules, CSS, one shared React from esm.sh", async () => {
     const { fs, plan: p } = await plan(demo);
     const r = await buildPreview({ plan: p as PreviewPlanOk, paths: fs.paths, read: fs.read });
     const cfg = bootConfig(r.html);

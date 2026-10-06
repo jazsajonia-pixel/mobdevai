@@ -6,6 +6,10 @@
     <meta name="theme-color" content="#0d0f12" />
     <meta name="description" content="Chrono — build, edit, preview, and ship GitHub projects with an AI coding agent, from your phone." />
     <title>Chrono</title>
+    <script>
+      // Apply the saved theme before first paint so light mode doesn't flash dark.
+      try { if (localStorage.getItem("mdai:theme") === "light") { document.documentElement.classList.remove("dark"); document.querySelector('meta[name="theme-color"]').setAttribute("content", "#fcfcfc"); } } catch (e) {}
+    </script>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

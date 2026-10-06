@@ -7,7 +7,7 @@ import { AppError, describeError } from "@/lib/errors";
 import { githubApi } from "@/features/github/api";
 import type { GitTarget } from "./ship-panel";
 import { prBody } from "./ship-panel";
-import { clearLastShip, demoCommits, loadLastShip, saveLastShip, type ShipRecord } from "./ship-store";
+import { clearLastShip, loadLastShip, saveLastShip, type ShipRecord } from "./ship-store";
 
 const short = (sha: string) => sha.slice(0, 7);
 
@@ -43,24 +43,23 @@ function ShipResult({ rec, target, onClose }: { rec: ShipRecord; target: GitTarg
   }
 
   return (
-    <section role="status" className={rec.simulated ? "rounded-lg border border-warning/40 bg-warning/5 p-3" : "rounded-lg border border-primary/40 bg-primary/5 p-3"} data-testid="ship-result">
+    <section role="status" className="rounded-lg border border-primary/40 bg-primary/5 p-3" data-testid="ship-result">
       <div className="flex items-start gap-2.5">
-        <CheckCircle2 className={rec.simulated ? "mt-0.5 size-5 shrink-0 text-warning" : "mt-0.5 size-5 shrink-0 text-primary"} aria-hidden />
+        <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
         <div className="min-w-0 flex-1 space-y-1 text-sm">
           <p className="font-semibold">
-            {rec.simulated ? "Simulated commit — nothing was sent to GitHub" : `Pushed to ${rec.branch}`}
+            {`Pushed to ${rec.branch}`}
           </p>
           <p className="break-words text-muted-foreground">
             <span className="font-mono text-[12px]">{short(rec.sha)}</span> · {subject} · {rec.files} file{rec.files === 1 ? "" : "s"}
           </p>
-          {!rec.simulated && rec.created ? <p className="text-xs text-muted-foreground">New branch from {rec.from}. You're now working on it; {rec.from} is unchanged.</p> : null}
-          {rec.simulated && rec.created ? <p className="text-xs text-muted-foreground">A real commit would go to a new branch <span className="font-mono">{rec.branch}</span>{pr ? ` and open a pull request into ${rec.from}` : ""}. Your demo changes stay in the workspace.</p> : null}
+          {rec.created ? <p className="text-xs text-muted-foreground">New branch from {rec.from}. You're now working on it; {rec.from} is unchanged.</p> : null}
         </div>
         <button type="button" onClick={onClose} aria-label="Dismiss" className="-m-2 grid size-10 place-items-center text-muted-foreground hover:text-foreground">
           <X className="size-4" />
         </button>
       </div>
-      {!rec.simulated ? (
+      {rec.url || pr ? (
         <div className="mt-3 flex flex-wrap gap-2 pl-7">
           {rec.url ? (
             <Button asChild variant="secondary" size="sm">
@@ -92,19 +91,18 @@ function ShipResult({ rec, target, onClose }: { rec: ShipRecord; target: GitTarg
 
 /** Branch status: last commit result, open PR for this branch, recent commits. */
 export function GitStatus({ target, version, compact = false }: { target: GitTarget; version: number; compact?: boolean }) {
-  const { owner, repo, branch, defaultBranch, isDemo } = target;
+  const { owner, repo, branch, defaultBranch } = target;
   const [rec, setRec] = useState(() => {
     const r = loadLastShip(owner, repo);
     return r && (r.branch === branch || r.from === branch) ? r : null;
   });
-  const commits = useAsync(() => (isDemo ? Promise.resolve({ commits: [] }) : githubApi.commits(owner, repo, branch)), [owner, repo, branch, isDemo, version]);
+  const commits = useAsync(() => githubApi.commits(owner, repo, branch), [owner, repo, branch, version]);
   const pulls = useAsync(
-    () => (isDemo || branch === defaultBranch ? Promise.resolve({ pulls: [] }) : githubApi.pulls(owner, repo, branch)),
-    [owner, repo, branch, defaultBranch, isDemo, version],
+    () => (branch === defaultBranch ? Promise.resolve({ pulls: [] }) : githubApi.pulls(owner, repo, branch)),
+    [owner, repo, branch, defaultBranch, version],
   );
   const [prBusy, setPrBusy] = useState(false);
   const [prErr, setPrErr] = useState<string | null>(null);
-  const demoLog = isDemo ? demoCommits() : [];
 
   async function openPr() {
     setPrBusy(true);
@@ -135,7 +133,7 @@ export function GitStatus({ target, version, compact = false }: { target: GitTar
         />
       ) : null}
 
-      {!isDemo && branch !== defaultBranch ? (
+      {branch !== defaultBranch ? (
         <section className="rounded-lg border bg-surface p-3 text-sm" aria-label="Pull request" data-testid="pr-status">
           {pulls.status === "loading" ? (
             <Skeleton className="h-6 w-2/3" />
@@ -167,21 +165,7 @@ export function GitStatus({ target, version, compact = false }: { target: GitTar
         <h2 id="commits-title" className="border-b px-3 py-2.5 text-sm font-semibold">
           Recent commits on <span className="font-mono text-[13px]">{branch}</span>
         </h2>
-        {isDemo ? (
-          demoLog.length ? (
-            <ul className="divide-y" data-testid="list-commits">
-              {demoLog.slice(0, compact ? 3 : undefined).map((c) => (
-                <li key={c.sha} className="flex items-center gap-2 px-3 py-2.5 text-sm">
-                  <span className="font-mono text-[12px] text-muted-foreground">{short(c.sha)}</span>
-                  <span className="min-w-0 flex-1 truncate">{c.message.split("\n")[0]}</span>
-                  <span className="shrink-0 rounded bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-warning">simulated</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="px-3 py-4 text-sm text-muted-foreground">The demo has no Git history. Simulated commits you make appear here.</p>
-          )
-        ) : commits.status === "loading" ? (
+        {commits.status === "loading" ? (
           <div className="space-y-2 p-3">
             <Skeleton className="h-5" />
             <Skeleton className="h-5 w-4/5" />

@@ -27,8 +27,6 @@ export interface ShippedInfo {
   branch: string;
   at: string;
   pr?: { number: number; url: string } | null;
-  /** Demo mode: nothing was sent to GitHub. */
-  simulated?: boolean;
 }
 
 export function newTask(mode: AgentMode, title: string): AgentTask {

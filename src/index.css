@@ -18,8 +18,11 @@
     --warning: 32 92% 38%;
     --success: 186 88% 42%;
     --ring: 190 95% 45%;
-    --sidebar: 222 32% 12%;
-    --sidebar-muted: 218 16% 66%;
+    --sidebar: 220 22% 96%;
+    --sidebar-foreground: 222 24% 12%;
+    --sidebar-muted: 220 10% 36%;
+    --sidebar-border: 220 14% 86%;
+    --sidebar-accent: 220 16% 90%;
     --syn-keyword: 292 55% 42%;
     --syn-string: 145 55% 30%;
     --syn-number: 24 85% 42%;
@@ -48,8 +51,11 @@
     --warning: 38 92% 60%;
     --success: 185 90% 54%;
     --ring: 190 95% 62%;
-    --sidebar: 224 52% 7%;
-    --sidebar-muted: 218 18% 68%;
+    --sidebar: 224 46% 6%;
+    --sidebar-foreground: 210 20% 95%;
+    --sidebar-muted: 218 14% 66%;
+    --sidebar-border: 220 30% 14%;
+    --sidebar-accent: 222 30% 12%;
     --syn-keyword: 286 70% 76%;
     --syn-string: 100 50% 68%;
     --syn-number: 28 90% 68%;
@@ -85,22 +91,81 @@
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
   }
 }
 
 @layer components {
   .studio-grid { background-image: linear-gradient(to right, hsl(var(--border) / 0.18) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border) / 0.18) 1px, transparent 1px); background-size: 32px 32px; }
-  .studio-panel { @apply rounded-2xl border border-border/70 bg-surface/80 shadow-xl shadow-black/5 backdrop-blur; }
-  .studio-glow { box-shadow: 0 0 0 1px hsl(var(--primary) / 0.18), 0 14px 40px hsl(var(--primary) / 0.08); }
+  .studio-panel { @apply rounded-xl border border-border bg-surface; }
+  .studio-glow { box-shadow: 0 0 0 1px hsl(var(--primary) / 0.16); }
 }
+/* ── Motion ─────────────────────────────────────────────────────────
+   Short, purposeful, and always disabled by prefers-reduced-motion (see base layer). */
+@keyframes enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes pop-in { from { opacity: 0; transform: scale(0.92) translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes view-swap { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes route-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes float-y { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes topo-drift { from { transform: translate3d(0, 0, 0) rotate(0deg); } to { transform: translate3d(-3%, 2%, 0) rotate(-2deg); } }
+@keyframes topo-dash { to { stroke-dashoffset: -400; } }
+@keyframes glow-pulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.8; } }
+
 @layer utilities {
+  .animate-enter { animation: enter 420ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .animate-pop { animation: pop-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .animate-view { animation: view-swap 220ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .animate-fade { animation: fade-in 180ms ease-out both; }
+  .route-enter { animation: route-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  /* Children appear one after another (first 12; the rest together). */
+  .stagger > * { animation: enter 380ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .stagger > :nth-child(2) { animation-delay: 30ms; }
+  .stagger > :nth-child(3) { animation-delay: 60ms; }
+  .stagger > :nth-child(4) { animation-delay: 90ms; }
+  .stagger > :nth-child(5) { animation-delay: 120ms; }
+  .stagger > :nth-child(6) { animation-delay: 150ms; }
+  .stagger > :nth-child(7) { animation-delay: 180ms; }
+  .stagger > :nth-child(8) { animation-delay: 210ms; }
+  .stagger > :nth-child(9) { animation-delay: 240ms; }
+  .stagger > :nth-child(10) { animation-delay: 270ms; }
+  .stagger > :nth-child(11) { animation-delay: 300ms; }
+  .stagger > :nth-child(n + 12) { animation-delay: 330ms; }
+  .lift { transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), border-color 180ms, background-color 180ms; }
+  .lift:hover { transform: translateY(-2px); }
+  .lift:active { transform: translateY(0) scale(0.99); }
+
   .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
   .pt-safe { padding-top: env(safe-area-inset-top); }
   .tabular { font-variant-numeric: tabular-nums; }
   .scrollbar-none { scrollbar-width: none; }
   .scrollbar-none::-webkit-scrollbar { display: none; }
+  /* ── Landing ── */
+  .topo-lines { left: -12%; top: -6%; animation: topo-drift 34s ease-in-out infinite alternate; }
+  .topo-contours { stroke-dasharray: 12 3; animation: topo-dash 54s linear infinite; }
+  .topo-contours-secondary { animation-duration: 68s; animation-direction: reverse; }
+  .topo-glow { background: radial-gradient(ellipse at 20% 30%, hsl(var(--primary) / 0.12), transparent 55%); animation: glow-pulse 8s ease-in-out infinite; }
+  /* Fade the contours out toward the bottom so the hero blends into the page. */
+  .topo-field { -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent); mask-image: linear-gradient(to bottom, #000 55%, transparent); }
+  .phone-float { animation: float-y 7s ease-in-out infinite; }
+  .hero-copy > * { animation: enter 600ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .hero-copy > :nth-child(2) { animation-delay: 80ms; }
+  .hero-copy > :nth-child(3) { animation-delay: 160ms; }
+  .hero-copy > :nth-child(4) { animation-delay: 240ms; }
+  .hero-copy > :nth-child(5) { animation-delay: 320ms; }
+  .hero-phone { animation: pop-in 700ms 200ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .feature-card { transition: background-color 200ms, transform 200ms cubic-bezier(0.16, 1, 0.3, 1); }
+  .feature-card:hover { background-color: hsl(var(--surface)); }
+  .feature-card svg { transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1); }
+  .feature-card:hover svg { transform: translateY(-2px) scale(1.08); }
+  /* Scroll reveal: only hidden once JS has opted the page in, so no-JS / reduced motion shows everything. */
+  .reveal-ready .reveal { opacity: 0; transform: translateY(14px); transition: opacity 600ms cubic-bezier(0.16, 1, 0.3, 1), transform 600ms cubic-bezier(0.16, 1, 0.3, 1); }
+  .reveal-ready .reveal.is-visible { opacity: 1; transform: none; }
+
   /* While typing in the editor, the workspace tab bar hides to give the keyboard + symbol bar room. */
   html.editor-focused nav[aria-label="Workspace"] { display: none; }
 }

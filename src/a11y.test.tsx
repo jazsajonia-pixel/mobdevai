@@ -1,23 +1,12 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, screen } from "@testing-library/react";
 import axe from "axe-core";
-import { Router } from "wouter";
-import { memoryLocation } from "wouter/memory-location";
-import { AppRoutes } from "./App";
-import { SessionProvider } from "./stores/session";
-import { ThemeProvider } from "./stores/theme";
+import { GH_SESSION, SAMPLE_PATH, mockGitHub, renderApp } from "./test/github-fixture";
 
 /** Automated accessibility checks (axe-core) on the main screens, at phone size. */
-function renderAt(path: string, demo = true) {
-  render(
-    <ThemeProvider>
-      <SessionProvider initial={demo ? { mode: "demo", startedAt: new Date().toISOString() } : { mode: "anonymous" }}>
-        <Router hook={memoryLocation({ path }).hook}>
-          <AppRoutes />
-        </Router>
-      </SessionProvider>
-    </ThemeProvider>,
-  );
+function renderAt(path: string, signedIn = true) {
+  mockGitHub();
+  renderApp(path, signedIn ? GH_SESSION : { mode: "anonymous" });
 }
 
 async function violations() {
@@ -31,6 +20,7 @@ async function violations() {
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
   localStorage.clear();
 });
 
@@ -41,14 +31,17 @@ const PAGES: [string, string, boolean?][] = [
   ["ai", "/app/ai"],
   ["history", "/app/ai/history"],
   ["settings", "/app/settings"],
-  ["workspace files", "/app/projects/demo/pocket-tasks"],
-  ["workspace git", "/app/projects/demo/pocket-tasks/git"],
-  ["workspace overview", "/app/projects/demo/pocket-tasks/overview"],
+  ["skills", "/app/skills"],
+  ["sign in", "/signin", false],
+  ["workspace files", SAMPLE_PATH],
+  ["workspace git", `${SAMPLE_PATH}/git`],
+  ["workspace ai", `${SAMPLE_PATH}/ai`],
+  ["workspace overview", `${SAMPLE_PATH}/overview`],
 ];
 
 describe("accessibility (axe)", () => {
-  it.each(PAGES)("%s has no violations", async (_name, path, demo = true) => {
-    renderAt(path, demo);
+  it.each(PAGES)("%s has no violations", async (_name, path, signedIn = true) => {
+    renderAt(path, signedIn);
     // Wait for lazy routes / async content.
     await screen.findAllByRole("main", {}, { timeout: 3000 }).catch(() => null);
     await new Promise((r) => setTimeout(r, 300));

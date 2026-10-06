@@ -39,7 +39,7 @@ export function saveTasks(workspaceKey: string, tasks: AgentTask[]): boolean {
 }
 
 export interface RecentTask {
-  source: "demo" | "github";
+  source: "github";
   owner: string;
   repo: string;
   branch: string;
@@ -58,10 +58,10 @@ export function recentAgentTasks(limit = 8): RecentTask[] {
     return out;
   }
   for (const k of keys) {
-    const m = /^mdai:agent-tasks:.*?(demo|github):([^/]+)\/([^@]+)@(.+):v1$/.exec(k);
+    const m = /^mdai:agent-tasks:.*?(github):([^/]+)\/([^@]+)@(.+):v1$/.exec(k);
     if (!m) continue;
     const wsKey = k.slice("mdai:agent-tasks:".length, -":v1".length);
-    for (const task of loadTasks(wsKey)) out.push({ source: m[1] as "demo" | "github", owner: m[2]!, repo: m[3]!, branch: m[4]!, key: wsKey, task });
+    for (const task of loadTasks(wsKey)) out.push({ source: "github", owner: m[2]!, repo: m[3]!, branch: m[4]!, key: wsKey, task });
   }
   return out.sort((a, b) => b.task.updatedAt.localeCompare(a.task.updatedAt)).slice(0, limit);
 }

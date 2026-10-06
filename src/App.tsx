@@ -10,6 +10,7 @@ import SignInPage from "@/pages/sign-in";
 import HomePage from "@/pages/home";
 import NotFoundPage from "@/pages/not-found";
 import { Spinner } from "@/components/states";
+import { CommandPalette } from "@/features/command/command-palette";
 
 // The workspace carries the editor (CodeMirror) — load it only when a project is opened.
 // Secondary pages are split too so the landing/sign-in/home path stays small on phones.
@@ -97,6 +98,7 @@ export default function App() {
         <SessionProvider>
           <Router hook={useHashLocation}>
             <AppRoutes />
+            <CommandPalette />
           </Router>
         </SessionProvider>
       </ThemeProvider>

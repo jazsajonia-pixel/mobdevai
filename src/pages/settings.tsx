@@ -84,10 +84,10 @@ export default function SettingsPage() {
             <p className="text-xs text-muted-foreground">Your token is held in an encrypted HTTP-only cookie and revoked on sign out.</p>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">You're in the sample workspace. Sign in with GitHub to save settings across devices.</p>
+          <p className="text-sm text-muted-foreground">Not signed in.</p>
         )}
         <Button variant="secondary" className="mt-3 w-full" onClick={() => setConfirmOpen(true)} data-testid="button-signout">
-          <LogOut /> {session.mode === "demo" ? "Leave demo" : "Sign out"}
+          <LogOut /> Sign out
         </Button>
       </Section>
 
@@ -96,7 +96,7 @@ export default function SettingsPage() {
       <BottomSheet
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title={session.mode === "demo" ? "Leave the demo?" : "Sign out?"}
+        title="Sign out?"
         description="You'll return to the start screen."
       >
         <div className="grid grid-cols-2 gap-2 pt-2">
@@ -111,7 +111,7 @@ export default function SettingsPage() {
               void signOut().then(() => navigate("/"));
             }}
           >
-            {session.mode === "demo" ? "Leave" : "Sign out"}
+            Sign out
           </Button>
         </div>
       </BottomSheet>

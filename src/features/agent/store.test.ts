@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { loadTasks, markTasksShipped, saveTasks, tasksForPaths } from "./store";
 import { newTask, type AgentTask } from "./task";
 
-const KEY = "ws:demo:demo/pocket-tasks@main";
+const KEY = "ws:github:octo/pocket-tasks@main";
 const withFile = (t: AgentTask, path: string, decision: "accepted" | "rejected"): AgentTask => ({
   ...t,
   proposal: { [path]: { path, before: "a", after: "b", decision } },
@@ -27,10 +27,9 @@ describe("shipping info on tasks", () => {
   it("a later save from a stale in-memory copy keeps the shipping info", () => {
     const a = withFile(newTask("agent", "Change app"), "src/App.jsx", "accepted");
     saveTasks(KEY, [a]);
-    markTasksShipped(KEY, [a.id], { sha: "abc1234", url: null, branch: "main", at: new Date().toISOString(), simulated: true });
+    markTasksShipped(KEY, [a.id], { sha: "abc1234", url: null, branch: "main", at: new Date().toISOString() });
     saveTasks(KEY, [{ ...a, title: "Renamed" }]);
     const t = loadTasks(KEY)[0];
     expect(t?.title).toBe("Renamed");
-    expect(t?.shipped?.simulated).toBe(true);
   });
 });

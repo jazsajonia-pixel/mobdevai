@@ -19,6 +19,8 @@ const repoBase = (owner: string, repo: string) => `/github/repos/${encodeURIComp
 
 export const githubApi = {
   repos: (page = 1) => api<RepoListResponse>(`/github/repos?page=${page}`),
+  createRepo: (body: { name: string; description?: string; private: boolean; autoInit: boolean }) =>
+    api<{ repo: RepoSummary }>("/github/repos", { method: "POST", body, timeoutMs: 30_000 }).then((r) => r.repo),
   repo: (owner: string, repo: string) => api<{ repo: RepoSummary }>(repoBase(owner, repo)).then((r) => r.repo),
   branches: (owner: string, repo: string) => api<BranchListResponse>(`${repoBase(owner, repo)}/branches`),
   tree: (owner: string, repo: string, ref: string) =>

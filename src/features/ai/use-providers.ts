@@ -1,31 +1,23 @@
 import { useCallback, useEffect, useState } from "react";
 import { listProviders } from "./api";
 import type { ProvidersResponse } from "@/types/ai";
-import { useSession } from "@/stores/session";
 
 export type ProvidersState =
   | { status: "loading" }
-  | { status: "demo" }
   | { status: "error"; error: unknown }
   | { status: "ready"; data: ProvidersResponse };
 
-/** Loads provider settings; demo sessions have no server session, so there's nothing to load. */
+/** Loads the signed-in user's provider settings. */
 export function useProviders() {
-  const { session } = useSession();
-  const isDemo = session.mode !== "github";
-  const [state, setState] = useState<ProvidersState>(isDemo ? { status: "demo" } : { status: "loading" });
+  const [state, setState] = useState<ProvidersState>({ status: "loading" });
 
   const reload = useCallback(() => {
-    if (isDemo) {
-      setState({ status: "demo" });
-      return;
-    }
     setState((s) => (s.status === "ready" ? s : { status: "loading" }));
     listProviders().then(
       (data) => setState({ status: "ready", data }),
       (error: unknown) => setState({ status: "error", error }),
     );
-  }, [isDemo]);
+  }, []);
 
   useEffect(reload, [reload]);
 

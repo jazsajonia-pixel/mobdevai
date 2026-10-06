@@ -172,10 +172,10 @@ describe("AI providers settings", () => {
     expect(patch).not.toHaveProperty("apiKey");
   });
 
-  it("explains that demo mode needs GitHub sign-in", async () => {
+  it("sends signed-out visitors to sign in", async () => {
     fakeServer();
-    renderAt("/app/settings/ai", { mode: "demo", startedAt: new Date().toISOString() });
-    expect(await screen.findByText("Sign in to add AI providers")).toBeInTheDocument();
+    renderAt("/app/settings/ai", { mode: "anonymous" });
+    expect(await screen.findByTestId("button-github-signin")).toBeInTheDocument();
   });
 
   it("shows the default provider on the AI page", async () => {

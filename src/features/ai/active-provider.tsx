@@ -12,9 +12,6 @@ export function ActiveProviderLink({ className }: { className?: string }) {
   if (state.status === "loading") {
     line = "AI providers";
     sub = "Loading…";
-  } else if (state.status === "demo") {
-    line = "AI providers";
-    sub = "Sign in with GitHub to add API keys";
   } else if (state.status === "error") {
     line = "AI providers";
     sub = "Couldn't load — tap to retry";

@@ -18,7 +18,7 @@ const files: Record<string, string> = {
   "assets/logo.png": "\u0000PNG",
 };
 
-const repos = [
+const repos: Array<Record<string, unknown> & { id: number; name: string; private: boolean }> = [
   { id: 1, name: "hello-mobile", private: false, description: "Static site used for mock testing", language: "HTML" },
   { id: 2, name: "secret-api", private: true, description: "Private repository", language: "TypeScript" },
   { id: 3, name: "empty-repo", private: false, description: null, language: null },
@@ -81,6 +81,18 @@ createServer(async (req, res) => {
 
   const api = p.slice(4);
   if (api === "/user") return send(res, 200, { id: 4242, login: "octo-dev", name: "Octo Developer", avatar_url: "https://avatars.githubusercontent.com/u/583231?v=4" });
+  if (api === "/user/repos" && req.method === "POST") {
+    const body = await readBody(req);
+    const name = String(body.name ?? "");
+    if (repos.some((r) => r.name === name)) return send(res, 422, { message: "Repository creation failed.", errors: [{ message: "name already exists on this account" }] });
+    const repo = {
+      id: repos.length + 100, name, private: Boolean(body.private), description: (body.description as string | undefined) ?? null, language: null,
+      full_name: `octo-dev/${name}`, owner: { login: "octo-dev" }, fork: false, archived: false, default_branch: "main",
+      pushed_at: new Date().toISOString(), permissions: { admin: true, push: true, pull: true },
+    };
+    repos.unshift(repo);
+    return send(res, 201, repo);
+  }
   if (api === "/user/repos") return send(res, 200, repos);
 
   const m = /^\/repos\/octo-dev\/([^/]+)(.*)$/.exec(api);

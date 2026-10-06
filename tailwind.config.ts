@@ -22,6 +22,13 @@ export default {
         warning: hsl("--warning"),
         success: hsl("--success"),
         ring: hsl("--ring"),
+        sidebar: {
+          DEFAULT: hsl("--sidebar"),
+          foreground: hsl("--sidebar-foreground"),
+          muted: hsl("--sidebar-muted"),
+          border: hsl("--sidebar-border"),
+          accent: hsl("--sidebar-accent"),
+        },
       },
       borderRadius: { lg: "12px", md: "8px", sm: "6px" },
       spacing: { safe: "env(safe-area-inset-bottom)" },

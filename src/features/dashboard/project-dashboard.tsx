@@ -53,7 +53,7 @@ export function ProjectDashboard({
 }: {
   project: ProjectRef;
   target: GitTarget;
-  /** When the file tree was last loaded from GitHub (null for the bundled demo). */
+  /** When the file tree was last loaded from GitHub . */
   syncedAt: string | null;
   refreshing?: boolean;
   onRefresh?: () => void;
@@ -61,7 +61,6 @@ export function ProjectDashboard({
 }) {
   const ws = useWorkspace();
   const online = useOnline();
-  const isDemo = project.source === "demo";
   const kind = detectProjectKindFromPaths(ws.paths);
   const totals = useMemo(
     () =>
@@ -80,7 +79,7 @@ export function ProjectDashboard({
     [project.owner, project.name],
   );
   const preview = loadPreviewStatus(ws.source.storageKey);
-  const repoUrl = isDemo ? null : `https://github.com/${project.owner}/${project.name}`;
+  const repoUrl = `https://github.com/${project.owner}/${project.name}`;
 
   return (
     <div className="space-y-4 p-4" data-testid="project-dashboard">
@@ -100,7 +99,7 @@ export function ProjectDashboard({
         </p>
         {project.description ? <p className="mt-1 text-sm text-muted-foreground">{project.description}</p> : null}
         <div className="mt-2 flex flex-wrap gap-1.5">
-          {isDemo ? <Badge tone="warning">Demo</Badge> : <Badge>{project.visibility}</Badge>}
+          <Badge>{project.visibility}</Badge>
           <Badge>{PROJECT_KIND_LABEL[kind]}</Badge>
           <Badge>
             {ws.paths.length} file{ws.paths.length === 1 ? "" : "s"}
@@ -136,7 +135,7 @@ export function ProjectDashboard({
             <span className="font-mono text-[13px]">{ws.source.commitSha.slice(0, 7)}</span>
           </Row>
           <Row label="Last sync">
-            <span data-testid="text-last-sync">{syncedAt ? timeAgo(new Date(syncedAt)) : "Bundled sample — nothing to sync"}</span>
+            <span data-testid="text-last-sync">{syncedAt ? timeAgo(new Date(syncedAt)) : "Not synced yet"}</span>
           </Row>
         </dl>
         {ws.baseMoved ? (

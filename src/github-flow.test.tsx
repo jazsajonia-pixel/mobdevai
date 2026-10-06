@@ -144,8 +144,8 @@ describe("GitHub workspace", () => {
     expect(await screen.findByText("Read-only access.")).toBeInTheDocument();
   });
 
-  it("asks demo users to sign in for GitHub repos", () => {
-    renderAt("/app/projects/octo/hello", { mode: "demo", startedAt: new Date().toISOString() });
-    expect(screen.getByText("Sign in with GitHub to open this repository")).toBeInTheDocument();
+  it("sends signed-out visitors to sign in", () => {
+    const loc = renderAt("/app/projects/octo/hello", { mode: "anonymous" });
+    expect(loc.history?.at(-1)).toBe("/signin");
   });
 });

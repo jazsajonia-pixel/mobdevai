@@ -82,7 +82,7 @@ export function ProposalSummary({ proposal, onReview, previewHref }: { proposal:
 }
 
 /** Full-height review sheet: diff per file, accept / reject per file or all. */
-export function ReviewSheet({ open, onOpenChange, proposal, isDemo, ...actions }: { open: boolean; onOpenChange: (o: boolean) => void; proposal: Proposal; isDemo: boolean } & ReviewActions) {
+export function ReviewSheet({ open, onOpenChange, proposal, ...actions }: { open: boolean; onOpenChange: (o: boolean) => void; proposal: Proposal } & ReviewActions) {
   const files = useMemo(() => proposalFiles(proposal).filter((f) => f.decision === "pending"), [proposal]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ paths: string[]; deletions: string[]; conflicts: string[] } | null>(null);
@@ -113,7 +113,7 @@ export function ReviewSheet({ open, onOpenChange, proposal, isDemo, ...actions }
         open={open}
         onOpenChange={onOpenChange}
         title="Review proposed changes"
-        description={`Accepted files are saved to your workspace${isDemo ? " (demo — nothing leaves this device)" : ". Nothing is committed or pushed to GitHub."}`}
+        description="Accepted files are saved to your workspace. Nothing is committed or pushed to GitHub."
       >
         {files.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">Everything has been reviewed.</p>

@@ -1,21 +1,20 @@
 import type { ProjectRef, WorkspaceFile } from "@/types/workspace";
 
 /**
- * Bundled sample project for DEMO mode. It is a real, small Vite + React app so later phases
- * (editor, AI diff, live preview) can operate on genuine code without GitHub credentials.
- * Nothing here is ever pushed anywhere.
+ * Test fixture: a small, real Vite + React app served by the mocked GitHub API in tests
+ * (see ./github-fixture.ts).
  */
-export const DEMO_PROJECT: ProjectRef = {
-  id: "demo/pocket-tasks",
-  source: "demo",
-  owner: "demo",
+export const SAMPLE_PROJECT: ProjectRef = {
+  id: "github/octo/pocket-tasks",
+  source: "github",
+  owner: "octo",
   name: "pocket-tasks",
   defaultBranch: "main",
-  visibility: "demo",
-  description: "A tiny Vite + React to-do app bundled for trying Chrono.",
+  visibility: "public",
+  description: "A tiny Vite + React to-do app.",
 };
 
-export const DEMO_FILES: WorkspaceFile[] = [
+export const SAMPLE_FILES: WorkspaceFile[] = [
   {
     path: "package.json",
     content: `{
