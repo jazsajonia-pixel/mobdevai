@@ -54,17 +54,18 @@ export function redact(text: string): string {
     .slice(0, 240);
 }
 
-function upstreamError(status: number, detail: string, provider: string): HttpError {
+function upstreamError(status: number, detail: string, provider: string, retryAfter?: string | null): HttpError {
   const d = detail ? ` (${redact(detail)})` : "";
+  const headers: Record<string, string> = retryAfter ? { "Retry-After": retryAfter.slice(0, 16) } : {};
   if (status === 401 || status === 403) return new HttpError(400, "AI_INVALID_KEY", `${provider} rejected the API key${d}.`);
   if (status === 404) return new HttpError(400, "AI_MODEL_NOT_FOUND", `${provider} couldn't find that model${d}.`);
-  if (status === 429) return new HttpError(429, "AI_QUOTA_EXCEEDED", `${provider} rate limit or quota reached${d}.`);
+  if (status === 429) return new HttpError(429, "AI_QUOTA_EXCEEDED", `${provider} rate limit or quota reached${d}.`, [], headers);
   if (status === 400 && /model/i.test(detail) && /(not|invalid|unknown|exist|support)/i.test(detail)) {
     return new HttpError(400, "AI_MODEL_NOT_FOUND", `${provider} doesn't accept that model${d}.`);
   }
   if (status === 400 && /api.?key/i.test(detail)) return new HttpError(400, "AI_INVALID_KEY", `${provider} rejected the API key${d}.`);
   if (status >= 400 && status < 500) return new HttpError(400, "VALIDATION_FAILED", `${provider} rejected the request${d}.`);
-  return new HttpError(502, "AI_PROVIDER_UNAVAILABLE", `${provider} returned an error (${status}).`);
+  return new HttpError(502, "AI_PROVIDER_UNAVAILABLE", `${provider} returned an error (${status}).`, [], headers);
 }
 
 export async function call(provider: string, url: string, init: RequestInit & { signal?: AbortSignal; timeoutMs?: number }): Promise<unknown> {
@@ -90,7 +91,7 @@ export async function call(provider: string, url: string, init: RequestInit & { 
   if (!res.ok) {
     const b = body as { error?: { message?: string } | string; message?: string } | null;
     const detail = typeof b?.error === "string" ? b.error : (b?.error?.message ?? b?.message ?? "");
-    throw upstreamError(res.status, detail, provider);
+    throw upstreamError(res.status, detail, provider, res.headers.get("retry-after"));
   }
   return body;
 }

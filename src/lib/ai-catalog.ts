@@ -39,8 +39,8 @@ export const PROVIDERS: Record<ProviderKind, ProviderMeta> = {
   gemini: {
     kind: "gemini",
     name: "Google Gemini",
-    defaultModel: "gemini-3.6-flash",
-    suggestedModels: ["gemini-3.6-flash", "gemini-3.7-flash", "gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-latest", "gemini-flash-lite-latest"],
+    defaultModel: "gemini-flash-latest",
+    suggestedModels: ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro"],
     keyPlaceholder: "AIza…",
     keyUrl: "https://aistudio.google.com/apikey",
     defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta",

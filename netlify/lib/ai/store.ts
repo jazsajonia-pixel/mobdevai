@@ -7,6 +7,7 @@ import { capabilities, encryptionSecret, isSet, sessionSecret } from "../env.js"
 import { HttpError } from "../http.js";
 import { AI_COOKIE, SESSION_TTL, type SessionData } from "../session.js";
 import { emptyState, type PlatformProvider, type ProviderState, type StoredProvider } from "./state.js";
+import { geminiKeys } from "./gemini-pool.js";
 
 /**
  * Where AI provider keys live:
@@ -168,9 +169,9 @@ export function platformProviders(env: Record<string, string | undefined> = proc
   };
   add("openai", env.OPENAI_API_KEY, env.OPENAI_MODEL);
   add("anthropic", env.ANTHROPIC_API_KEY, env.ANTHROPIC_MODEL);
-  add("gemini", env.GEMINI_API_KEY, env.GEMINI_MODEL);
+  add("gemini", geminiKeys(env)[0], isSet(env.GEMINI_MODEL) ? env.GEMINI_MODEL : "gemini-flash-latest");
   add("groq", env.GROQ_API_KEY, env.GROQ_MODEL);
-  const preferred = env.AI_DEFAULT_PROVIDER?.trim().toLowerCase();
+  const preferred = geminiKeys(env).length ? "gemini" : env.AI_DEFAULT_PROVIDER?.trim().toLowerCase();
   if (!preferred) return out;
   const index = out.findIndex((p) => p.kind === preferred);
   return index > 0 ? [out[index]!, ...out.slice(0, index), ...out.slice(index + 1)] : out;

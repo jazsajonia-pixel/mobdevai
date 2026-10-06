@@ -142,7 +142,7 @@ describe("POST /api/ai/agent", () => {
   it("Gemini: maps function calls and echoes provider state (thought signatures)", async () => {
     const parts = [{ functionCall: { name: "search_code", args: { query: "useState" } }, thoughtSignature: "sig-abc" }];
     const calls = mockGitHub({
-      [`POST /v1beta/models/gemini-3.6-flash:generateContent`]: () => gh({ candidates: [{ content: { role: "model", parts }, finishReason: "STOP" }], usageMetadata: { promptTokenCount: 3, candidatesTokenCount: 2 } }),
+      [`POST /v1beta/models/gemini-flash-latest:generateContent`]: () => gh({ candidates: [{ content: { role: "model", parts }, finishReason: "STOP" }], usageMetadata: { promptTokenCount: 3, candidatesTokenCount: 2 } }),
     });
     const first = await read<AgentStepResponse>(await agent(req({ providerId: "platform:gemini", mode: "ask", project, messages: [user("find state")] })));
     expect(first.message.role === "assistant" && first.message.toolCalls?.[0]?.name).toBe("search_code");
@@ -155,6 +155,25 @@ describe("POST /api/ai/agent", () => {
     expect(JSON.stringify(sent.contents)).toContain("sig-abc");
     expect(sent.contents[sent.contents.length - 1]!.parts[0]).toHaveProperty("functionResponse");
     expect(calls[0]!.url.searchParams.get("key") ?? new Headers(calls[0]!.init!.headers).get("x-goog-api-key")).toBe(GEM);
+  });
+
+  it("Gemini platform requests fail over to the next configured key on quota errors", async () => {
+    const second = "AIza-AGENTKEY-second-gemini";
+    vi.stubEnv("GEMINI_API_KEYS", JSON.stringify([GEM, second]));
+    let n = 0;
+    const calls = mockGitHub({
+      "POST /v1beta/models/gemini-flash-latest:generateContent": () => {
+        n += 1;
+        return n === 1
+          ? gh({ error: { message: "rate limited" } }, { status: 429, headers: { "retry-after": "1" } })
+          : gh({ candidates: [{ content: { role: "model", parts: [{ text: "ok" }] }, finishReason: "STOP" }] });
+      },
+    });
+    const out = await read<AgentStepResponse>(await agent(req({ providerId: "platform:gemini", mode: "ask", project, messages: [user("large request")] })));
+    expect(out.provider.model).toBe("gemini-flash-latest");
+    expect(calls).toHaveLength(2);
+    expect(new Headers(calls[0]!.init!.headers).get("x-goog-api-key")).toBe(GEM);
+    expect(new Headers(calls[1]!.init!.headers).get("x-goog-api-key")).toBe(second);
   });
 
   it("redacts keys from provider errors", async () => {

@@ -12,6 +12,7 @@ import { resolveProvider } from "../lib/ai/resolve.js";
 import { readSession } from "../lib/session.js";
 import { providerIdSchema } from "../lib/ai/schemas.js";
 import { CUSTOM_SKILLS } from "../../src/lib/skills.js";
+import { withGeminiFailover } from "../lib/ai/gemini-pool.js";
 
 /**
  * POST /api/ai/agent — run ONE agent step.
@@ -87,13 +88,16 @@ export default handle(["POST"], async (req) => {
   const knownSkills = new Set(CUSTOM_SKILLS.map((skill) => skill.id));
   if (body.skillIds.some((id) => !knownSkills.has(id))) throw new HttpError(422, "VALIDATION_FAILED", "Unknown skill selected.");
   const tools = toolsForMode(body.mode);
-  const out = await agentStep(provider, {
+  const input = {
     system: systemPrompt(body.mode, body.project, body.skillIds),
     messages,
     tools,
     maxTokens: 8192,
     signal: req.signal,
-  });
+  };
+  const out = provider.kind === "gemini" && provider.id === "platform:gemini"
+    ? await withGeminiFailover(provider, (apiKey) => agentStep({ ...provider, apiKey, model: "gemini-flash-latest" }, input))
+    : await agentStep(provider, input);
 
   // Drop calls to tools this mode doesn't allow (the client would refuse them anyway).
   const allowed = new Set(tools.map((t) => t.name));

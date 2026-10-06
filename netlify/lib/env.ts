@@ -29,7 +29,7 @@ export function capabilities(env: Env = process.env): Capabilities {
     platformAiProviders: {
       openai: isSet(env.OPENAI_API_KEY),
       anthropic: isSet(env.ANTHROPIC_API_KEY),
-      gemini: isSet(env.GEMINI_API_KEY),
+      gemini: isSet(env.GEMINI_API_KEYS) || isSet(env.GEMINI_API_KEY),
     },
   };
 }
