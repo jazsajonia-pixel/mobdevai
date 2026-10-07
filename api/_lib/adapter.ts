@@ -110,6 +110,7 @@ function routeFor(pathname: string): Route | null {
     const handlers: Record<string, Handler> = {
       branch: githubBranch,
       branches: githubBranches,
+      commit: githubCommit,
       commits: githubCommits,
       file: githubFile,
       pulls: githubPulls,
