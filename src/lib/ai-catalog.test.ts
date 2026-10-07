@@ -17,4 +17,21 @@ describe("Chrono model catalog", () => {
     expect(PROVIDER_KINDS).toEqual(["openai", "anthropic", "gemini", "openrouter", "openai-compatible"]);
     expect(PROVIDERS.openrouter).toMatchObject({ name: "OpenRouter", defaultBaseUrl: "https://openrouter.ai/api/v1", needsBaseUrl: false });
   });
+
+  it("offers the requested free OpenRouter models", () => {
+    expect(PROVIDERS.openrouter.defaultModel).toBe("nvidia/nemotron-3-ultra:free");
+    expect(PROVIDERS.openrouter.suggestedModels).toEqual([
+      "nvidia/nemotron-3-ultra:free",
+      "nvidia/nemotron-3.5-lightning:free",
+      "nvidia/nemotron-3-super:free",
+      "nvidia/nemotron-3-nano:free",
+      "poolside/laguna-s-2.1:free",
+      "poolside/laguna-xs-2.1:free",
+      "inclusionai/dots3-note-preview:free",
+      "inclusionai/inkling:free",
+      "inclusionai/inkling-small:free",
+      "apodex/apodex-1.1-mini:free",
+      "nvidia/nemotron-3-nano-omni:free",
+    ]);
+  });
 });

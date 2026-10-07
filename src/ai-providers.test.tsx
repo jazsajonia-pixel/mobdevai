@@ -163,11 +163,11 @@ describe("AI providers settings", () => {
     fireEvent.click(await screen.findByTestId("radio-kind-openrouter"));
     expect(screen.getByTestId("model-choice-locked")).toBeInTheDocument();
     fireEvent.change(screen.getByTestId("input-api-key"), { target: { value: "sk-or-v1-test-key-123456" } });
-    expect(await screen.findByTestId("input-model")).toHaveValue("openai/gpt-4.1-mini");
-    fireEvent.change(screen.getByTestId("input-model"), { target: { value: "anthropic/claude-3.7-sonnet" } });
+    expect(await screen.findByTestId("input-model")).toHaveValue("nvidia/nemotron-3-ultra:free");
+    fireEvent.click(screen.getByRole("button", { name: "nvidia/nemotron-3.5-lightning:free" }));
     fireEvent.click(screen.getByTestId("button-save-provider"));
     await screen.findByTestId("card-provider-p_1abcdefgh");
-    expect(bodies).toContainEqual(expect.objectContaining({ kind: "openrouter", model: "anthropic/claude-3.7-sonnet", apiKey: "sk-or-v1-test-key-123456", baseUrl: null }));
+    expect(bodies).toContainEqual(expect.objectContaining({ kind: "openrouter", model: "nvidia/nemotron-3.5-lightning:free", apiKey: "sk-or-v1-test-key-123456", baseUrl: null }));
   });
 
   it("edits without re-entering the key", async () => {
