@@ -91,10 +91,10 @@ export function recordTest(state: ProviderState, id: string, result: ProviderTes
 
 /** The provider the agent uses when none is picked: explicit default → first enabled → first platform. */
 export function effectiveDefault(state: ProviderState, platform: PlatformProvider[]): string | null {
-  const gemini = platform.find((p) => p.id === "platform:gemini");
-  if (gemini) return gemini.id;
   const ids = new Set([...state.providers.filter((p) => p.enabled).map((p) => p.id), ...platform.map((p) => p.id)]);
   if (state.defaultId && ids.has(state.defaultId)) return state.defaultId;
+  const gemini = platform.find((p) => p.id === "platform:gemini");
+  if (gemini) return gemini.id;
   return firstEnabled(state) ?? platform[0]?.id ?? null;
 }
 

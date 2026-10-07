@@ -133,6 +133,23 @@ describe("AI providers — session-only storage", () => {
     expect(data.providers).toEqual([]);
   });
 
+  it("honors a user's OpenRouter default over a configured server Gemini provider", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "server-gemini-test-key");
+    const c = jar(session);
+    const res = c.take(await providers(req("/api/ai/providers", c.get(), "POST", {
+      kind: "openrouter",
+      model: "nvidia/nemotron-3.5-lightning:free",
+      apiKey: "sk-or-v1-user-test-key",
+      makeDefault: true,
+    })));
+    const data = await body<ProvidersResponse>(res);
+    const userProvider = data.providers.find((p) => p.kind === "openrouter")!;
+    const serverGemini = data.providers.find((p) => p.id === "platform:gemini")!;
+    expect(data.defaultId).toBe(userProvider.id);
+    expect(userProvider.isDefault).toBe(true);
+    expect(serverGemini.isDefault).toBe(false);
+  });
+
   it("rejects cross-site writes and invalid input", async () => {
     const bad = new Request(`${ORIGIN}/api/ai/providers`, { method: "POST", headers: { cookie: session, origin: "https://evil.example" }, body: "{}" });
     expect((await providers(bad)).status).toBe(403);
