@@ -2,7 +2,7 @@ import { ShippedNote } from "@/features/git/shipped-note";
 import { useOnline } from "@/hooks/use-online";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
-import { History, Image as ImageIcon, KeyRound, Loader2, Paperclip, Plus, RotateCw, Sparkles, Trash2 } from "lucide-react";
+import { CheckCircle2, ChevronDown, Circle, Clock3, History, Image as ImageIcon, KeyRound, Loader2, Paperclip, Plus, RotateCw, Sparkles, Trash2, XCircle } from "lucide-react";
 import { BottomSheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState } from "@/components/states";
@@ -20,10 +20,76 @@ import { ProposalSummary, ReviewSheet } from "./proposal-review";
 import { resultsById, splitUserMessage, type AgentTask } from "./task";
 import { ToolRow } from "./tool-row";
 import { useAgent, type AgentProject } from "./use-agent";
+import type { AgentActivity } from "./activity";
+
+function ActivityCard({ task, onRetry }: { task: AgentTask; onRetry: () => void }) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const activities = task.activities ?? [];
+  const visible = activities.slice(-8);
+  const active = visible.find((item) => item.status === "running") ?? null;
+  const completedCount = activities.filter((item) => item.status === "completed").length;
+  const failedCount = activities.filter((item) => item.status === "failed").length;
+  const reviewedFiles = new Set(activities.filter((item) => item.tool === "read_file" && item.status === "completed" && item.target).map((item) => item.target)).size;
+  const changedFiles = Object.values(task.proposal).filter((file) => file.decision !== "rejected").length;
+  const validation = [...activities].reverse().find((item) => item.tool === "request_preview" && (item.status === "completed" || item.status === "failed"));
+  const currentTitle = active?.title ?? (task.status === "running" ? "Thinking through your request" : task.status === "awaiting_plan" ? "Waiting for your approval" : "Work complete");
+  const statusIcon = (item: AgentActivity) => {
+    if (item.status === "running") return <Loader2 className="size-4 animate-spin text-primary" aria-label="In progress" />;
+    if (item.status === "completed") return <CheckCircle2 className="size-4 text-primary" aria-label="Completed" />;
+    if (item.status === "failed") return <XCircle className="size-4 text-danger" aria-label="Failed" />;
+    return <Circle className="size-3.5 text-muted-foreground" aria-label="Queued" />;
+  };
+  return (
+    <section className="rounded-xl border border-primary/20 bg-primary/[0.04] p-3.5" aria-live="polite" data-testid="agent-activity-card">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-primary/12 text-primary">
+          {task.status === "running" ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium">{task.status === "running" ? "Working on your request" : currentTitle}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{active?.detail ?? (completedCount ? `${completedCount} step${completedCount === 1 ? "" : "s"} completed` : "Keeping you updated as I work")}</p>
+        </div>
+      </div>
+      {visible.length ? (
+        <ol className="mt-3 space-y-2 border-l border-primary/15 pl-4">
+          {visible.map((item) => (
+            <li key={item.id} className="relative flex min-w-0 items-start gap-2 text-xs">
+              <span className="absolute -left-[1.32rem] top-0.5 grid size-4 place-items-center bg-background">{statusIcon(item)}</span>
+              <span className={item.status === "queued" ? "text-muted-foreground" : "text-foreground"}>
+                <span className="block truncate">{item.title}</span>
+                {item.detail ? <span className="block truncate text-[11px] text-muted-foreground">{item.detail}</span> : null}
+              </span>
+            </li>
+          ))}
+        </ol>
+      ) : null}
+      {activities.length > 0 ? (
+        <button type="button" onClick={() => setDetailsOpen((open) => !open)} className="mt-3 inline-flex min-h-9 items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground" aria-expanded={detailsOpen}>
+          <ChevronDown className={`size-3.5 transition-transform ${detailsOpen ? "rotate-180" : ""}`} />
+          {detailsOpen ? "Hide technical details" : "Show technical details"}
+        </button>
+      ) : null}
+      {detailsOpen ? (
+        <ul className="mt-2 space-y-1.5" aria-label="Technical tool details">
+          {task.messages.flatMap((message) => message.role === "assistant" ? (message.toolCalls ?? []) : []).map((call) => {
+            const result = resultsById(task.messages).get(call.id);
+            return <ToolRow key={call.id} call={call} result={result} running={task.status === "running"} />;
+          })}
+        </ul>
+      ) : null}
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-primary/10 pt-2 text-[11px] text-muted-foreground">
+        {reviewedFiles ? <span>{reviewedFiles} file{reviewedFiles === 1 ? "" : "s"} inspected</span> : null}
+        {changedFiles ? <span>{changedFiles} change{changedFiles === 1 ? "" : "s"} prepared</span> : null}
+        {validation ? <span className={validation.status === "failed" || validation.detail === "Validation found an issue" ? "text-warning" : "text-primary"}>{validation.detail}</span> : null}
+        {failedCount ? <button type="button" onClick={onRetry} className="font-medium text-danger hover:underline">Retry failed step{failedCount === 1 ? "" : "s"}</button> : null}
+        <span className="ml-auto inline-flex items-center gap-1"><Clock3 className="size-3" /> Updated {new Date(task.updatedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span>
+      </div>
+    </section>
+  );
+}
 
 function Timeline({ task, onApprove, onRevise }: { task: AgentTask; onApprove: () => void; onRevise: (f: string) => void }) {
   const results = useMemo(() => resultsById(task.messages), [task.messages]);
-  const running = task.status === "running";
   const planId = task.status === "awaiting_plan" ? task.pending[0]?.id : null;
   return (
     <ol className="min-w-0 space-y-4">
@@ -45,15 +111,13 @@ function Timeline({ task, onApprove, onRevise }: { task: AgentTask; onApprove: (
           <li key={i} className="animate-enter min-w-0 space-y-2" data-testid="msg-assistant">
             {m.content ? <Markdown text={m.content} /> : null}
             {calls.length ? (
-              <ul className="space-y-1.5" aria-label="Tool calls">
+              <ul className="space-y-1.5" aria-label="Plan calls">
                 {calls.map((c) =>
                   c.name === "propose_plan" && c.args ? (
                     <li key={c.id} className="list-none">
                       <PlanCard call={c} result={results.get(c.id)} awaiting={c.id === planId} onApprove={onApprove} onRevise={onRevise} />
                     </li>
-                  ) : (
-                    <ToolRow key={c.id} call={c} result={results.get(c.id)} running={running} />
-                  ),
+                  ) : null,
                 )}
               </ul>
             ) : null}
@@ -220,6 +284,7 @@ export function AgentPanel({ project }: { project: AgentProject }) {
               ) : task ? (
                 <div className="min-w-0 space-y-4">
                   <Timeline task={task} onApprove={() => agent.approvePlan()} onRevise={agent.revisePlan} />
+                  {task.status === "running" || (task.activities ?? []).length > 0 ? <ActivityCard task={task} onRetry={agent.resume} /> : null}
                   <StatusLine task={task} onResume={agent.resume} />
                   {task.shipped ? <ShippedNote info={task.shipped} /> : null}
                   <ProposalSummary proposal={task.proposal} onReview={() => setReviewOpen(true)} previewHref={projectPath(project.owner, project.repo, "preview")} />

@@ -1,5 +1,6 @@
 import type { AgentMessage, AgentMode, ToolCall } from "@/types/agent";
 import type { Proposal } from "./proposal";
+import type { AgentActivity } from "./activity";
 
 export type TaskStatus = "idle" | "running" | "awaiting_plan" | "done" | "stopped" | "error" | "step_limit";
 
@@ -11,6 +12,8 @@ export interface AgentTask {
   updatedAt: string;
   status: TaskStatus;
   messages: AgentMessage[];
+  /** Friendly progress events shown in the live activity card. */
+  activities: AgentActivity[];
   /** Tool calls from the last assistant turn still waiting to run (after a plan pause). */
   pending: ToolCall[];
   proposal: Proposal;
@@ -39,6 +42,7 @@ export function newTask(mode: AgentMode, title: string): AgentTask {
     updatedAt: now,
     status: "idle",
     messages: [],
+    activities: [],
     pending: [],
     proposal: {},
     error: null,

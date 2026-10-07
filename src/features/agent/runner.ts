@@ -4,6 +4,7 @@ import type { AgentAttachment, AgentMessage, AgentStepResponse, ToolCall } from 
 import type { AgentTask } from "./task";
 import { compactForWire } from "./task";
 import { executeTool, type WorkspaceView } from "./tools-exec";
+import { activityForCall, summarizeActivity } from "./activity";
 
 /**
  * Client-side agent loop: model step → run its tool calls locally → send results → repeat.
@@ -60,6 +61,16 @@ async function stepWithRetry(t: AgentTask, messages: AgentMessage[], deps: RunDe
 
 const touch = (t: AgentTask, patch: Partial<AgentTask>): AgentTask => ({ ...t, ...patch, updatedAt: new Date().toISOString() });
 
+function setActivity(t: AgentTask, id: string, status: "queued" | "running" | "completed" | "failed", detail?: string): AgentTask {
+  const now = new Date().toISOString();
+  const activities = t.activities ?? [];
+  const index = activities.findIndex((a) => a.id === id);
+  if (index < 0) return t;
+  const next = [...activities];
+  next[index] = { ...next[index]!, status, ...(detail ? { detail } : {}), ...(status === "running" ? { startedAt: now } : {}), ...(status === "completed" || status === "failed" ? { completedAt: now } : {}) };
+  return touch(t, { activities: next });
+}
+
 function stepsSinceUser(messages: AgentMessage[]): number {
   let n = 0;
   for (let i = messages.length - 1; i >= 0 && messages[i]!.role !== "user"; i--) if (messages[i]!.role === "assistant") n++;
@@ -83,12 +94,18 @@ async function runPending(task: AgentTask, deps: RunDeps): Promise<AgentTask> {
       deps.onUpdate(t);
       return t;
     }
+    if (!(t.activities ?? []).some((activity) => activity.id === call.id)) {
+      t = touch(t, { activities: [...(t.activities ?? []), activityForCall(call)] });
+    }
+    t = setActivity(t, call.id, "running");
+    deps.onUpdate(t);
     const r = await executeTool(call, deps.workspace, t.proposal, t.mode);
     t = touch(t, {
       proposal: r.proposal,
       pending: t.pending.slice(1),
       messages: [...t.messages, { role: "tool", toolCallId: call.id, name: call.name, content: r.content, ...(r.isError ? { isError: true } : {}) }],
     });
+    t = setActivity(t, call.id, r.isError ? "failed" : "completed", summarizeActivity(call, r.content, r.isError));
     deps.onUpdate(t);
   }
   return t;
@@ -121,6 +138,7 @@ export async function advance(task: AgentTask, deps: RunDeps): Promise<AgentTask
       t = touch(t, {
         messages: [...t.messages, message],
         pending: calls,
+        activities: calls.length ? [...(t.activities ?? []), ...calls.map((call) => activityForCall(call))] : t.activities ?? [],
         provider: { label: res.provider.label, model: res.provider.fallbackFrom ? `${res.provider.model} (${res.provider.fallbackFrom} unavailable)` : res.provider.model },
         usage: { inputTokens: t.usage.inputTokens + (res.usage.inputTokens ?? 0), outputTokens: t.usage.outputTokens + (res.usage.outputTokens ?? 0) },
       });
@@ -164,5 +182,6 @@ export function answerPlan(task: AgentTask, approved: boolean, feedback?: string
   const msgs: AgentMessage[] = [...task.messages, { role: "tool", toolCallId: plan.id, name: plan.name, content }];
   // Calls queued after a rejected plan are skipped.
   const skipped: AgentMessage[] = approved ? [] : rest.map((c) => ({ role: "tool", toolCallId: c.id, name: c.name, content: "Skipped: the plan was not approved.", isError: true }));
-  return touch(task, { messages: [...msgs, ...skipped], pending: approved ? rest : [], status: "idle" });
+  const activities = (task.activities ?? []).map((activity) => activity.id === plan.id ? { ...activity, status: "completed" as const, completedAt: new Date().toISOString() } : activity);
+  return touch(task, { messages: [...msgs, ...skipped], pending: approved ? rest : [], activities, status: "idle" });
 }
