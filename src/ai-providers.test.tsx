@@ -95,6 +95,8 @@ describe("AI providers settings", () => {
     const key = await screen.findByTestId("input-api-key");
     expect(key).toHaveAttribute("type", "password");
     expect(key).toHaveAttribute("autocomplete", "new-password");
+    expect(screen.getByTestId("model-choice-locked")).toHaveTextContent("Add an API key first");
+    expect(screen.queryByTestId("input-model")).not.toBeInTheDocument();
 
     // Validation before any request.
     fireEvent.click(screen.getByTestId("button-save-provider"));
@@ -105,6 +107,7 @@ describe("AI providers settings", () => {
     expect(await screen.findByTestId("test-result-error")).toHaveTextContent("The provider rejected the API key");
 
     fireEvent.change(key, { target: { value: KEY } });
+    expect(await screen.findByTestId("input-model")).toBeInTheDocument();
     fireEvent.click(screen.getByTestId("button-test-connection"));
     expect(await screen.findByTestId("test-result-ok")).toHaveTextContent("Connected · 321 ms");
     // Fetched models become chips.
@@ -151,6 +154,20 @@ describe("AI providers settings", () => {
     fireEvent.click(within(screen.getByTestId("card-provider-p_2abcdefgh")).getByTestId("button-remove-provider"));
     fireEvent.click(await screen.findByTestId("button-confirm"));
     await waitFor(() => expect(screen.queryByTestId("card-provider-p_2abcdefgh")).not.toBeInTheDocument());
+  });
+
+  it("offers OpenRouter and unlocks model choice after its API key is entered", async () => {
+    const { bodies } = fakeServer();
+    renderAt("/app/settings/ai");
+    fireEvent.click(await screen.findByTestId("button-add-first-provider"));
+    fireEvent.click(await screen.findByTestId("radio-kind-openrouter"));
+    expect(screen.getByTestId("model-choice-locked")).toBeInTheDocument();
+    fireEvent.change(screen.getByTestId("input-api-key"), { target: { value: "sk-or-v1-test-key-123456" } });
+    expect(await screen.findByTestId("input-model")).toHaveValue("openai/gpt-4.1-mini");
+    fireEvent.change(screen.getByTestId("input-model"), { target: { value: "anthropic/claude-3.7-sonnet" } });
+    fireEvent.click(screen.getByTestId("button-save-provider"));
+    await screen.findByTestId("card-provider-p_1abcdefgh");
+    expect(bodies).toContainEqual(expect.objectContaining({ kind: "openrouter", model: "anthropic/claude-3.7-sonnet", apiKey: "sk-or-v1-test-key-123456", baseUrl: null }));
   });
 
   it("edits without re-entering the key", async () => {

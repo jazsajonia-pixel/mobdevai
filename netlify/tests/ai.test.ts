@@ -164,6 +164,20 @@ describe("POST /api/ai/test-provider", () => {
     expect(JSON.parse(String(chat.init?.body))).toMatchObject({ max_completion_tokens: 16 });
   });
 
+  it("tests OpenRouter using its OpenAI-compatible models and chat endpoints", async () => {
+    const key = "sk-or-v1-test-key-secret-12345";
+    const calls = mockGitHub({
+      "GET /api/v1/models": () => gh({ data: [{ id: "anthropic/claude-3.7-sonnet" }] }),
+      "POST /api/v1/chat/completions": () => gh({ model: "anthropic/claude-3.7-sonnet", choices: [{ message: { content: "ok" }, finish_reason: "stop" }], usage: { prompt_tokens: 3, completion_tokens: 1 } }),
+    });
+    const res = await testFn(req("/api/ai/test-provider", session, "POST", { kind: "openrouter", model: "anthropic/claude-3.7-sonnet", apiKey: key }));
+    expect(res.status).toBe(200);
+    expect(calls.every((call) => call.url.origin === "https://openrouter.ai")).toBe(true);
+    expect(calls.map((call) => call.url.pathname)).toEqual(["/api/v1/models", "/api/v1/chat/completions"]);
+    expect(new Headers(calls[0]!.init?.headers).get("authorization")).toBe(`Bearer ${key}`);
+    expect((await body<{ models: string[] }>(res)).models).toContain("anthropic/claude-3.7-sonnet");
+  });
+
   it("tests a saved provider by id and records the result", async () => {
     const c = jar(session);
     let data = await body<ProvidersResponse>(c.take(await providers(req("/api/ai/providers", c.get(), "POST", { kind: "anthropic", model: "claude-sonnet-5-5", apiKey: ANTHROPIC_KEY }))));

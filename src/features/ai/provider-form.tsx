@@ -68,6 +68,7 @@ export function ProviderForm({
   const suggestions = Array.from(new Set([...meta.suggestedModels, ...models]));
   const keyRequired = !editing;
   const trimmedKey = apiKey.trim();
+  const modelChoicesReady = Boolean(editing || trimmedKey);
 
   function pickKind(k: ProviderKind) {
     setKind(k);
@@ -227,8 +228,10 @@ export function ProviderForm({
             </button>
           </div>
           <p className="text-xs text-muted-foreground">{storageNote}</p>
+          {!editing && !trimmedKey ? <p className="text-xs text-muted-foreground">Enter the API key to unlock model choices for this provider.</p> : null}
         </div>
 
+        {modelChoicesReady ? <div data-testid="model-choice" className="space-y-1.5">
         <label className="block space-y-1.5">
           <span className="text-sm font-medium">Model</span>
           <input
@@ -264,6 +267,7 @@ export function ProviderForm({
             ))}
           </div>
         ) : null}
+        </div> : <p className="text-sm text-muted-foreground" data-testid="model-choice-locked">Add an API key first. Your available models will appear here.</p>}
 
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium">Effort</legend>

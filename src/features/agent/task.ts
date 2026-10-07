@@ -4,6 +4,17 @@ import type { AgentActivity } from "./activity";
 
 export type TaskStatus = "idle" | "running" | "awaiting_plan" | "done" | "stopped" | "error" | "step_limit";
 
+/** Frozen progress for a completed user request inside a multi-turn task. */
+export interface AgentActivityRun {
+  id: string;
+  startMessageIndex: number;
+  afterMessageIndex: number;
+  activities: AgentActivity[];
+  status: TaskStatus;
+  updatedAt: string;
+  changedFiles: number;
+}
+
 export interface AgentTask {
   id: string;
   title: string;
@@ -14,6 +25,10 @@ export interface AgentTask {
   messages: AgentMessage[];
   /** Friendly progress events shown in the live activity card. */
   activities: AgentActivity[];
+  /** Historical per-request progress cards; optional for tasks saved by older app versions. */
+  activityHistory?: AgentActivityRun[];
+  /** Message index where the current request began; optional for older saved tasks. */
+  activityStartMessageIndex?: number;
   /** Tool calls from the last assistant turn still waiting to run (after a plan pause). */
   pending: ToolCall[];
   proposal: Proposal;
@@ -43,6 +58,8 @@ export function newTask(mode: AgentMode, title: string): AgentTask {
     status: "idle",
     messages: [],
     activities: [],
+    activityHistory: [],
+    activityStartMessageIndex: 0,
     pending: [],
     proposal: {},
     error: null,

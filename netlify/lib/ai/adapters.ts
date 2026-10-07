@@ -195,6 +195,7 @@ export async function call(provider: string, url: string, init: RequestInit & { 
 
 export async function openAiBase(p: ResolvedProvider): Promise<string> {
   if (p.kind === "openai") return PROVIDERS.openai.defaultBaseUrl!;
+  if (p.kind === "openrouter") return PROVIDERS.openrouter.defaultBaseUrl!;
   if (!p.baseUrl) throw new HttpError(422, "AI_BAD_BASE_URL", "This provider needs a base URL.");
   const base = normalizeBaseUrl(p.baseUrl);
   await assertPublicHost(base);
@@ -203,7 +204,7 @@ export async function openAiBase(p: ResolvedProvider): Promise<string> {
 
 const openAi: ProviderAdapter = {
   async chat(p, req) {
-    const name = p.kind === "openai" ? "OpenAI" : "The provider";
+    const name = p.kind === "openai" ? "OpenAI" : p.kind === "openrouter" ? "OpenRouter" : "The provider";
     const base = await openAiBase(p);
     const messages = [...(req.system ? [{ role: "system", content: req.system }] : []), ...req.messages];
     const tokens = req.maxTokens ?? 1024;
@@ -231,7 +232,7 @@ const openAi: ProviderAdapter = {
   async listModels(p) {
     const base = await openAiBase(p);
     try {
-      const data = (await call(p.kind === "openai" ? "OpenAI" : "The provider", `${base}/models`, { headers: { Authorization: `Bearer ${p.apiKey}` } })) as { data?: { id?: string }[] };
+      const data = (await call(p.kind === "openai" ? "OpenAI" : p.kind === "openrouter" ? "OpenRouter" : "The provider", `${base}/models`, { headers: { Authorization: `Bearer ${p.apiKey}` } })) as { data?: { id?: string }[] };
       return (data?.data ?? []).map((m) => m.id).filter((x): x is string => !!x);
     } catch (err) {
       // Bad keys should fail loudly; a missing /models endpoint on a compatible server shouldn't.
@@ -315,6 +316,7 @@ const gemini: ProviderAdapter = {
 
 export const ADAPTERS: Record<ProviderKind, ProviderAdapter> = {
   openai: openAi,
+  openrouter: openAi,
   "openai-compatible": openAi,
   anthropic,
   gemini,

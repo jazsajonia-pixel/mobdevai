@@ -46,6 +46,16 @@ export const PROVIDERS: Record<ProviderKind, ProviderMeta> = {
     defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta",
     needsBaseUrl: false,
   },
+  openrouter: {
+    kind: "openrouter",
+    name: "OpenRouter",
+    defaultModel: "openai/gpt-4.1-mini",
+    suggestedModels: ["openai/gpt-4.1-mini", "anthropic/claude-3.7-sonnet", "google/gemini-2.5-flash", "meta-llama/llama-3.3-70b-instruct"],
+    keyPlaceholder: "sk-or-v1-…",
+    keyUrl: "https://openrouter.ai/settings/keys",
+    defaultBaseUrl: "https://openrouter.ai/api/v1",
+    needsBaseUrl: false,
+  },
   "openai-compatible": {
     kind: "openai-compatible",
     name: "OpenAI-compatible",

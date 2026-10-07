@@ -5,7 +5,7 @@ Phone browser ──► React SPA (Netlify CDN)
                     │  fetch /api/* (same-origin, HTTP-only session cookie from Phase 1)
                     ▼
                Netlify Functions ──► GitHub REST / Git Data API
-                    │            └──► AI providers (OpenAI · Anthropic · Gemini · compatible)
+                    │            └──► AI providers (OpenAI · Anthropic · Gemini · OpenRouter · compatible)
                     ▼
                PostgreSQL (Neon) — users, projects, task history, encrypted provider keys
 ```

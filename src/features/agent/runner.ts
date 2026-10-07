@@ -169,7 +169,27 @@ export function withUserMessage(task: AgentTask, content: string, attachments: A
   // Typing while a plan waits = "change the plan like this".
   if (task.status === "awaiting_plan" && task.pending[0]) return answerPlan(task, false, content);
   const t = closeOpenCalls(task, "Not run: the user sent a new message.");
-  return touch(t, { messages: [...t.messages, { role: "user", content, ...(attachments.length ? { attachments } : {}) }] });
+  const terminal = ["idle", "done", "stopped", "error", "step_limit"].includes(t.status);
+  const lastVisibleMessage = t.messages.map((message, index) => (message.role === "tool" ? -1 : index)).reduce((last, index) => Math.max(last, index), -1);
+  const lastUserMessage = t.messages.map((message, index) => (message.role === "user" ? index : -1)).reduce((last, index) => Math.max(last, index), 0);
+  const history = [...(t.activityHistory ?? [])];
+  if (terminal && t.activities.length && lastVisibleMessage >= 0) {
+    history.push({
+      id: `${t.id}:${history.length}:${t.updatedAt}`,
+      startMessageIndex: t.activityStartMessageIndex ?? lastUserMessage,
+      afterMessageIndex: lastVisibleMessage,
+      activities: [...t.activities],
+      status: t.status,
+      updatedAt: t.updatedAt,
+      changedFiles: Object.values(t.proposal).filter((file) => file.decision !== "rejected").length,
+    });
+  }
+  return touch(t, {
+    messages: [...t.messages, { role: "user", content, ...(attachments.length ? { attachments } : {}) }],
+    activities: [],
+    activityHistory: history.slice(-24),
+    activityStartMessageIndex: t.messages.length,
+  });
 }
 
 /** Approve the plan (continue) or reject it with feedback (model revises). */

@@ -10,7 +10,7 @@ const FEATURES = [
   { icon: Bot, index: "02", title: "An agent with a plan", body: "Chrono turns a request into a visible plan, then presents every change as a reviewable diff." },
   { icon: MonitorSmartphone, index: "03", title: "Preview the real thing", body: "Run the app in a sandboxed preview so you can see what shipped — not a static screenshot." },
   { icon: Smartphone, index: "04", title: "Designed for one hand", body: "Bottom sheets, thumb-friendly controls, and a calm mobile workflow from first edit to PR." },
-  { icon: Layers, index: "05", title: "Bring your model", body: "Use OpenAI, Anthropic, Gemini, or an OpenAI-compatible endpoint behind one focused interface." },
+  { icon: Layers, index: "05", title: "Bring your model", body: "Use OpenAI, Anthropic, Gemini, OpenRouter, or an OpenAI-compatible endpoint behind one focused interface." },
   { icon: GitPullRequestArrow, index: "06", title: "Ship with confidence", body: "Work on an ai/ branch, review the diff, commit, push, and open a pull request when it is ready." },
 ] as const;
 const PIPELINE = ["Connect", "Plan", "Edit", "Preview", "Ship"];
