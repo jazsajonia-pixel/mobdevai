@@ -1,6 +1,6 @@
 import { ShippedNote } from "@/features/git/shipped-note";
 import { useOnline } from "@/hooks/use-online";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { CheckCircle2, ChevronDown, Circle, Clock3, History, Image as ImageIcon, KeyRound, Loader2, Paperclip, Plus, RotateCw, Sparkles, Trash2, XCircle } from "lucide-react";
 import { BottomSheet } from "@/components/ui/sheet";
@@ -17,12 +17,12 @@ import { Composer, type QuickAction } from "./composer";
 import { Markdown } from "./markdown";
 import { PlanCard } from "./plan-card";
 import { ProposalSummary, ReviewSheet } from "./proposal-review";
-import { resultsById, splitUserMessage, type AgentTask } from "./task";
+import { resultsById, splitUserMessage, type AgentActivityRun, type AgentTask } from "./task";
 import { ToolRow } from "./tool-row";
 import { useAgent, type AgentProject } from "./use-agent";
 import type { AgentActivity } from "./activity";
 
-function ActivityCard({ task, onRetry }: { task: AgentTask; onRetry: () => void }) {
+function ActivityCard({ task, onRetry, changedFilesOverride, messageStartIndex }: { task: AgentTask; onRetry?: () => void; changedFilesOverride?: number; messageStartIndex?: number }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const activities = task.activities ?? [];
   const visible = activities.slice(-8);
@@ -30,9 +30,11 @@ function ActivityCard({ task, onRetry }: { task: AgentTask; onRetry: () => void 
   const completedCount = activities.filter((item) => item.status === "completed").length;
   const failedCount = activities.filter((item) => item.status === "failed").length;
   const reviewedFiles = new Set(activities.filter((item) => item.tool === "read_file" && item.status === "completed" && item.target).map((item) => item.target)).size;
-  const changedFiles = Object.values(task.proposal).filter((file) => file.decision !== "rejected").length;
+  const changedFiles = changedFilesOverride ?? Object.values(task.proposal).filter((file) => file.decision !== "rejected").length;
+  const lastUserMessageIndex = task.messages.map((message, index) => (message.role === "user" ? index : -1)).reduce((last, index) => Math.max(last, index), 0);
+  const technicalMessages = task.messages.slice(messageStartIndex ?? task.activityStartMessageIndex ?? lastUserMessageIndex);
   const validation = [...activities].reverse().find((item) => item.tool === "request_preview" && (item.status === "completed" || item.status === "failed"));
-  const currentTitle = active?.title ?? (task.status === "running" ? "Thinking through your request" : task.status === "awaiting_plan" ? "Waiting for your approval" : "Work complete");
+  const currentTitle = active?.title ?? (task.status === "running" ? "Thinking through your request" : task.status === "awaiting_plan" ? "Waiting for your approval" : task.status === "error" ? "Request ended with an error" : task.status === "stopped" ? "Request stopped" : task.status === "step_limit" ? "Request paused" : "Work complete");
   const statusIcon = (item: AgentActivity) => {
     if (item.status === "running") return <Loader2 className="size-4 animate-spin text-primary" aria-label="In progress" />;
     if (item.status === "completed") return <CheckCircle2 className="size-4 text-primary" aria-label="Completed" />;
@@ -71,7 +73,7 @@ function ActivityCard({ task, onRetry }: { task: AgentTask; onRetry: () => void 
       ) : null}
       {detailsOpen ? (
         <ul className="mt-2 space-y-1.5" aria-label="Technical tool details">
-          {task.messages.flatMap((message) => message.role === "assistant" ? (message.toolCalls ?? []) : []).map((call) => {
+          {technicalMessages.flatMap((message) => message.role === "assistant" ? (message.toolCalls ?? []) : []).map((call) => {
             const result = resultsById(task.messages).get(call.id);
             return <ToolRow key={call.id} call={call} result={result} running={task.status === "running"} />;
           })}
@@ -81,7 +83,7 @@ function ActivityCard({ task, onRetry }: { task: AgentTask; onRetry: () => void 
         {reviewedFiles ? <span>{reviewedFiles} file{reviewedFiles === 1 ? "" : "s"} inspected</span> : null}
         {changedFiles ? <span>{changedFiles} change{changedFiles === 1 ? "" : "s"} prepared</span> : null}
         {validation ? <span className={validation.status === "failed" || validation.detail === "Validation found an issue" ? "text-warning" : "text-primary"}>{validation.detail}</span> : null}
-        {failedCount ? <button type="button" onClick={onRetry} className="font-medium text-danger hover:underline">Retry failed step{failedCount === 1 ? "" : "s"}</button> : null}
+        {failedCount && onRetry ? <button type="button" onClick={onRetry} className="font-medium text-danger hover:underline">Retry failed step{failedCount === 1 ? "" : "s"}</button> : failedCount ? <span className="text-danger">A step needs attention</span> : null}
         <span className="ml-auto inline-flex items-center gap-1"><Clock3 className="size-3" /> Updated {new Date(task.updatedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span>
       </div>
     </section>
@@ -95,20 +97,25 @@ function Timeline({ task, onApprove, onRevise }: { task: AgentTask; onApprove: (
     <ol className="min-w-0 space-y-4">
       {task.messages.map((m, i) => {
         if (m.role === "tool") return null;
+        const historicalRuns: AgentActivityRun[] = (task.activityHistory ?? []).filter((run) => run.afterMessageIndex === i);
+        const activityCards = historicalRuns.map((run) => {
+          const historicalTask: AgentTask = { ...task, status: run.status, activities: run.activities, updatedAt: run.updatedAt, messages: task.messages.slice(run.startMessageIndex, i + 1), proposal: {} };
+          return <li key={`activity-${run.id}`} className="list-none"><ActivityCard task={historicalTask} changedFilesOverride={run.changedFiles} messageStartIndex={0} /></li>;
+        });
         if (m.role === "user") {
           const { text, files } = splitUserMessage(m.content);
           return (
-            <li key={i} className="animate-enter flex min-w-0 justify-end" data-testid="msg-user">
+            <Fragment key={i}><li className="animate-enter flex min-w-0 justify-end" data-testid="msg-user">
               <div className="min-w-0 max-w-[85%] rounded-xl rounded-br-sm bg-primary/15 px-3.5 py-2.5">
                 <p className="whitespace-pre-wrap break-words text-sm">{text}</p>
                 {files.length ? <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground"><Paperclip className="mr-1 inline size-3" aria-hidden />{files.join(", ")}</p> : null}{m.attachments?.length ? <div className="mt-2 flex flex-wrap gap-1.5">{m.attachments.map((a) => <span key={a.name} className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/5 px-2 py-1 text-[11px] text-primary">{a.mimeType.startsWith("image/") ? <ImageIcon className="size-3" aria-hidden /> : <Paperclip className="size-3" aria-hidden />}{a.name}</span>)}</div> : null}
               </div>
-            </li>
+            </li>{activityCards}</Fragment>
           );
         }
         const calls = m.toolCalls ?? [];
         return (
-          <li key={i} className="animate-enter min-w-0 space-y-2" data-testid="msg-assistant">
+          <Fragment key={i}><li className="animate-enter min-w-0 space-y-2" data-testid="msg-assistant">
             {m.content ? <Markdown text={m.content} /> : null}
             {calls.length ? (
               <ul className="space-y-1.5" aria-label="Plan calls">
@@ -121,7 +128,7 @@ function Timeline({ task, onApprove, onRevise }: { task: AgentTask; onApprove: (
                 )}
               </ul>
             ) : null}
-          </li>
+          </li>{activityCards}</Fragment>
         );
       })}
     </ol>
@@ -283,7 +290,7 @@ export function AgentPanel({ project }: { project: AgentProject }) {
                     </Button>
                   }
                 >
-                  The agent uses your default provider (OpenAI, Anthropic, Gemini or compatible). Keys stay on the server.
+                  The agent uses your default provider (OpenAI, Anthropic, Gemini, OpenRouter or compatible). Keys stay on the server.
                 </EmptyState>
               ) : providers.state.status === "error" ? (
                 <ErrorState error={providers.state.error} onRetry={providers.reload} />

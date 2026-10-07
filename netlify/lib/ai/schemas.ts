@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const kindSchema = z.enum(["openai", "anthropic", "gemini", "openai-compatible"]);
+export const kindSchema = z.enum(["openai", "anthropic", "gemini", "openrouter", "openai-compatible"]);
 export const effortSchema = z.enum(["low", "medium", "high"]);
 export const modelSchema = z.string().trim().regex(/^[\w.\-:/@ ]{1,120}$/, "Model names use letters, numbers, spaces and . - _ : / @");
 export const labelSchema = z.string().trim().min(1).max(60);
@@ -11,7 +11,7 @@ export const apiKeySchema = z
   .max(512, "API key looks too long")
   .regex(/^\S+$/, "API key can't contain spaces");
 export const baseUrlSchema = z.string().trim().max(300).nullable().optional();
-export const providerIdSchema = z.string().regex(/^(p_[A-Za-z0-9_-]{8,32}|platform:(openai|anthropic|gemini|openai-compatible))$/, "Invalid provider id");
+export const providerIdSchema = z.string().regex(/^(p_[A-Za-z0-9_-]{8,32}|platform:(openai|anthropic|gemini|openrouter|openai-compatible))$/, "Invalid provider id");
 
 export const createSchema = z
   .object({

@@ -102,6 +102,20 @@ function scripted(replies: Array<{ text?: string; calls?: ToolCall[] }>): StepFn
 
 describe("runner", () => {
   const files = { "src/a.ts": "const a = 1;\n" };
+  it("archives a completed request's progress before appending a follow-up message", () => {
+    const done = {
+      ...newTask("ask", "first request"),
+      status: "done" as const,
+      messages: [{ role: "user" as const, content: "first request" }, { role: "assistant" as const, content: "Done." }],
+      activities: [{ id: "read-1", tool: "read_file", title: "Inspecting a project file", target: "src/a.ts", status: "completed" as const }],
+      proposal: { "src/a.ts": { path: "src/a.ts", before: "a", after: "b", decision: "pending" as const } },
+    };
+    const next = withUserMessage(done, "follow-up request");
+    expect(next.activityHistory).toMatchObject([{ startMessageIndex: 0, afterMessageIndex: 1, status: "done", activities: [{ id: "read-1" }], changedFiles: 1 }]);
+    expect(next.activities).toEqual([]);
+    expect(next.messages.at(-1)).toMatchObject({ role: "user", content: "follow-up request" });
+  });
+
   it("runs tools, pauses on the plan, resumes after approval, ends with a proposal", async () => {
     const step = scripted([
       { calls: [call("read_file", { path: "src/a.ts" }, "c1")] },

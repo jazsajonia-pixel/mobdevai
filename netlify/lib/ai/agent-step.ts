@@ -59,7 +59,7 @@ function anthropicContent(m: Extract<AgentMessage, { role: "user" }>): Anthropic
 /* ── OpenAI + compatible ─────────────────────────────────────────── */
 
 async function openAiStep(p: ResolvedProvider, input: StepInput): Promise<StepOutput> {
-  const name = p.kind === "openai" ? "OpenAI" : "The provider";
+  const name = p.kind === "openai" ? "OpenAI" : p.kind === "openrouter" ? "OpenRouter" : "The provider";
   const base = await openAiBase(p);
   const messages: unknown[] = [{ role: "system", content: input.system }];
   for (const m of input.messages) {

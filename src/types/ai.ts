@@ -1,6 +1,6 @@
 /** Wire types for AI provider configuration. API keys never appear in any of these. */
 
-export type ProviderKind = "openai" | "anthropic" | "gemini" | "openai-compatible";
+export type ProviderKind = "openai" | "anthropic" | "gemini" | "openrouter" | "openai-compatible";
 
 /** Where saved keys live. `session`: encrypted HTTP-only cookie, `database`: encrypted at rest. */
 export type ProviderStorage = "database" | "session" | "unavailable";
