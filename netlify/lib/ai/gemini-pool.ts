@@ -26,7 +26,9 @@ const cooldowns = new Map<string, number>();
 
 export const POOL_LIMITS = {
   /** Hard cap on key attempts per request (protects against request amplification). */
-  maxAttempts: 8,
+  // Keep this above the current supported pool size so a healthy key near the end of a
+  // ten-key configuration is not skipped during a quota burst, while remaining bounded.
+  maxAttempts: 12,
   /**
    * 5xx/timeouts are usually model-wide (e.g. "model is overloaded"), so every key fails the same
    * way and slowly. Try one more key, then return 503 + Retry-After and let the client re-send.

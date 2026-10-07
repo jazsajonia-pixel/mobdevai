@@ -188,11 +188,17 @@ export function AgentPanel({ project }: { project: AgentProject }) {
   }, [task?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Follow the conversation as it grows.
-  const size = task ? task.messages.length + Object.keys(task.proposal).length + task.status.length : 0;
+  const size = task ? task.messages.length + Object.keys(task.proposal).length + (task.activities ?? []).length + task.status.length : 0;
   useEffect(() => {
     const el = scroller.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (el && el.dataset.following === "true") el.scrollTop = el.scrollHeight;
   }, [size]);
+
+  function handleScroll() {
+    const el = scroller.current;
+    if (!el) return;
+    el.dataset.following = String(el.scrollHeight - el.scrollTop - el.clientHeight < 96);
+  }
 
   const ready = providers.state.status === "ready" ? providers.state.data : null;
   const def = ready?.providers.find((p) => p.id === ready.defaultId) ?? null;
@@ -265,7 +271,7 @@ export function AgentPanel({ project }: { project: AgentProject }) {
         </div>
       ) : (
         <>
-          <div ref={scroller} className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 sm:px-6" data-testid="agent-scroll">
+          <div ref={scroller} onScroll={handleScroll} data-following="true" className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 sm:px-6" data-testid="agent-scroll">
             <div className="mx-auto w-full min-w-0 max-w-3xl">
               {needsProvider ? (
                 <EmptyState
@@ -287,7 +293,6 @@ export function AgentPanel({ project }: { project: AgentProject }) {
                   {task.status === "running" || (task.activities ?? []).length > 0 ? <ActivityCard task={task} onRetry={agent.resume} /> : null}
                   <StatusLine task={task} onResume={agent.resume} />
                   {task.shipped ? <ShippedNote info={task.shipped} /> : null}
-                  <ProposalSummary proposal={task.proposal} onReview={() => setReviewOpen(true)} previewHref={projectPath(project.owner, project.repo, "preview")} />
                   {task.provider && task.status === "done" ? (
                     <p className="text-center font-mono text-[10px] text-muted-foreground">
                       {task.provider.label} · {task.provider.model}
@@ -302,11 +307,7 @@ export function AgentPanel({ project }: { project: AgentProject }) {
 
           <div className="shrink-0 px-3 pb-3 pt-1 sm:px-6 sm:pb-4">
             <div className="mx-auto w-full min-w-0 max-w-3xl">
-              {agent.pending.length && !reviewOpen ? (
-                <button type="button" onClick={() => setReviewOpen(true)} className="animate-pop mb-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary/10 text-sm font-medium text-primary" data-testid="bar-review">
-                  Review {agent.pending.length} proposed change{agent.pending.length === 1 ? "" : "s"}
-                </button>
-              ) : null}
+              {task ? <ProposalSummary proposal={task.proposal} onReview={() => setReviewOpen(true)} previewHref={projectPath(project.owner, project.repo, "preview")} /> : null}
               {composer}
             </div>
           </div>

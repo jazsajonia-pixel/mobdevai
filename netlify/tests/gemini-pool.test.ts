@@ -148,6 +148,18 @@ describe("withGeminiFailover", () => {
     expect(seen).toEqual(keys);
   });
 
+  it("reaches the last key in a ten-key pool during a quota burst", async () => {
+    const keys = Array.from({ length: 10 }, (_, i) => K(i + 1));
+    const seen: string[] = [];
+    const { value } = await withGeminiFailover({ model: MODEL, env: env(...keys) }, async ({ apiKey }) => {
+      seen.push(apiKey);
+      if (apiKey !== K(10)) throw quota();
+      return "last-key-ok";
+    });
+    expect(value).toBe("last-key-ok");
+    expect(seen).toEqual(keys);
+  });
+
   it("cooldowns are per model: a key limited on one model still serves another", async () => {
     await withGeminiFailover({ model: "gemini-3.8-flash", env: env(K(1), K(2)) }, async ({ apiKey }) => {
       if (apiKey === K(1)) throw quota("60s");

@@ -34,48 +34,28 @@ export function ProposalSummary({ proposal, onReview, previewHref }: { proposal:
   const files = proposalFiles(proposal);
   if (!files.length) return null;
   const pending = files.filter((f) => f.decision === "pending").length;
-  if (!pending) return null;
   return (
-    <section className="rounded-lg border bg-surface" aria-label="Proposed changes" data-testid="card-proposal">
-      <div className="flex items-center gap-2 border-b px-4 py-3">
+    <section className="rounded-xl border border-primary/25 bg-primary/[0.05] p-3" aria-label="Proposed changes" data-testid="card-proposal">
+      <div className="flex items-center gap-2">
         <FileDiffIcon className="size-4 text-primary" aria-hidden />
         <h3 className="flex-1 text-sm font-semibold">
-          Proposed changes · {files.length} file{files.length === 1 ? "" : "s"}
+          {pending ? "Proposed changes" : "Changes reviewed"}
         </h3>
-        {pending ? <span className="text-xs font-medium text-warning">{pending} to review</span> : <span className="text-xs text-muted-foreground">Reviewed</span>}
+        <span className="text-xs text-muted-foreground">{files.length} file{files.length === 1 ? "" : "s"}</span>
       </div>
-      <ul className="divide-y">
-        {files.map((f) => {
-          const st = statusOf(f);
-          const c = counts(f);
-          return (
-            <li key={f.path} className="flex min-h-11 items-center gap-2 px-4 py-2 text-xs">
-              <span className={cn("w-3 shrink-0 font-mono font-bold", LETTER_CLS[st])}>{LETTER[st]}</span>
-              <span className="min-w-0 flex-1 truncate font-mono">{f.path}</span>
-              <span className="shrink-0 font-mono text-muted-foreground tabular">
-                +{c.added} −{c.removed}
-              </span>
-              <span className={cn("w-16 shrink-0 text-right", f.decision === "accepted" ? "text-primary" : f.decision === "rejected" ? "text-muted-foreground line-through" : "text-warning")}>
-                {f.decision === "pending" ? "pending" : f.decision}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {pending ? `${pending} file${pending === 1 ? "" : "s"} waiting for your review` : "All proposed files have been reviewed."}
+      </p>
       {pending ? (
-        <div className="p-3">
-          <Button className="w-full" onClick={onReview} data-testid="button-review-changes">
-            Review {pending} change{pending === 1 ? "" : "s"}
-          </Button>
-        </div>
+        <Button className="mt-3 w-full" onClick={onReview} data-testid="button-review-changes">
+          Show files · Review {pending} change{pending === 1 ? "" : "s"}
+        </Button>
       ) : previewHref && files.some((f) => f.decision === "accepted") ? (
-        <div className="p-3">
-          <Button asChild variant="secondary" className="w-full">
-            <Link href={previewHref} data-testid="link-preview-changes">
-              <MonitorPlay className="size-4" aria-hidden /> Preview changes
-            </Link>
-          </Button>
-        </div>
+        <Button asChild variant="secondary" className="mt-3 w-full">
+          <Link href={previewHref} data-testid="link-preview-changes">
+            <MonitorPlay className="size-4" aria-hidden /> Preview changes
+          </Link>
+        </Button>
       ) : null}
     </section>
   );
