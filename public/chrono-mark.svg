@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" role="img" aria-labelledby="title desc">
+  <title id="title">Chrono mark</title>
+  <desc id="desc">A faceted, layered C ribbon encloses a block H monogram. A cyan cursor tile and endpoint suggest code advancing through time.</desc>
+  <defs>
+    <linearGradient id="chrono-ribbon" x1="12" y1="10" x2="58" y2="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#086DE1"/>
+      <stop offset="0.58" stop-color="#087FC7"/>
+      <stop offset="1" stop-color="#008F9E"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(4 0)">
+    <path d="M56 10H34C19.64 10 8 21.64 8 36s11.64 26 26 26h22V50H34c-7.73 0-14-6.27-14-14s6.27-14 14-14h22V10Z" fill="url(#chrono-ribbon)"/>
+    <path d="M45 10H56V22H51L45 16Z" fill="#29B6E5"/>
+    <path d="M45 62H56V50H51L45 56Z" fill="#007D96"/>
+    <path d="M36 26A10 10 0 0 0 36 46" fill="none" stroke="#008F9E" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M29 27H36V33H44V27H51V45H44V39H36V45H29Z" fill="#123552"/>
+    <path d="M44 36H52.5" fill="none" stroke="#008F9E" stroke-width="3.2" stroke-linecap="round"/>
+    <rect x="37.4" y="34.1" width="4.2" height="3.8" rx="0.7" fill="#06A9B5"/>
+    <rect x="52.5" y="33.1" width="6" height="5.8" rx="1.2" fill="#06A9B5"/>
+  </g>
+</svg>

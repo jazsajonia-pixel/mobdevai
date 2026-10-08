@@ -1,1 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><image href="/chrono-logo.png" width="100" height="100" preserveAspectRatio="xMidYMid meet"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" role="img" aria-labelledby="title">
+  <title id="title">Chrono</title>
+  <defs>
+    <linearGradient id="chrono-light" x1="12" y1="10" x2="58" y2="62" gradientUnits="userSpaceOnUse"><stop stop-color="#086DE1"/><stop offset="0.58" stop-color="#087FC7"/><stop offset="1" stop-color="#008F9E"/></linearGradient>
+    <linearGradient id="chrono-dark" x1="12" y1="10" x2="58" y2="62" gradientUnits="userSpaceOnUse"><stop stop-color="#39B9F2"/><stop offset="0.58" stop-color="#26B9E8"/><stop offset="1" stop-color="#16C9CE"/></linearGradient>
+    <style>
+      .ribbon { fill: url(#chrono-light); }
+      .facet-top { fill: #29B6E5; }
+      .facet-bottom { fill: #007D96; }
+      .track, .crossbar { stroke: #008F9E; }
+      .letter { fill: #123552; }
+      .pixel, .endpoint { fill: #06A9B5; }
+      @media (prefers-color-scheme: dark) {
+        .ribbon { fill: url(#chrono-dark); }
+        .facet-top { fill: #8AE6FF; }
+        .facet-bottom { fill: #0A9EB2; }
+        .track, .crossbar { stroke: #16C9CE; }
+        .letter { fill: #E6F1FA; }
+        .pixel, .endpoint { fill: #54DED6; }
+      }
+    </style>
+  </defs>
+  <g transform="translate(4 0)">
+    <path class="ribbon" d="M56 10H34C19.64 10 8 21.64 8 36s11.64 26 26 26h22V50H34c-7.73 0-14-6.27-14-14s6.27-14 14-14h22V10Z"/>
+    <path class="facet-top" d="M45 10H56V22H51L45 16Z"/>
+    <path class="facet-bottom" d="M45 62H56V50H51L45 56Z"/>
+    <path class="track" d="M36 26A10 10 0 0 0 36 46" fill="none" stroke-width="3.2" stroke-linecap="round"/>
+    <path class="letter" d="M29 27H36V33H44V27H51V45H44V39H36V45H29Z"/>
+    <path class="crossbar" d="M44 36H52.5" fill="none" stroke-width="3.2" stroke-linecap="round"/>
+    <rect class="pixel" x="37.4" y="34.1" width="4.2" height="3.8" rx="0.7"/>
+    <rect class="endpoint" x="52.5" y="33.1" width="6" height="5.8" rx="1.2"/>
+  </g>
+</svg>
