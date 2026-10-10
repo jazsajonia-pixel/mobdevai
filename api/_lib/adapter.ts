@@ -6,6 +6,7 @@ import aiProviders from "../../netlify/functions/ai-providers.js";
 import aiTestProvider from "../../netlify/functions/ai-test-provider.js";
 import authGithubCallback from "../../netlify/functions/auth-github-callback.js";
 import authGithubStart from "../../netlify/functions/auth-github-start.js";
+import authMobileExchange from "../../netlify/functions/auth-mobile-exchange.js";
 import authLogout from "../../netlify/functions/auth-logout.js";
 import authSession from "../../netlify/functions/auth-session.js";
 import clientErrors from "../../netlify/functions/client-errors.js";
@@ -92,6 +93,7 @@ function routeFor(pathname: string): Route | null {
   if (key === "auth/github/start") return { handler: authGithubStart };
   if (key === "auth/github/callback") return { handler: authGithubCallback };
   if (key === "auth/logout") return { handler: authLogout };
+  if (key === "auth/mobile/exchange") return { handler: authMobileExchange };
   if (key === "auth/session") return { handler: authSession };
   if (key === "ai/agent") return { handler: aiAgent };
   if (key === "ai/platform/gemini") return { handler: aiGeminiModel };
