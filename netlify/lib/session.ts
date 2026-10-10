@@ -28,10 +28,20 @@ export interface OAuthState {
   includePrivate: boolean;
 }
 
+/**
+ * Native app (chronoapp2) sessions: the same sealed session value, sent as
+ * `Authorization: Bearer <sealed>` instead of a cookie. Web requests never set this header.
+ */
+export function bearerSession(req: Request): string | undefined {
+  const h = req.headers.get("authorization");
+  const m = h ? /^Bearer\s+([A-Za-z0-9_-]{16,4096})\s*$/.exec(h) : null;
+  return m?.[1];
+}
+
 export async function readSession(req: Request): Promise<SessionData | null> {
   const secret = sessionSecret();
   if (!secret) return null;
-  const raw = parseCookies(req.headers.get("cookie"))[SESSION_COOKIE];
+  const raw = bearerSession(req) ?? parseCookies(req.headers.get("cookie"))[SESSION_COOKIE];
   const data = await unseal<SessionData>(raw, secret, "session");
   return data && data.v === 1 ? data : null;
 }
@@ -40,7 +50,7 @@ export async function readSession(req: Request): Promise<SessionData | null> {
 export async function requireSession(req: Request): Promise<SessionData> {
   const session = await readSession(req);
   if (!session) {
-    const hadCookie = SESSION_COOKIE in parseCookies(req.headers.get("cookie"));
+    const hadCookie = SESSION_COOKIE in parseCookies(req.headers.get("cookie")) || !!bearerSession(req);
     throw new HttpError(
       401,
       hadCookie ? "SESSION_EXPIRED" : "UNAUTHENTICATED",
@@ -51,11 +61,17 @@ export async function requireSession(req: Request): Promise<SessionData> {
   return session;
 }
 
-export async function sessionCookie(req: Request, data: Omit<SessionData, "v" | "exp">): Promise<string> {
+/** The sealed session value (cookie value on the web, bearer token in the native app). */
+export async function sealSession(data: Omit<SessionData, "v" | "exp">): Promise<{ value: string; exp: number }> {
   const secret = sessionSecret();
   if (!secret) throw new HttpError(503, "GITHUB_OAUTH_NOT_CONFIGURED", "SESSION_SECRET is not configured.");
   const exp = Math.floor(Date.now() / 1000) + SESSION_TTL;
   const value = await seal<SessionData>({ v: 1, exp, ...data }, secret, "session", SESSION_TTL);
+  return { value, exp };
+}
+
+export async function sessionCookie(req: Request, data: Omit<SessionData, "v" | "exp">): Promise<string> {
+  const { value } = await sealSession(data);
   return serializeCookie(SESSION_COOKIE, value, { maxAge: SESSION_TTL, secure: isSecureRequest(req), sameSite: "Lax" });
 }
 

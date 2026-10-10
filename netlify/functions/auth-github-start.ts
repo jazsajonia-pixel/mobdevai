@@ -7,8 +7,21 @@ import { stateCookie } from "../lib/session.js";
 import { scopesFor } from "../lib/github.js";
 import { assertSameOrigin, clientKey, rateLimit } from "../lib/security.js";
 import { parse } from "../lib/validate.js";
+import { CHALLENGE_RE, isAllowedMobileRedirect, sealMobileState } from "../lib/mobile-auth.js";
 
-const bodySchema = z.object({ includePrivate: z.boolean().default(false) }).strict();
+const bodySchema = z
+  .object({
+    includePrivate: z.boolean().default(false),
+    /** Native app sign-in (chronoapp2). Web clients never send this. */
+    mobile: z
+      .object({
+        redirectUri: z.string().max(256).refine(isAllowedMobileRedirect, "Invalid app redirect"),
+        codeChallenge: z.string().regex(CHALLENGE_RE, "Invalid code challenge"),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
 
 /**
  * POST /api/auth/github/start  { includePrivate?: boolean }
@@ -30,13 +43,19 @@ export default handle(["POST"], async (req, ctx) => {
   const raw = await req.text();
   const body = parse(bodySchema, raw ? safeJson(raw) : {}, "body");
 
-  const state = randomToken(24);
+  const nonce = randomToken(24);
+  const state = body.mobile
+    ? await sealMobileState({ nonce, includePrivate: body.includePrivate, redirectUri: body.mobile.redirectUri, codeChallenge: body.mobile.codeChallenge })
+    : nonce;
   const authorize = new URL(`${cfg.webUrl}/login/oauth/authorize`);
   authorize.searchParams.set("client_id", cfg.clientId);
   authorize.searchParams.set("redirect_uri", `${appOrigin(req)}/api/auth/github/callback`);
   authorize.searchParams.set("scope", scopesFor(body.includePrivate));
   authorize.searchParams.set("state", state);
   authorize.searchParams.set("allow_signup", "true");
+
+  // Mobile: the sealed state travels in the URL; no cookie (the app's browser has its own jar).
+  if (body.mobile) return json({ authorizeUrl: authorize.toString() });
 
   return json(
     { authorizeUrl: authorize.toString() },

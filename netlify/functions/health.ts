@@ -34,6 +34,7 @@ export default handle(["GET"], async (req, ctx) => {
     ready: r.ready,
     failing: r.checks.filter((c) => !c.ok).map((c) => ({ id: c.id, level: c.level })),
     capabilities: capabilities(),
+    mobileAuth: true,
     gemini: { keys: pool.configured, invalid: pool.invalid, coolingDefaultModel: pool.cooling, defaultModel: DEFAULT_GEMINI_MODEL, ...(geminiModels ? { availability: geminiModels } : {}) },
   });
 });
